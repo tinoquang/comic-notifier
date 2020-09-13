@@ -10,13 +10,13 @@ build: ${APP}
 ${APP}:
 	go build -o ${BINARY} ${MAIN}
 
-run:
+start:
 	./${BINARY}
+.PHONY: start
+
+
+run: build start
 .PHONY: run
-
-
-restart: build run
-.PHONY: restart
 
 clean:
 	rm -f ${BINARY}

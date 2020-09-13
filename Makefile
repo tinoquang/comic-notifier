@@ -1,15 +1,23 @@
 include .env
 export
 
-BINRARY=cmd/main.go
+MAIN=cmd/main.go
+BINARY=bin/${APP}
 
 
-
-build: notifier
+build: ${APP}
 
 ${APP}:
-	go build -o $@ ${BINRARY}
+	go build -o ${BINARY} ${MAIN}
+
+run:
+	./${BINARY}
+.PHONY: run
+
+
+restart: build run
+.PHONY: restart
 
 clean:
-	rm -f ${APP}
+	rm -f ${BINARY}
 .PHONY: clean

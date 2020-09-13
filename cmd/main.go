@@ -1,10 +1,15 @@
 package main
 
 import (
-	"fmt"
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
 
-	fmt.Println("Hello")
+	e := echo.New()
+
+	// Facebook webhook
+	FBHook := e.Group("/webook")
+
+	msg.RegisterHandler(FBhook)
 }

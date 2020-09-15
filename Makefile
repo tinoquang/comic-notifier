@@ -5,6 +5,9 @@ MAIN=cmd/main.go
 BINARY=bin/${APP}
 
 
+run: build start
+.PHONY: run
+
 build: ${APP}
 
 ${APP}:
@@ -15,8 +18,6 @@ start:
 .PHONY: start
 
 
-run: build start
-.PHONY: run
 
 clean:
 	rm -f ${BINARY}

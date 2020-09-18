@@ -1,5 +1,5 @@
-include .env
-export
+export APP=notifier
+export MODULE=comic-notifier
 
 MAIN=cmd/main.go
 BINARY=bin/${APP}
@@ -11,7 +11,7 @@ run: build start
 build: ${APP}
 
 ${APP}:
-	go build -o ${BINARY} ${MAIN}
+	go build -v -o ${BINARY} ${MAIN}
 
 start:
 	./${BINARY}

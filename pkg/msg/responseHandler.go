@@ -17,7 +17,6 @@ func sendTextBack(psid string, message string) {
 	}
 
 	response.callSendAPI()
-	return
 
 }
 
@@ -29,7 +28,6 @@ func sendActionBack(psid string, action string) {
 	}
 	util.Info("Send action " + action + " to user")
 	response.callSendAPI()
-
 }
 
 func (r *Response) callSendAPI() {
@@ -42,7 +40,7 @@ func (r *Response) callSendAPI() {
 		return
 	}
 
-	request, err := http.NewRequest("POST", glob.FacebookURL, body)
+	request, err := http.NewRequest("POST", messengerEndpoint, body)
 	if err != nil {
 		util.Danger(err)
 		return
@@ -51,7 +49,7 @@ func (r *Response) callSendAPI() {
 	// Add header and query params for request
 	request.Header.Add("Content-Type", "application/json")
 	q := request.URL.Query()
-	q.Add("access_token", glob.PageToken)
+	q.Add("access_token", pageToken)
 	request.URL.RawQuery = q.Encode()
 
 	// Create client to send request

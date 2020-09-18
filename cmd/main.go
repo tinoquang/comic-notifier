@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
 )
 
@@ -13,9 +15,13 @@ func main() {
 
 	e.GET("/", hello)
 
-	// Facebook webhook
-	msg.RegisterHandler(e.Group("/webhook"))
+	// Get environment variable
+	cfg := conf.New()
 
+	// Facebook webhook
+	msg.RegisterHandler(e.Group("/webhook"), cfg)
+
+	fmt.Println(cfg.Webhook.WebhookToken)
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))
 

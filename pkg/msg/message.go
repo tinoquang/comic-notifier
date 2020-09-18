@@ -4,11 +4,22 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
+var (
+	messengerEndpoint string
+	pageToken         string
+	webhookToken      string
+)
+
 // RegisterHandler : register webhook handler
-func RegisterHandler(g *echo.Group) {
+func RegisterHandler(g *echo.Group, cfg *conf.Config) {
+
+	messengerEndpoint = cfg.Webhook.MessengerEndpoint
+	webhookToken = cfg.Webhook.WebhookToken
+	pageToken = cfg.FBSecret.PakeToken
 
 	// Webhook verify message
 	g.GET("", verifyWebhook)
@@ -30,7 +41,7 @@ func verifyWebhook(c echo.Context) error {
 	token := c.QueryParam("hub.verify_token")
 	challenge := c.QueryParam("hub.challenge")
 
-	if mode == "subscribe" && token == "quangmt2" {
+	if mode == "subscribe" && token == webhookToken {
 		return c.String(http.StatusOK, challenge)
 	}
 
@@ -49,7 +60,7 @@ func userMsgHandler(c echo.Context) error {
 	if m.Object == "page" {
 		for _, entry := range m.Entries {
 			msg := entry.Messaging[0]
-			sendActionBack(msg.SenderID(), "mark_seen")
+			sendActionBack(msg.Sender.ID, "mark_seen")
 
 			if len(entry.Messaging) != 0 {
 				switch {

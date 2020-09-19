@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -53,8 +54,7 @@ func userMsgHandler(c echo.Context) error {
 	m := &UserMessage{}
 
 	if err := c.Bind(m); err != nil {
-		util.Danger(err)
-		return err
+		return errors.Wrap(err, "Can't parse message from messenger")
 	}
 
 	if m.Object == "page" {

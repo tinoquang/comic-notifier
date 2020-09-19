@@ -1,8 +1,11 @@
 package conf
 
 import (
+	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -36,24 +39,32 @@ type WorkerData struct {
 type Config struct {
 	Webhook  WebhookCfg
 	FBSecret FacebookSecret
+	DBInfo   string
 }
 
+// New return new configuration
 func New() *Config {
 	return &Config{
 		Webhook: WebhookCfg{
-			WebhookToken:      getEnv("WEBHOOK_TOKEN", ""),
-			MessengerEndpoint: getEnv("MESSENGER_ENDPOINT", ""),
+			WebhookToken:      getEnv("FBWEBHOOK_TOKEN", ""),
+			MessengerEndpoint: getEnv("FBWEBHOOK_MSG_ENDPOINT", ""),
 		},
 		FBSecret: FacebookSecret{
-			PakeToken: getEnv("PAGE_TOKEN", ""),
+			PakeToken: getEnv("FBSECRET_PAGE_TOKEN", ""),
 		},
+		DBInfo: getDBSecret(),
 	}
 }
 
 // Simple helper function to read an environment or return a default value
-func getEnv(key string, defaultVal string) string {
-	if value, exists := os.LookupEnv(key); exists {
+func getEnv(key string, defaultVal string) (value string) {
+	var exist bool
+	if value, exist = os.LookupEnv(key); exist {
 		return value
+	}
+
+	if defaultVal == "" && exist == false {
+		panic("Can't get environment var: " + key)
 	}
 
 	return defaultVal
@@ -67,4 +78,18 @@ func getEnvAsInt(name string, defaultVal int) int {
 	}
 
 	return defaultVal
+}
+
+func getDBSecret() string {
+	DBConfig, err := url.Parse(getEnv("DBSECRET_URL", ""))
+
+	if err != nil {
+		panic(err)
+	}
+
+	password, _ := DBConfig.User.Password()
+
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
+		DBConfig.Hostname(), DBConfig.Port(), DBConfig.User.Username(), password, strings.Trim(DBConfig.Path, "/"))
+	return psqlInfo
 }

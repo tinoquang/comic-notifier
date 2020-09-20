@@ -9,7 +9,7 @@ type UserMessage struct {
 }
 
 // Entry message from each page
-// meaning each POST message can contain more than one message from each page
+// meaning each POST message can contains more than one message from each page
 type Entry struct {
 	ID        string      `json:"id,omitempty"` // Page ID
 	Time      int         `json:"time,omitempty"`
@@ -43,7 +43,7 @@ type RecvPostBack struct {
 	Payload string `json:"payload,omitempty"`
 }
 
-// User struct contain ID of Sender and Recipient
+// User struct contains ID of Sender and Recipient
 type User struct {
 	ID string `json:"id,omitempty"`
 }
@@ -88,7 +88,7 @@ type Element struct {
 	Buttons       []Button `json:"buttons,omitempty"`
 }
 
-// Action : contain URL of comic
+// Action : contains URL of comic
 type Action struct {
 	Type string `json:"type,omitempty"`
 	URL  string `json:"url,omitempty"`

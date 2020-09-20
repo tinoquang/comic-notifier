@@ -1,11 +1,9 @@
 package msg
 
 import (
-	"net/url"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/store"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 /*---------Request message method------------*/
@@ -17,20 +15,20 @@ func (m *Messaging) textHandler(store *store.Stores) {
 	sendActionBack(m.Sender.ID, "typing_on")
 	time.Sleep(time.Second * 5)
 
-	userURL := m.Message.Text
+	// userURL := m.Message.Text
 
 	// Check page support, if not send back "Page is not supported"
-	page, err := data.ValidatePage(userURL)
-	if err != nil {
-		u, err := url.Parse(userURL)
-		if err != nil {
-			util.Debug(err)
-			sendTextBack(m.Sender.ID, "Please check your link!")
-			return
-		}
-		sendTextBack(m.Sender.ID, "Sorry, "+u.Hostname()+" is not supported yet!")
-		return
-	}
+	// page, err := data.ValidatePage(userURL)
+	// if err != nil {
+	// 	u, err := url.Parse(userURL)
+	// 	if err != nil {
+	// 		util.Debug(err)
+	// 		sendTextBack(m.Sender.ID, "Please check your link!")
+	// 		return
+	// 	}
+	// 	sendTextBack(m.Sender.ID, "Sorry, "+u.Hostname()+" is not supported yet!")
+	// 	return
+	// }
 
 	// // Page URL validated, now check comics already in database
 	// util.Info("Validated " + page.Name)

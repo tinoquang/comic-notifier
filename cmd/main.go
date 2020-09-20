@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -23,7 +22,6 @@ func main() {
 	// Connect to DB
 	dbconn := db.New(*cfg)
 
-	fmt.Println(dbconn)
 	s := store.New(dbconn, cfg)
 	// Facebook webhook
 	msg.RegisterHandler(e.Group("/webhook"), cfg, s)

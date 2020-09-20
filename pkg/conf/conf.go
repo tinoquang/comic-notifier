@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -37,9 +39,10 @@ type WorkerData struct {
 
 // Config main struct for get config from env
 type Config struct {
-	Webhook  WebhookCfg
-	FBSecret FacebookSecret
-	DBInfo   string
+	Webhook     WebhookCfg
+	FBSecret    FacebookSecret
+	DBInfo      string
+	PageSupport *model.PageList
 }
 
 // New return new configuration
@@ -52,7 +55,8 @@ func New() *Config {
 		FBSecret: FacebookSecret{
 			PakeToken: getEnv("FBSECRET_PAGE_TOKEN", ""),
 		},
-		DBInfo: getDBSecret(),
+		DBInfo:      getDBSecret(),
+		PageSupport: getPageSupport(),
 	}
 }
 
@@ -92,4 +96,24 @@ func getDBSecret() string {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
 		DBConfig.Hostname(), DBConfig.Port(), DBConfig.User.Username(), password, strings.Trim(DBConfig.Path, "/"))
 	return psqlInfo
+}
+
+func getPageSupport() *model.PageList {
+
+	jsonFile, err := os.Open("./pkg/conf/page_support.json")
+	if err != nil {
+		panic(err)
+	}
+
+	defer jsonFile.Close()
+
+	decoder := json.NewDecoder(jsonFile)
+
+	pages := new(model.PageList)
+	err = decoder.Decode(pages)
+	if err != nil {
+		panic(err)
+	}
+
+	return pages
 }

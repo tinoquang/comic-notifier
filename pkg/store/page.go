@@ -76,7 +76,7 @@ func (p *pageDB) GetByName(ctx context.Context, name string) (*model.Page, error
 // }
 
 func (p *pageDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Page, error) {
-	rows, err := p.dbconn.QueryContext(ctx, "SELECT id, name FROM pages "+query, args...)
+	rows, err := p.dbconn.QueryContext(ctx, "SELECT * FROM pages "+query, args...)
 	if err != nil {
 		return nil, err
 	}

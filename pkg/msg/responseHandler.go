@@ -10,32 +10,32 @@ import (
 
 func sendTextBack(psid string, message string) {
 
-	response := Response{
+	response := &Response{
 		Type:      "RESPONSE",
 		Recipient: &User{ID: psid},
 		Message:   &RespMsg{Text: message},
 	}
 
-	response.callSendAPI()
-
+	callSendAPI(response)
 }
 
 func sendActionBack(psid string, action string) {
-	response := Response{
+	response := &Response{
 		Type:      "RESPONSE",
 		Recipient: &User{ID: psid},
 		Action:    action,
 	}
 	util.Info("Send action " + action + " to user")
-	response.callSendAPI()
+
+	callSendAPI(response)
 }
 
-func (r *Response) callSendAPI() {
+func callSendAPI(r *Response) {
 
 	body := new(bytes.Buffer)
 	encoder := json.NewEncoder(body)
 
-	if err := encoder.Encode(&r.Message.Text); err != nil {
+	if err := encoder.Encode(&r); err != nil {
 		util.Danger(err)
 		return
 	}

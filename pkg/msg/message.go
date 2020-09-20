@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -15,22 +16,28 @@ var (
 	webhookToken      string
 )
 
+type msgHandler struct {
+	store *store.Stores
+}
+
 // RegisterHandler : register webhook handler
-func RegisterHandler(g *echo.Group, cfg *conf.Config) {
+func RegisterHandler(g *echo.Group, cfg *conf.Config, store *store.Stores) {
 
 	messengerEndpoint = cfg.Webhook.MessengerEndpoint
 	webhookToken = cfg.Webhook.WebhookToken
 	pageToken = cfg.FBSecret.PakeToken
 
+	h := msgHandler{store: store}
+
 	// Webhook verify message
-	g.GET("", verifyWebhook)
+	g.GET("", h.verifyWebhook)
 
 	// Handle user message
-	g.POST("", userMsgHandler)
+	g.POST("", h.parseUserMsg)
 
 }
 
-func verifyWebhook(c echo.Context) error {
+func (h *msgHandler) verifyWebhook(c echo.Context) error {
 
 	params := c.QueryString()
 
@@ -49,7 +56,7 @@ func verifyWebhook(c echo.Context) error {
 	return c.String(http.StatusBadRequest, "Invalid token")
 }
 
-func userMsgHandler(c echo.Context) error {
+func (h *msgHandler) parseUserMsg(c echo.Context) error {
 
 	m := &UserMessage{}
 
@@ -71,7 +78,7 @@ func userMsgHandler(c echo.Context) error {
 					util.Info("quick reply")
 				// 		go returnToQuickReply(&entry.Messaging[0])
 				case entry.Messaging[0].Message.Text != "":
-					go msg.textHandler()
+					go msg.textHandler(h.store)
 				default:
 					util.Warning("Only support text, postback and quick-reply !!!")
 				}

@@ -8,6 +8,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
+	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
 func main() {
@@ -23,8 +24,9 @@ func main() {
 	dbconn := db.New(*cfg)
 
 	fmt.Println(dbconn)
+	s := store.New(dbconn, cfg)
 	// Facebook webhook
-	msg.RegisterHandler(e.Group("/webhook"), cfg)
+	msg.RegisterHandler(e.Group("/webhook"), cfg, s)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))

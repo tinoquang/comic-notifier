@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/server"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -16,18 +16,31 @@ var (
 	webhookToken      string
 )
 
+// RequestHandler main handler for incoming HTTP request
+type RequestHandler struct {
+	svr server.SvrInterface
+}
+
 type msgHandler struct {
-	store *store.Stores
+	svr server.SvrInterface
+	req Messaging
+}
+
+func newMsgHandler(svr server.SvrInterface, req Messaging) *msgHandler {
+	return &msgHandler{
+		svr: svr,
+		req: req,
+	}
 }
 
 // RegisterHandler : register webhook handler
-func RegisterHandler(g *echo.Group, cfg *conf.Config, store *store.Stores) {
+func RegisterHandler(g *echo.Group, cfg *conf.Config, svr server.SvrInterface) {
 
 	messengerEndpoint = cfg.Webhook.MessengerEndpoint
 	webhookToken = cfg.Webhook.WebhookToken
 	pageToken = cfg.FBSecret.PakeToken
 
-	h := msgHandler{store: store}
+	h := RequestHandler{svr: svr}
 
 	// Webhook verify message
 	g.GET("", h.verifyWebhook)
@@ -37,7 +50,7 @@ func RegisterHandler(g *echo.Group, cfg *conf.Config, store *store.Stores) {
 
 }
 
-func (h *msgHandler) verifyWebhook(c echo.Context) error {
+func (h *RequestHandler) verifyWebhook(c echo.Context) error {
 
 	params := c.QueryString()
 
@@ -56,7 +69,7 @@ func (h *msgHandler) verifyWebhook(c echo.Context) error {
 	return c.String(http.StatusBadRequest, "Invalid token")
 }
 
-func (h *msgHandler) parseUserMsg(c echo.Context) error {
+func (h *RequestHandler) parseUserMsg(c echo.Context) error {
 
 	m := &UserMessage{}
 
@@ -66,8 +79,10 @@ func (h *msgHandler) parseUserMsg(c echo.Context) error {
 
 	if m.Object == "page" {
 		for _, entry := range m.Entries {
-			msg := entry.Messaging[0]
-			sendActionBack(msg.Sender.ID, "mark_seen")
+			mh := newMsgHandler(h.svr, entry.Messaging[0])
+
+			// Mark message as "seen"
+			mh.sendActionBack("mark_seen")
 
 			if len(entry.Messaging) != 0 {
 				switch {
@@ -78,7 +93,7 @@ func (h *msgHandler) parseUserMsg(c echo.Context) error {
 					util.Info("quick reply")
 				// 		go returnToQuickReply(&entry.Messaging[0])
 				case entry.Messaging[0].Message.Text != "":
-					go msg.textHandler(h.store)
+					go mh.handleText()
 				default:
 					util.Warning("Only support text, postback and quick-reply !!!")
 				}

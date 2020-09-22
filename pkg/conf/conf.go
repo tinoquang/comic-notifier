@@ -10,15 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
-
-// init is invoked before main()
-func init() {
-	if err := godotenv.Load(); err != nil {
-		util.Danger("Can't load env file")
-	}
-}
 
 // WebhookCfg for facebook webhook
 type WebhookCfg struct {
@@ -47,6 +39,11 @@ type Config struct {
 
 // New return new configuration
 func New() *Config {
+
+	if err := godotenv.Load(".env"); err != nil {
+		panic("Can't load env file")
+	}
+
 	return &Config{
 		Webhook: WebhookCfg{
 			WebhookToken:      getEnv("FBWEBHOOK_TOKEN", ""),

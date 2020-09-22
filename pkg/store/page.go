@@ -13,6 +13,7 @@ import (
 // PageInterface contain page's interact method
 type PageInterface interface {
 	GetByName(ctx context.Context, name string) (*model.Page, error)
+	// List
 }
 
 type pageDB struct {

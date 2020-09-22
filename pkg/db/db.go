@@ -8,7 +8,7 @@ import (
 )
 
 // New return new DB connection
-func New(cfg conf.Config) *sql.DB {
+func New(cfg *conf.Config) *sql.DB {
 
 	Db, err := sql.Open("postgres", cfg.DBInfo)
 	if err != nil {

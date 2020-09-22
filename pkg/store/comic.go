@@ -12,6 +12,9 @@ import (
 // ComicInterface contains comic's interact method
 type ComicInterface interface {
 	GetByURL()
+	// Create()
+	// Update()
+	// List()
 }
 
 type comicDB struct {

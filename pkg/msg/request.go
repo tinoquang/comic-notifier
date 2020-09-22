@@ -1,35 +1,55 @@
 package msg
 
 import (
+	"context"
+	"fmt"
+	"net/url"
 	"time"
 
-	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 /*---------Request message method------------*/
+func (mh *msgHandler) getID(name string) string {
+	switch name {
+	case "sender":
+		return mh.req.Sender.ID
+	default:
+		util.Warning("Invalid type to get ID")
+		return ""
+	}
+}
+
+func (mh *msgHandler) getContent() string {
+	return mh.req.Message.Text
+}
 
 // Handle text message from user
 // Only handle comic page link, other message type is discarded
-func (m *Messaging) textHandler(store *store.Stores) {
+func (mh *msgHandler) handleText() {
 
-	sendActionBack(m.Sender.ID, "typing_on")
-	time.Sleep(time.Second * 5)
+	mh.sendActionBack("typing_on")
+	defer mh.sendActionBack("typing_off")
 
-	// userURL := m.Message.Text
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pageURL, err := url.Parse(mh.getContent())
+	if err != nil {
+		mh.sendTextBack("Please check your link !")
+		util.Danger(err)
+		return
+	}
 
 	// Check page support, if not send back "Page is not supported"
-	// page, err := data.ValidatePage(userURL)
-	// if err != nil {
-	// 	u, err := url.Parse(userURL)
-	// 	if err != nil {
-	// 		util.Debug(err)
-	// 		sendTextBack(m.Sender.ID, "Please check your link!")
-	// 		return
-	// 	}
-	// 	sendTextBack(m.Sender.ID, "Sorry, "+u.Hostname()+" is not supported yet!")
-	// 	return
-	// }
+	page, err := mh.svr.GetPage(ctx, pageURL.Hostname())
+	if err != nil {
+		util.Danger(err)
+		mh.sendTextBack("Sorry, page " + pageURL.Hostname() + " is not supported yet!")
+		return
+	}
 
+	fmt.Println(page)
 	// // Page URL validated, now check comics already in database
 	// util.Info("Validated " + page.Name)
 	// comic, err := data.GetComic(userURL)
@@ -99,5 +119,4 @@ func (m *Messaging) textHandler(store *store.Stores) {
 	// util.Info("Parsing complelte, send URL back to user")
 	// // send back message in template with buttons
 	// sendNormalReply(m.Sender.ID, &comic)
-	sendActionBack(m.Sender.ID, "typing_off")
 }

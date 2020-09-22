@@ -1,12 +1,11 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
+	"github.com/tinoquang/comic-notifier/pkg/server"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
@@ -14,23 +13,22 @@ func main() {
 
 	e := echo.New()
 
-	e.GET("/", hello)
-
 	// Get environment variable
 	cfg := conf.New()
 
 	// Connect to DB
-	dbconn := db.New(*cfg)
+	dbconn := db.New(cfg)
 
+	// Init DB handler
 	s := store.New(dbconn, cfg)
+
+	// Init main business logic server
+	svr := server.New(cfg, s)
+
 	// Facebook webhook
-	msg.RegisterHandler(e.Group("/webhook"), cfg, s)
+	msg.RegisterHandler(e.Group("/webhook"), cfg, svr)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))
 
-}
-
-func hello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello world")
 }

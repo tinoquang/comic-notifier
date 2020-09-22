@@ -8,26 +8,27 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-func sendTextBack(psid string, message string) {
+func (mh *msgHandler) sendTextBack(message string) {
 
-	response := &Response{
+	res := &Response{
 		Type:      "RESPONSE",
-		Recipient: &User{ID: psid},
+		Recipient: &User{ID: mh.getID("sender")},
 		Message:   &RespMsg{Text: message},
 	}
 
-	callSendAPI(response)
+	callSendAPI(res)
 }
 
-func sendActionBack(psid string, action string) {
-	response := &Response{
+func (mh *msgHandler) sendActionBack(action string) {
+
+	res := &Response{
 		Type:      "RESPONSE",
-		Recipient: &User{ID: psid},
+		Recipient: &User{ID: mh.getID("sender")},
 		Action:    action,
 	}
 	util.Info("Send action " + action + " to user")
 
-	callSendAPI(response)
+	callSendAPI(res)
 }
 
 func callSendAPI(r *Response) {

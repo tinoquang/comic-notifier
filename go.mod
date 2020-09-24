@@ -3,7 +3,9 @@ module github.com/tinoquang/comic-notifier
 go 1.13
 
 require (
+	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/apex/log v1.9.0
+	github.com/go-errors/errors v1.1.1
 	github.com/joho/godotenv v1.3.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.1.17

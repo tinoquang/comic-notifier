@@ -3,7 +3,6 @@ package msg
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -34,46 +33,13 @@ func (mh *msgHandler) handleText() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	pageURL, err := url.Parse(mh.getContent())
+	comic, err := mh.svr.SubscribeComic(ctx, mh.getContent())
 	if err != nil {
-		mh.sendTextBack("Please check your link !")
-		util.Danger(err)
+		mh.sendTextBack(err.Error())
 		return
 	}
 
-	// Check page support, if not send back "Page is not supported"
-	page, err := mh.svr.GetPage(ctx, pageURL.Hostname())
-	if err != nil {
-		util.Danger(err)
-		mh.sendTextBack("Sorry, page " + pageURL.Hostname() + " is not supported yet!")
-		return
-	}
-
-	fmt.Println(page)
-	// // Page URL validated, now check comics already in database
-	// util.Info("Validated " + page.Name)
-	// comic, err := data.GetComic(userURL)
-
-	// // If comic is not in database, query it's latest chap,
-	// // add to database, then prepare response with latest chapter URL
-	// if err != nil {
-
-	// 	util.Info("Comic is not in DB yet, insert it")
-	// 	comic.ComicURL = userURL
-	// 	err := GetLatestChapter(&comic)
-	// 	if err != nil {
-	// 		util.Danger(err)
-	// 		sendTextBack(m.Sender.ID, "Please check your URL !!!")
-	// 		return
-	// 	}
-
-	// 	err = data.AddComic(&comic)
-	// 	if err != nil {
-	// 		util.Danger(err)
-	// 		sendTextBack(m.Sender.ID, "Try again later !")
-	// 		return
-	// 	}
-	// }
+	fmt.Println("comic", comic)
 
 	// // Validate users is in user DB or not
 	// // If not, add user to database, return "Subscribed to ..."

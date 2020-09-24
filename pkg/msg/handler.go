@@ -1,12 +1,13 @@
 package msg
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/server"
+	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -16,17 +17,23 @@ var (
 	webhookToken      string
 )
 
+// ServerInterface contain all server's method
+type ServerInterface interface {
+	GetPage(ctx context.Context, name string) (*model.Page, error)
+	SubscribeComic(ctx context.Context, link string) (*model.Comic, error)
+}
+
 // RequestHandler main handler for incoming HTTP request
 type RequestHandler struct {
-	svr server.SvrInterface
+	svr ServerInterface
 }
 
 type msgHandler struct {
-	svr server.SvrInterface
+	svr ServerInterface
 	req Messaging
 }
 
-func newMsgHandler(svr server.SvrInterface, req Messaging) *msgHandler {
+func newMsgHandler(svr ServerInterface, req Messaging) *msgHandler {
 	return &msgHandler{
 		svr: svr,
 		req: req,
@@ -34,7 +41,7 @@ func newMsgHandler(svr server.SvrInterface, req Messaging) *msgHandler {
 }
 
 // RegisterHandler : register webhook handler
-func RegisterHandler(g *echo.Group, cfg *conf.Config, svr server.SvrInterface) {
+func RegisterHandler(g *echo.Group, cfg *conf.Config, svr ServerInterface) {
 
 	messengerEndpoint = cfg.Webhook.MessengerEndpoint
 	webhookToken = cfg.Webhook.WebhookToken

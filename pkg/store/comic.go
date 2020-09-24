@@ -4,14 +4,14 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // ComicInterface contains comic's interact method
 type ComicInterface interface {
-	GetByURL()
+	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
 	// Create()
 	// Update()
 	// List()
@@ -27,9 +27,9 @@ func NewComicStore(dbconn *sql.DB, cfg *conf.Config) ComicInterface {
 	return &comicDB{dbconn: dbconn, cfg: cfg}
 }
 
-func (c *comicDB) GetByURL() {
+func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error) {
 
-	util.Info("Comic getbyURL")
+	return nil, errors.New("Cant find")
 }
 
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {

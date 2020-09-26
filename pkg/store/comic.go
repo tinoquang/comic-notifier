@@ -7,12 +7,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // ComicInterface contains comic's interact method
 type ComicInterface interface {
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
-	// Create()
+	Create(ctx context.Context, comic *model.Comic) (*model.Comic, error)
 	// Update()
 	// List()
 }
@@ -29,12 +30,29 @@ func NewComicStore(dbconn *sql.DB, cfg *conf.Config) ComicInterface {
 
 func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error) {
 
-	return nil, errors.New("Cant find")
+	comics, err := c.getBySQL(ctx, "WHERE url=$1 LIMIT 1", URL)
+	if err != nil {
+		util.Danger()
+		return nil, err
+	}
+
+	if len(comics) == 0 {
+		util.Danger()
+		return nil, errors.New("Comic not found")
+	}
+
+	return &comics[0], nil
+}
+
+func (c *comicDB) Create(ctx context.Context, comic *model.Comic) (*model.Comic, error) {
+
+	return nil, nil
 }
 
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {
 	rows, err := c.dbconn.QueryContext(ctx, "SELECT * FROM comics "+query, args...)
 	if err != nil {
+		util.Danger()
 		return nil, err
 	}
 
@@ -44,12 +62,14 @@ func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{
 		comic := model.Comic{}
 		err := rows.Scan(&comic.ID, &comic.Name, &comic.URL, &comic.ImageURL, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
 		if err != nil {
+			util.Danger()
 			return nil, err
 		}
 
 		comics = append(comics, comic)
 	}
 	if err = rows.Err(); err != nil {
+		util.Danger()
 		return nil, err
 	}
 

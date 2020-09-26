@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // PageInterface contain page's interact method
@@ -62,10 +63,12 @@ func (p *pageDB) GetByName(ctx context.Context, name string) (*model.Page, error
 
 	pages, err := p.getBySQL(ctx, "WHERE name=$1 LIMIT 1", name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get page with name: %s\n", name)
+		util.Danger()
+		return nil, err
 	}
 
 	if len(pages) == 0 {
+		util.Danger()
 		return nil, errors.New(fmt.Sprintf("Page %s not found", name))
 	}
 
@@ -79,6 +82,7 @@ func (p *pageDB) GetByName(ctx context.Context, name string) (*model.Page, error
 func (p *pageDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Page, error) {
 	rows, err := p.dbconn.QueryContext(ctx, "SELECT * FROM pages "+query, args...)
 	if err != nil {
+		util.Danger()
 		return nil, err
 	}
 
@@ -94,6 +98,7 @@ func (p *pageDB) getBySQL(ctx context.Context, query string, args ...interface{}
 		pages = append(pages, page)
 	}
 	if err = rows.Err(); err != nil {
+		util.Danger()
 		return nil, err
 	}
 

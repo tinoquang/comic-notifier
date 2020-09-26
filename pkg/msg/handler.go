@@ -20,7 +20,7 @@ var (
 // ServerInterface contain all server's method
 type ServerInterface interface {
 	GetPage(ctx context.Context, name string) (*model.Page, error)
-	SubscribeComic(ctx context.Context, link string) (*model.Comic, error)
+	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error)
 }
 
 // RequestHandler main handler for incoming HTTP request
@@ -43,7 +43,7 @@ func newMsgHandler(svr ServerInterface, req Messaging) *msgHandler {
 // RegisterHandler : register webhook handler
 func RegisterHandler(g *echo.Group, cfg *conf.Config, svr ServerInterface) {
 
-	messengerEndpoint = cfg.Webhook.MessengerEndpoint
+	messengerEndpoint = cfg.Webhook.GraphEndpoint + "me/messages"
 	webhookToken = cfg.Webhook.WebhookToken
 	pageToken = cfg.FBSecret.PakeToken
 

@@ -28,8 +28,8 @@ func (s *Server) initComicHandler() {
 
 }
 
-// GetLatestChapter return link of latest chapter of a page
-func (s *Server) getLatestChapter(ctx context.Context, page string, comic *model.Comic) (err error) {
+// getComicInfo return link of latest chapter of a page
+func (s *Server) getComicInfo(ctx context.Context, page string, comic *model.Comic) (err error) {
 
 	defer func() {
 		if err := recover(); err != nil {

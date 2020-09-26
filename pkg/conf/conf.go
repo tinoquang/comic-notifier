@@ -14,13 +14,16 @@ import (
 
 // WebhookCfg for facebook webhook
 type WebhookCfg struct {
-	WebhookToken      string
-	MessengerEndpoint string
+	WebhookToken  string
+	GraphEndpoint string
 }
 
 // FacebookSecret include token and app secret facebook provide
 type FacebookSecret struct {
 	PakeToken string
+	AppID     string
+	AppSecret string
+	AppToken  string
 }
 
 // WorkerData for workerpool configuration
@@ -46,11 +49,14 @@ func New() *Config {
 
 	return &Config{
 		Webhook: WebhookCfg{
-			WebhookToken:      getEnv("FBWEBHOOK_TOKEN", ""),
-			MessengerEndpoint: getEnv("FBWEBHOOK_MSG_ENDPOINT", ""),
+			WebhookToken:  getEnv("FBWEBHOOK_TOKEN", ""),
+			GraphEndpoint: getEnv("FBWEBHOOK_GRAPH_ENDPOINT", ""),
 		},
 		FBSecret: FacebookSecret{
 			PakeToken: getEnv("FBSECRET_PAGE_TOKEN", ""),
+			AppID:     getEnv("FBSECRET_APP_ID", ""),
+			AppSecret: getEnv("FBSECRET_APP_SECRET", ""),
+			AppToken:  getEnv("FBSECRET_APP_TOKEN", ""),
 		},
 		DBInfo:      getDBSecret(),
 		PageSupport: getPageSupport(),

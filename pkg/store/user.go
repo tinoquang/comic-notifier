@@ -12,7 +12,7 @@ import (
 
 // UserInterface contain user's interact method
 type UserInterface interface {
-	Get(ctx context.Context, field string, id string) (*model.User, error)
+	GetByID(ctx context.Context, field, id string) (*model.User, error)
 }
 
 type userDB struct {
@@ -25,15 +25,16 @@ func NewUserStore(dbconn *sql.DB, cfg *conf.Config) UserInterface {
 	return &userDB{dbconn: dbconn, cfg: cfg}
 }
 
-func (u *userDB) Get(ctx context.Context, field string, id string) (*model.User, error) {
-	query := "WHERE " + field + "=$1 LIMIT 1"
+// field is either psid or appid
+func (u *userDB) GetByID(ctx context.Context, field, id string) (*model.User, error) {
+	query := "WHERE " + field + "=$1"
 	users, err := u.getBySQL(ctx, query, id)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get customer by id: %s", id)
+		return nil, errors.Wrapf(err, "failed to get customer with %s: %s", field, id)
 	}
 
 	if len(users) == 0 {
-		return nil, errors.New(fmt.Sprintf("User %s not found", id))
+		return &model.User{}, errors.New(fmt.Sprintf("User not found, %s:%s", field, id))
 	}
 
 	return &users[0], nil

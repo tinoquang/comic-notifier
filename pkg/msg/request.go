@@ -19,7 +19,7 @@ func (mh *msgHandler) getID(name string) string {
 	}
 }
 
-func (mh *msgHandler) getContent() string {
+func (mh *msgHandler) getUserMsg() string {
 	return mh.req.Message.Text
 }
 
@@ -33,7 +33,7 @@ func (mh *msgHandler) handleText() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	comic, err := mh.svr.SubscribeComic(ctx, mh.getContent())
+	comic, err := mh.svr.SubscribeComic(ctx, "psid", mh.getID("sender"), mh.getUserMsg())
 	if err != nil {
 		mh.sendTextBack(err.Error())
 		return

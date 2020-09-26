@@ -37,7 +37,7 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 	}
 
 	if len(comics) == 0 {
-		return nil, errors.New("Comic not found")
+		return &model.Comic{}, errors.New("Comic not found")
 	}
 
 	return &comics[0], nil

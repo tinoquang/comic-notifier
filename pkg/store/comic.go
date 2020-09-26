@@ -13,7 +13,7 @@ import (
 // ComicInterface contains comic's interact method
 type ComicInterface interface {
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
-	Create(ctx context.Context, comic *model.Comic) (*model.Comic, error)
+	Create(ctx context.Context, comic *model.Comic) error
 	// Update()
 	// List()
 }
@@ -30,23 +30,25 @@ func NewComicStore(dbconn *sql.DB, cfg *conf.Config) ComicInterface {
 
 func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error) {
 
-	comics, err := c.getBySQL(ctx, "WHERE url=$1 LIMIT 1", URL)
+	comics, err := c.getBySQL(ctx, "WHERE url=$1", URL)
 	if err != nil {
 		util.Danger()
 		return nil, err
 	}
 
 	if len(comics) == 0 {
-		util.Danger()
 		return nil, errors.New("Comic not found")
 	}
 
 	return &comics[0], nil
 }
 
-func (c *comicDB) Create(ctx context.Context, comic *model.Comic) (*model.Comic, error) {
+func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
-	return nil, nil
+	query := "insert into comics (name, url, image_url, latest_chap, chap_url, date, date_format) values ($1, $2, $3, $4, $5, $6, $7) returning id"
+
+	return c.dbconn.QueryRowContext(ctx, query, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat).Scan(&comic.ID)
+
 }
 
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {

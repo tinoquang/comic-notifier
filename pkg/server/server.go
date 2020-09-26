@@ -73,6 +73,13 @@ func (s *Server) SubscribeComic(ctx context.Context, comicURL string) (*model.Co
 			return nil, errors.New("Please check your URL")
 		}
 
+		// Add new comic to DB
+		err = s.store.Comic.Create(ctx, comic)
+		if err != nil {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
+		}
+
 		fmt.Printf("%+v\n", comic)
 	}
 

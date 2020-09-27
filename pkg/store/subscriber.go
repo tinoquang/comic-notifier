@@ -16,6 +16,7 @@ type SubscriberInterface interface {
 	Get(ctx context.Context, userid, comicid int) (*model.Subscriber, error)
 	GetByID(ctx context.Context, id int) (*model.Subscriber, error)
 	Create(ctx context.Context, subscriber *model.Subscriber) error
+	Delete(ctx context.Context, id int) error
 }
 
 type subscriberDB struct {
@@ -68,6 +69,13 @@ func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber)
 			ctx, query, subscriber.Page, subscriber.UserID, subscriber.UserName, subscriber.ComicID, subscriber.ComicName,
 		).Scan(&subscriber.ID)
 	})
+	return err
+}
+
+func (s *subscriberDB) Delete(ctx context.Context, id int) error {
+
+	query := "DELETE FROM subscribers WHERE id=$1"
+	_, err := s.dbconn.ExecContext(ctx, query, id)
 	return err
 }
 

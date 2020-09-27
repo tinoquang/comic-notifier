@@ -86,7 +86,7 @@ func (mh *msgHandler) sendQuickReplyChoice(s *model.Subscriber) {
 				{
 					Type:     "text",
 					Title:    "Yes",
-					Payload:  strconv.Itoa(s.ComicID),
+					Payload:  strconv.Itoa(s.ID),
 					ImageURL: "https://www.vhv.rs/dpng/d/356-3568543_check-icon-green-tick-hd-png-download.png",
 				},
 				{

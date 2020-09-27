@@ -71,3 +71,37 @@ func (mh *msgHandler) handlePostback() {
 	mh.sendQuickReplyChoice(s)
 	return
 }
+
+func (mh *msgHandler) handleQuickReply() {
+
+	mh.sendActionBack("typing_on")
+	defer mh.sendActionBack("typing_off")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
+	if mh.req.Message.QuickReply.Payload == "Not unsub" {
+		return
+	}
+
+	subID, err := strconv.Atoi(mh.req.Message.QuickReply.Payload)
+
+	s, err := mh.svr.GetSubscriber(ctx, subID)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			mh.sendTextBack(fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
+			return
+		}
+		util.Danger(err)
+		return
+	}
+
+	err = mh.svr.UnsubscribeComic(ctx, subID)
+	if err != nil {
+		mh.sendTextBack("Please try again later")
+	} else {
+		mh.sendTextBack(fmt.Sprintf("Unsubscribe %s", s.ComicName))
+	}
+	return
+}

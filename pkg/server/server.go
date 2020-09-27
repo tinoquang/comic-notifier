@@ -39,12 +39,7 @@ func (s *Server) GetPage(ctx context.Context, name string) (*model.Page, error) 
 	return s.store.Page.GetByName(ctx, name)
 }
 
-// GetSubscriber (GET /subscriber/{id})
-func (s *Server) GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error) {
-	return s.store.Subscriber.GetByID(ctx, id)
-}
-
-// SubscribeComic (POST /user/{id}/comics)
+// SubscribeComic (POST /users/{id}/comics)
 func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error) {
 
 	parsedURL, err := url.Parse(comicURL)
@@ -137,4 +132,15 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 		return 0, nil, errors.New("Please try again later")
 	}
 	return 0, nil, errors.New("Already subscribed")
+}
+
+// GetSubscriber (GET /subscribers/{id})
+func (s *Server) GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error) {
+	return s.store.Subscriber.GetByID(ctx, id)
+}
+
+// UnsubscribeComic (DELETE /subscribers/{id})
+func (s *Server) UnsubscribeComic(ctx context.Context, id int) error {
+
+	return s.store.Subscriber.Delete(ctx, id)
 }

@@ -22,6 +22,7 @@ type ServerInterface interface {
 	GetPage(ctx context.Context, name string) (*model.Page, error)
 	GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error)
 	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error)
+	UnsubscribeComic(ctx context.Context, id int) error
 }
 
 // RequestHandler main handler for incoming HTTP request
@@ -81,6 +82,7 @@ func (h *RequestHandler) parseUserMsg(c echo.Context) error {
 
 	m := &UserMessage{}
 
+	// Parsing request
 	if err := c.Bind(m); err != nil {
 		return errors.Wrap(err, "Can't parse message from messenger")
 	}
@@ -97,8 +99,7 @@ func (h *RequestHandler) parseUserMsg(c echo.Context) error {
 				case entry.Messaging[0].PostBack != nil:
 					go mh.handlePostback()
 				case entry.Messaging[0].Message.QuickReply != nil:
-					util.Info("quick reply")
-				// 		go returnToQuickReply(&entry.Messaging[0])
+					go mh.handleQuickReply()
 				case entry.Messaging[0].Message.Text != "":
 					go mh.handleText()
 				default:

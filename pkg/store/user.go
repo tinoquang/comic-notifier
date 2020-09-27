@@ -7,12 +7,16 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
 // UserInterface contain user's interact method
 type UserInterface interface {
 	GetByID(ctx context.Context, field, id string) (*model.User, error)
+	Create(ctx context.Context, user *model.User) error
+	//Update
+	//List
 }
 
 type userDB struct {
@@ -40,6 +44,18 @@ func (u *userDB) GetByID(ctx context.Context, field, id string) (*model.User, er
 	return &users[0], nil
 }
 
+func (u *userDB) Create(ctx context.Context, user *model.User) error {
+
+	query := "insert into users (name, psid, appid, profile_pic) values ($1, $2, $3, $4) returning id"
+
+	err := db.WithTransaction(ctx, u.dbconn, func(tx db.Transaction) error {
+		return tx.QueryRowContext(
+			ctx, query, user.Name, user.PSID, user.AppID, user.ProfilePic).Scan(&user.ID)
+	})
+	return err
+
+}
+
 func (u *userDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.User, error) {
 	rows, err := u.dbconn.QueryContext(ctx, "SELECT * FROM users "+query, args...)
 	if err != nil {
@@ -50,7 +66,7 @@ func (u *userDB) getBySQL(ctx context.Context, query string, args ...interface{}
 	defer rows.Close()
 	for rows.Next() {
 		user := model.User{}
-		err := rows.Scan(&user.ID, &user.Name, &user.AppID, &user.PageID, &user.ProfilePic)
+		err := rows.Scan(&user.ID, &user.Name, user.PSID, user.AppID, &user.ProfilePic)
 		if err != nil {
 			return nil, err
 		}

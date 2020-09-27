@@ -4,8 +4,8 @@ package model
 type User struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
+	PSID       string `json:"psid"`
 	AppID      string `json:"appid"`
-	PageID     string `json:"pageid"`
 	ProfilePic string `json:"profile-pic"`
 }
 

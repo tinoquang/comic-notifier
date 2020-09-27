@@ -22,6 +22,8 @@ type picture struct {
 
 func (s *Server) getUserInfoByID(field, id string) (user *model.User, err error) {
 
+	user = new(model.User)
+
 	info := map[string]json.RawMessage{}
 	appInfo := []map[string]json.RawMessage{}
 	picture := map[string]json.RawMessage{}
@@ -29,9 +31,11 @@ func (s *Server) getUserInfoByID(field, id string) (user *model.User, err error)
 
 	switch field {
 	case "psid":
+		user.PSID = id
 		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
 		queries["access_token"] = s.cfg.FBSecret.PakeToken
 	case "appid":
+		user.AppID = id
 		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
 		queries["access_token"] = s.cfg.FBSecret.AppToken
 		queries["appsecret_proof"] = s.cfg.FBSecret.AppSecret
@@ -49,7 +53,6 @@ func (s *Server) getUserInfoByID(field, id string) (user *model.User, err error)
 		return
 	}
 
-	user = new(model.User)
 	user.Name = util.ConvertJSONToString(info["name"])
 
 	json.Unmarshal(info["ids_for_apps"], &info)

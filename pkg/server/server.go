@@ -87,31 +87,33 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 	// Validate users is in user DB or not
 	// If not, add user to database, return "Subscribed to ..."
 	// else return "Already subscribed"
-	_, err = s.store.User.GetByID(ctx, field, id)
+	user, err := s.store.User.GetByID(ctx, field, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "User not found") {
 
 			util.Info("Add new user")
 
-			user, err := s.getUserInfoByID(field, id)
+			u, err := s.getUserInfoByID(field, id)
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
 			}
-			fmt.Println(user)
-			// err = data.AddUser(&user)
+			err = s.store.User.Create(ctx, u)
 
-			// if err != nil {
-			// 	sendTextBack(msg.Sender.ID, "Server busy, try again later")
-			// 	return
-			// }
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+
+			user = u
 		} else {
 			return nil, errors.New("Please try again later")
 		}
 
 	}
 
+	fmt.Println(user)
 	// subscriber, err := data.GetSubscriber(user.ID, comic.ID)
 	// if err != nil {
 	// 	subscriber.UserID = user.ID

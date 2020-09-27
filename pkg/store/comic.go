@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -47,7 +48,12 @@ func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
 	query := "insert into comics (name, url, image_url, latest_chap, chap_url, date, date_format) values ($1, $2, $3, $4, $5, $6, $7) returning id"
 
-	return c.dbconn.QueryRowContext(ctx, query, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat).Scan(&comic.ID)
+	err := db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
+		return tx.QueryRowContext(
+			ctx, query, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
+		).Scan(&comic.ID)
+	})
+	return err
 
 }
 

@@ -10,19 +10,12 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-// type userInfo struct {
-// 	name string
-// 	picture date {
-
-// 	}
-// }
-
 type picture struct {
 }
 
 func (s *Server) getUserInfoByID(field, id string) (user *model.User, err error) {
 
-	user = new(model.User)
+	user = &model.User{}
 
 	info := map[string]json.RawMessage{}
 	appInfo := []map[string]json.RawMessage{}

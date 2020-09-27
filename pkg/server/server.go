@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -61,13 +60,12 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 	// If comic is not in database, query it's latest chap,
 	// add to database, then prepare response with latest chapter
 	if err != nil {
-		if err.Error() == "Comic not found" {
+		if strings.Contains(err.Error(), "not found") {
 
 			util.Info("Comic is not in DB yet, insert it")
-			comic.URL = comicURL
 
 			// Get all comic infos includes latest chapter
-			err := s.getComicInfo(ctx, parsedURL.Hostname(), comic)
+			comic, err = s.getComicInfo(ctx, parsedURL.Hostname(), comicURL)
 			if err != nil {
 				util.Danger(err)
 				return nil, errors.New("Please check your URL")
@@ -79,9 +77,9 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
 			}
-		} else {
-			return nil, errors.New("Please try again later")
 		}
+		util.Danger(err)
+		return nil, errors.New("Please try again later")
 	}
 
 	// Validate users is in user DB or not
@@ -89,49 +87,41 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 	// else return "Already subscribed"
 	user, err := s.store.User.GetByID(ctx, field, id)
 	if err != nil {
-		if strings.Contains(err.Error(), "User not found") {
+		if strings.Contains(err.Error(), "not found") {
 
 			util.Info("Add new user")
 
-			u, err := s.getUserInfoByID(field, id)
+			user, err = s.getUserInfoByID(field, id)
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
 			}
-			err = s.store.User.Create(ctx, u)
+			err = s.store.User.Create(ctx, user)
 
 			if err != nil {
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
 			}
-
-			user = u
-		} else {
-			return nil, errors.New("Please try again later")
 		}
-
+		util.Danger(err)
+		return nil, errors.New("Please try again later")
 	}
 
-	fmt.Println(user)
-	// subscriber, err := data.GetSubscriber(user.ID, comic.ID)
-	// if err != nil {
-	// 	subscriber.UserID = user.ID
-	// 	subscriber.ComicID = comic.ID
-	// 	err = data.AddSubscriber(&subscriber)
-	// 	if err != nil {
-	// 		util.Danger(err)
-	// 		sendTextBack(msg.Sender.ID, "Try again later")
-	// 		sendActionBack(msg.Sender.ID, "typing_off")
-	// 		return
-	// 	}
-	// 	sendTextBack(msg.Sender.ID, "Subscribed")
-	// } else {
-	// 	sendTextBack(msg.Sender.ID, "Already subscribed")
-	// }
-
-	// Call send API
-	util.Info("Parsing complelte, send URL back to user")
-
-	return new(model.Comic), nil
+	subscriber, err := s.store.Subscriber.Get(ctx, user.ID, comic.ID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			subscriber.UserID = user.ID
+			subscriber.ComicID = comic.ID
+			err = s.store.Subscriber.Create(ctx, subscriber)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+			return comic, nil
+		}
+		util.Danger(err)
+		return nil, errors.New("Please try again later")
+	}
+	return nil, errors.New("Already subscribed")
 }

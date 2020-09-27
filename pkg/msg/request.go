@@ -39,7 +39,8 @@ func (mh *msgHandler) handleText() {
 		return
 	}
 
-	fmt.Println("comic", comic)
+	mh.sendTextBack("Subscribed")
+	fmt.Println(comic)
 
 	// Call send API
 	util.Info("Parsing complelte, send URL back to user")

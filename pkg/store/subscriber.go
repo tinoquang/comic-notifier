@@ -7,12 +7,14 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
 // SubscriberInterface contains subscriber's interact method
 type SubscriberInterface interface {
-	Get(ctx context.Context, field string, id string) (*model.Subscriber, error)
+	Get(ctx context.Context, userid, comicid int) (*model.Subscriber, error)
+	Create(ctx context.Context, subscriber *model.Subscriber) error
 }
 
 type subscriberDB struct {
@@ -25,18 +27,31 @@ func NewSubscriberStore(dbconn *sql.DB, cfg *conf.Config) SubscriberInterface {
 	return &subscriberDB{dbconn: dbconn, cfg: cfg}
 }
 
-func (s *subscriberDB) Get(ctx context.Context, field string, id string) (*model.Subscriber, error) {
-	query := "WHERE " + field + "=$1 LIMIT 1"
-	subscribers, err := s.getBySQL(ctx, query, id)
+func (s *subscriberDB) Get(ctx context.Context, userid, comicid int) (*model.Subscriber, error) {
+	query := "WHERE user_id=$1 AND comic_id=$2"
+
+	subscribers, err := s.getBySQL(ctx, query, userid, comicid)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get customer by id: %s", id)
+		return nil, errors.Wrapf(err, "failed to get subscriber")
 	}
 
 	if len(subscribers) == 0 {
-		return nil, errors.New(fmt.Sprintf("subscriber %s not found", id))
+		return &model.Subscriber{}, errors.New(fmt.Sprintf("subscriber with userid = %d and comicid = %d not found", userid, comicid))
 	}
 
 	return &subscribers[0], nil
+}
+
+func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
+
+	query := "INSERT INTO subscribers (user_id, comic_id) VALUES ($1,$2) RETURNING id"
+
+	err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
+		return tx.QueryRowContext(
+			ctx, query, subscriber.UserID, subscriber.ComicID,
+		).Scan(&subscriber.ID)
+	})
+	return err
 }
 
 func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Subscriber, error) {

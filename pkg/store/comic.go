@@ -46,7 +46,7 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 
 func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
-	query := "insert into comics (name, url, image_url, latest_chap, chap_url, date, date_format) values ($1, $2, $3, $4, $5, $6, $7) returning id"
+	query := "INSERT INTO comics (name, url, image_url, latest_chap, chap_url, date, date_format) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
 
 	err := db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(

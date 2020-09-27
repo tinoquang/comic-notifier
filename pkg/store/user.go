@@ -66,7 +66,7 @@ func (u *userDB) getBySQL(ctx context.Context, query string, args ...interface{}
 	defer rows.Close()
 	for rows.Next() {
 		user := model.User{}
-		err := rows.Scan(&user.ID, &user.Name, user.PSID, user.AppID, &user.ProfilePic)
+		err := rows.Scan(&user.ID, &user.Name, &user.PSID, &user.AppID, &user.ProfilePic)
 		if err != nil {
 			return nil, err
 		}

@@ -2,9 +2,12 @@ package model
 
 // Subscriber model
 type Subscriber struct {
-	ID      int `json:"id"`
-	UserID  int `json:"userid"`
-	ComicID int `json:"comicid"`
+	ID        int    `json:"id"`
+	Page      string `json:"page"`
+	UserID    int    `json:"userid"`
+	UserName  string `json:"username"`
+	ComicID   int    `json:"comicid"`
+	ComicName string `json:"comicname"`
 }
 
 // SubscriberList contains multiple subscribers

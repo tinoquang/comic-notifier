@@ -20,7 +20,8 @@ var (
 // ServerInterface contain all server's method
 type ServerInterface interface {
 	GetPage(ctx context.Context, name string) (*model.Page, error)
-	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error)
+	GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error)
+	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error)
 }
 
 // RequestHandler main handler for incoming HTTP request
@@ -94,8 +95,7 @@ func (h *RequestHandler) parseUserMsg(c echo.Context) error {
 			if len(entry.Messaging) != 0 {
 				switch {
 				case entry.Messaging[0].PostBack != nil:
-					util.Info("postback")
-				// 	go handlePostBack(&entry.Messaging[0])
+					go mh.handlePostback()
 				case entry.Messaging[0].Message.QuickReply != nil:
 					util.Info("quick reply")
 				// 		go returnToQuickReply(&entry.Messaging[0])

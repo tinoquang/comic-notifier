@@ -14,6 +14,7 @@ import (
 // SubscriberInterface contains subscriber's interact method
 type SubscriberInterface interface {
 	Get(ctx context.Context, userid, comicid int) (*model.Subscriber, error)
+	GetByID(ctx context.Context, id int) (*model.Subscriber, error)
 	Create(ctx context.Context, subscriber *model.Subscriber) error
 }
 
@@ -42,13 +43,29 @@ func (s *subscriberDB) Get(ctx context.Context, userid, comicid int) (*model.Sub
 	return &subscribers[0], nil
 }
 
+func (s *subscriberDB) GetByID(ctx context.Context, id int) (*model.Subscriber, error) {
+
+	query := "WHERE id=$1"
+
+	subscribers, err := s.getBySQL(ctx, query, id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get subscriber")
+	}
+
+	if len(subscribers) == 0 {
+		return &model.Subscriber{}, errors.New(fmt.Sprintf("subscriber with id = %d not found", id))
+	}
+
+	return &subscribers[0], nil
+}
+
 func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
 
-	query := "INSERT INTO subscribers (user_id, comic_id) VALUES ($1,$2) RETURNING id"
+	query := "INSERT INTO subscribers (page, user_id, username, comic_id, comicname) VALUES ($1,$2,$3,$4,$5) RETURNING id"
 
 	err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
-			ctx, query, subscriber.UserID, subscriber.ComicID,
+			ctx, query, subscriber.Page, subscriber.UserID, subscriber.UserName, subscriber.ComicID, subscriber.ComicName,
 		).Scan(&subscriber.ID)
 	})
 	return err
@@ -64,7 +81,7 @@ func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...inter
 	defer rows.Close()
 	for rows.Next() {
 		subscriber := model.Subscriber{}
-		err := rows.Scan(&subscriber.ID, &subscriber.UserID, &subscriber.ComicID)
+		err := rows.Scan(&subscriber.ID, &subscriber.Page, &subscriber.UserID, &subscriber.UserName, &subscriber.ComicID, &subscriber.ComicName)
 		if err != nil {
 			return nil, err
 		}

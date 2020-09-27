@@ -2,6 +2,9 @@ package msg
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -32,7 +35,7 @@ func (mh *msgHandler) handleText() {
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
-	comic, err := mh.svr.SubscribeComic(ctx, "psid", mh.getID("sender"), mh.getUserMsg())
+	subID, comic, err := mh.svr.SubscribeComic(ctx, "psid", mh.getID("sender"), mh.getUserMsg())
 	if err != nil {
 		mh.sendTextBack(err.Error())
 		return
@@ -41,5 +44,30 @@ func (mh *msgHandler) handleText() {
 	mh.sendTextBack("Subscribed")
 
 	// send back message in template with buttons
-	mh.sendNormalReply(comic)
+	mh.sendNormalReply(subID, comic)
+}
+
+func (mh *msgHandler) handlePostback() {
+
+	mh.sendActionBack("typing_on")
+	defer mh.sendActionBack("typing_off")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+
+	subID, err := strconv.Atoi(mh.req.PostBack.Payload)
+
+	s, err := mh.svr.GetSubscriber(ctx, subID)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			mh.sendTextBack(fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
+			return
+		}
+		util.Danger(err)
+		return
+	}
+
+	mh.sendQuickReplyChoice(s)
+	return
 }

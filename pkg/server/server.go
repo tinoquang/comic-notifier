@@ -39,22 +39,27 @@ func (s *Server) GetPage(ctx context.Context, name string) (*model.Page, error) 
 	return s.store.Page.GetByName(ctx, name)
 }
 
+// GetSubscriber (GET /subscriber/{id})
+func (s *Server) GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error) {
+	return s.store.Subscriber.GetByID(ctx, id)
+}
+
 // SubscribeComic (POST /user/{id}/comics)
-func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error) {
+func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error) {
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
-		return nil, errors.New("Please check your URL")
+		return 0, nil, errors.New("Please check your URL")
 	}
 
 	// Check page support, if not send back "Page is not supported"
-	page, err := s.store.Page.GetByName(ctx, parsedURL.Hostname())
+	_, err = s.store.Page.GetByName(ctx, parsedURL.Hostname())
 	if err != nil {
-		return nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
+		return 0, nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
 	}
 
 	// Page URL validated, now check comics already in database
-	util.Info("Validated " + page.Name)
+	// util.Info("Validated " + page.Name)
 	comic, err := s.store.Comic.GetByURL(ctx, comicURL)
 
 	// If comic is not in database, query it's latest chap,
@@ -68,18 +73,18 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 			comic, err = s.getComicInfo(ctx, parsedURL.Hostname(), comicURL)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please check your URL")
+				return 0, nil, errors.New("Please check your URL")
 			}
 
 			// Add new comic to DB
 			err = s.store.Comic.Create(ctx, comic)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return 0, nil, errors.New("Please try again later")
 			}
 		} else {
 			util.Danger(err)
-			return nil, errors.New("Please try again later")
+			return 0, nil, errors.New("Please try again later")
 		}
 	}
 
@@ -96,34 +101,40 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return 0, nil, errors.New("Please try again later")
 			}
 			err = s.store.User.Create(ctx, user)
 
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return 0, nil, errors.New("Please try again later")
 			}
 		} else {
 			util.Danger(err)
-			return nil, errors.New("Please try again later")
+			return 0, nil, errors.New("Please try again later")
 		}
 	}
 
 	subscriber, err := s.store.Subscriber.Get(ctx, user.ID, comic.ID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			subscriber.UserID = user.ID
-			subscriber.ComicID = comic.ID
+			subscriber = &model.Subscriber{
+				Page:      comic.Page,
+				UserID:    user.ID,
+				UserName:  user.Name,
+				ComicID:   comic.ID,
+				ComicName: comic.Name,
+			}
+
 			err = s.store.Subscriber.Create(ctx, subscriber)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return 0, nil, errors.New("Please try again later")
 			}
-			return comic, nil
+			return subscriber.ID, comic, nil
 		}
 		util.Danger(err)
-		return nil, errors.New("Please try again later")
+		return 0, nil, errors.New("Please try again later")
 	}
-	return nil, errors.New("Already subscribed")
+	return 0, nil, errors.New("Already subscribed")
 }

@@ -17,6 +17,7 @@ type SubscriberInterface interface {
 	GetByID(ctx context.Context, id int) (*model.Subscriber, error)
 	Create(ctx context.Context, subscriber *model.Subscriber) error
 	Delete(ctx context.Context, id int) error
+	ListByComicID(ctx context.Context, id int) ([]model.Subscriber, error)
 }
 
 type subscriberDB struct {
@@ -62,11 +63,11 @@ func (s *subscriberDB) GetByID(ctx context.Context, id int) (*model.Subscriber, 
 
 func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
 
-	query := "INSERT INTO subscribers (page, user_id, username, comic_id, comicname) VALUES ($1,$2,$3,$4,$5) RETURNING id"
+	query := "INSERT INTO subscribers (page, user_id, user_psid, username, comic_id, comicname) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
 
 	err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
-			ctx, query, subscriber.Page, subscriber.UserID, subscriber.UserName, subscriber.ComicID, subscriber.ComicName,
+			ctx, query, subscriber.Page, subscriber.UserID, subscriber.UserPSID, subscriber.UserName, subscriber.ComicID, subscriber.ComicName,
 		).Scan(&subscriber.ID)
 	})
 	return err
@@ -79,6 +80,21 @@ func (s *subscriberDB) Delete(ctx context.Context, id int) error {
 	return err
 }
 
+func (s *subscriberDB) ListByComicID(ctx context.Context, id int) ([]model.Subscriber, error) {
+
+	query := "WHERE comic_id=$1"
+
+	subscribers, err := s.getBySQL(ctx, query, id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get subscriber")
+	}
+
+	if len(subscribers) == 0 {
+		return nil, errors.New("subscriber not found")
+	}
+	return subscribers, nil
+}
+
 func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Subscriber, error) {
 	rows, err := s.dbconn.QueryContext(ctx, "SELECT * FROM subscribers "+query, args...)
 	if err != nil {
@@ -89,7 +105,7 @@ func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...inter
 	defer rows.Close()
 	for rows.Next() {
 		subscriber := model.Subscriber{}
-		err := rows.Scan(&subscriber.ID, &subscriber.Page, &subscriber.UserID, &subscriber.UserName, &subscriber.ComicID, &subscriber.ComicName)
+		err := rows.Scan(&subscriber.ID, &subscriber.Page, &subscriber.UserID, &subscriber.UserPSID, &subscriber.UserName, &subscriber.ComicID, &subscriber.ComicName)
 		if err != nil {
 			return nil, err
 		}

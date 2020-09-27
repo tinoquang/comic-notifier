@@ -10,22 +10,22 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-func (mh *msgHandler) sendTextBack(message string) {
+func sendTextBack(senderid, message string) {
 
 	res := &Response{
 		Type:      "RESPONSE",
-		Recipient: &User{ID: mh.getID("sender")},
+		Recipient: &User{ID: senderid},
 		Message:   &RespMsg{Text: message},
 	}
 
 	callSendAPI(res)
 }
 
-func (mh *msgHandler) sendActionBack(action string) {
+func sendActionBack(senderid, action string) {
 
 	res := &Response{
 		Type:      "RESPONSE",
-		Recipient: &User{ID: mh.getID("sender")},
+		Recipient: &User{ID: senderid},
 		Action:    action,
 	}
 	// util.Info("Send action " + action + " to user")
@@ -34,10 +34,10 @@ func (mh *msgHandler) sendActionBack(action string) {
 }
 
 // Use to send message within 24-hour window of FACEBOOK policy
-func (mh *msgHandler) sendNormalReply(subID int, comic *model.Comic) {
+func sendNormalReply(senderid string, subID int, comic *model.Comic) {
 
 	response := &Response{
-		Recipient: &User{ID: mh.getID("sender")},
+		Recipient: &User{ID: senderid},
 		Message: &RespMsg{
 			Template: &Attachment{
 				Type: "template",
@@ -74,11 +74,54 @@ func (mh *msgHandler) sendNormalReply(subID int, comic *model.Comic) {
 	callSendAPI(response)
 }
 
-func (mh *msgHandler) sendQuickReplyChoice(s *model.Subscriber) {
+func sendMsgTagsReply(senderid string, subID int, comic *model.Comic) {
+
+	response := &Response{
+		Recipient: &User{ID: senderid},
+		Message: &RespMsg{
+			Template: &Attachment{
+				Type: "template",
+				Payloads: &Payload{
+					TemplateType: "generic",
+					Elements: []Element{
+						{
+							Title:    comic.Name + "\n" + comic.LatestChap,
+							ImageURL: comic.ImageURL,
+							Subtitle: comic.Page,
+							DefaultAction: &Action{
+								Type: "web_url",
+								URL:  comic.ChapURL,
+							},
+							Buttons: []Button{
+								{
+									Type:  "web_url",
+									URL:   comic.ChapURL,
+									Title: "Read Now",
+								},
+								{
+									Type:    "postback",
+									Title:   "Unsubscribe",
+									Payload: strconv.Itoa(subID),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		MessagingType: "MESSAGE_TYPE",
+		Tag:           "CONFIRMED_EVENT_UPDATE",
+	}
+
+	callSendAPI(response)
+	return
+}
+
+func sendQuickReplyChoice(senderid string, s *model.Subscriber) {
 
 	// send back quick reply "Are you sure ?" for user to confirm
 	response := &Response{
-		Recipient: &User{ID: mh.getID("sender")},
+		Recipient: &User{ID: senderid},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
 			Text: "Unsubscribe " + s.ComicName + "\nAre you sure ?",

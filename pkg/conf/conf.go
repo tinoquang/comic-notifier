@@ -28,8 +28,8 @@ type FacebookSecret struct {
 
 // WorkerData for workerpool configuration
 type WorkerData struct {
-	WokerNum string
-	Timeout  string
+	WorkerNum int
+	Timeout   int
 }
 
 // Config main struct for get config from env
@@ -38,6 +38,7 @@ type Config struct {
 	FBSecret    FacebookSecret
 	DBInfo      string
 	PageSupport *model.PageList
+	WrkDat      WorkerData
 }
 
 // New return new configuration
@@ -60,6 +61,10 @@ func New() *Config {
 		},
 		DBInfo:      getDBSecret(),
 		PageSupport: getPageSupport(),
+		WrkDat: WorkerData{
+			WorkerNum: getEnvAsInt("WORKER_NUM", 10),
+			Timeout:   getEnvAsInt("WORKER_TIMEOUT", 30),
+		},
 	}
 }
 

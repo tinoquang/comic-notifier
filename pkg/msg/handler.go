@@ -19,38 +19,41 @@ var (
 
 // ServerInterface contain all server's method
 type ServerInterface interface {
+
+	// Page interface
 	GetPage(ctx context.Context, name string) (*model.Page, error)
+
+	// Comic interface
+	UpdateComic(ctx context.Context, comic *model.Comic) (bool, error)
+	ListComic(ctx context.Context) ([]model.Comic, error)
+
+	// Subscirber interface
 	GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error)
+	GetSubscriberByComicID(ctx context.Context, comicID int) ([]model.Subscriber, error)
 	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error)
 	UnsubscribeComic(ctx context.Context, id int) error
 }
 
-// RequestHandler main handler for incoming HTTP request
-type RequestHandler struct {
+// Handler main handler for incoming HTTP request
+type Handler struct {
 	svr ServerInterface
-}
-
-type msgHandler struct {
-	svr ServerInterface
-	req Messaging
-}
-
-func newMsgHandler(svr ServerInterface, req Messaging) *msgHandler {
-	return &msgHandler{
-		svr: svr,
-		req: req,
-	}
 }
 
 // RegisterHandler : register webhook handler
 func RegisterHandler(g *echo.Group, cfg *conf.Config, svr ServerInterface) {
 
+	// Get env config
 	messengerEndpoint = cfg.Webhook.GraphEndpoint + "me/messages"
 	webhookToken = cfg.Webhook.WebhookToken
 	pageToken = cfg.FBSecret.PakeToken
 
-	h := RequestHandler{svr: svr}
+	// Start worker pool
+	go updateThread(svr, cfg.WrkDat.WorkerNum, cfg.WrkDat.Timeout)
 
+	// Create main handler
+	h := Handler{svr: svr}
+
+	// Register endpoint to handler
 	// Webhook verify message
 	g.GET("", h.verifyWebhook)
 
@@ -59,7 +62,7 @@ func RegisterHandler(g *echo.Group, cfg *conf.Config, svr ServerInterface) {
 
 }
 
-func (h *RequestHandler) verifyWebhook(c echo.Context) error {
+func (h *Handler) verifyWebhook(c echo.Context) error {
 
 	params := c.QueryString()
 
@@ -78,7 +81,7 @@ func (h *RequestHandler) verifyWebhook(c echo.Context) error {
 	return c.String(http.StatusBadRequest, "Invalid token")
 }
 
-func (h *RequestHandler) parseUserMsg(c echo.Context) error {
+func (h *Handler) parseUserMsg(c echo.Context) error {
 
 	m := &UserMessage{}
 
@@ -89,19 +92,17 @@ func (h *RequestHandler) parseUserMsg(c echo.Context) error {
 
 	if m.Object == "page" {
 		for _, entry := range m.Entries {
-			mh := newMsgHandler(h.svr, entry.Messaging[0])
-
 			// Mark message as "seen"
-			mh.sendActionBack("mark_seen")
+			sendActionBack(entry.Messaging[0].Sender.ID, "mark_seen")
 
 			if len(entry.Messaging) != 0 {
 				switch {
 				case entry.Messaging[0].PostBack != nil:
-					go mh.handlePostback()
+					go handlePostback(h.svr, entry.Messaging[0])
 				case entry.Messaging[0].Message.QuickReply != nil:
-					go mh.handleQuickReply()
+					go handleQuickReply(h.svr, entry.Messaging[0])
 				case entry.Messaging[0].Message.Text != "":
-					go mh.handleText()
+					go handleText(h.svr, entry.Messaging[0])
 				default:
 					util.Warning("Only support text, postback and quick-reply !!!")
 				}

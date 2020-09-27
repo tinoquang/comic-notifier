@@ -39,6 +39,35 @@ func (s *Server) GetPage(ctx context.Context, name string) (*model.Page, error) 
 	return s.store.Page.GetByName(ctx, name)
 }
 
+/* ===================== Comic ============================ */
+
+// ListComic (GET /comics)
+func (s *Server) ListComic(ctx context.Context) ([]model.Comic, error) {
+
+	return s.store.Comic.List(ctx)
+}
+
+// UpdateComic use when new chapter realease
+func (s *Server) UpdateComic(ctx context.Context, comic *model.Comic) (bool, error) {
+
+	updated := true
+	err := s.getComicInfo(ctx, comic)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "No new chapter") {
+			updated = false
+		} else {
+			util.Danger()
+		}
+		return updated, err
+	}
+
+	err = s.store.Comic.Update(ctx, comic)
+	return updated, err
+}
+
+/* ===================== Subsciber ========================== */
+
 // SubscribeComic (POST /users/{id}/comics)
 func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error) {
 
@@ -63,9 +92,12 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 		if strings.Contains(err.Error(), "not found") {
 
 			util.Info("Comic is not in DB yet, insert it")
-
+			comic = &model.Comic{
+				Page: parsedURL.Hostname(),
+				URL:  comicURL,
+			}
 			// Get all comic infos includes latest chapter
-			comic, err = s.getComicInfo(ctx, parsedURL.Hostname(), comicURL)
+			err = s.getComicInfo(ctx, comic)
 			if err != nil {
 				util.Danger(err)
 				return 0, nil, errors.New("Please check your URL")
@@ -116,6 +148,7 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 			subscriber = &model.Subscriber{
 				Page:      comic.Page,
 				UserID:    user.ID,
+				UserPSID:  user.PSID,
 				UserName:  user.Name,
 				ComicID:   comic.ID,
 				ComicName: comic.Name,
@@ -143,4 +176,10 @@ func (s *Server) GetSubscriber(ctx context.Context, id int) (*model.Subscriber, 
 func (s *Server) UnsubscribeComic(ctx context.Context, id int) error {
 
 	return s.store.Subscriber.Delete(ctx, id)
+}
+
+// GetSubscriberByComicID (GET /comics/{id}/subscribers)
+func (s *Server) GetSubscriberByComicID(ctx context.Context, comicID int) ([]model.Subscriber, error) {
+
+	return s.store.Subscriber.ListByComicID(ctx, comicID)
 }

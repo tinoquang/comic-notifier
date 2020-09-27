@@ -29,12 +29,7 @@ func (s *Server) initComicHandler() {
 }
 
 // getComicInfo return link of latest chapter of a page
-func (s *Server) getComicInfo(ctx context.Context, page string, URL string) (comic *model.Comic, err error) {
-
-	comic = &model.Comic{
-		Page: page,
-		URL:  URL,
-	}
+func (s *Server) getComicInfo(ctx context.Context, comic *model.Comic) error {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -45,17 +40,17 @@ func (s *Server) getComicInfo(ctx context.Context, page string, URL string) (com
 
 	html, err := getPageSource(comic.URL)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Can't retrieve page's HTML")
+		return errors.Wrapf(err, "Can't retrieve page's HTML")
 	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
-		return nil, errors.Wrapf(err, "Can't create goquery document object")
+		return errors.Wrapf(err, "Can't create goquery document object")
 	}
 
 	// Find the class contain <a> tag with link of chapter
-	err = s.comH[page](ctx, doc, comic)
-	return comic, errors.Wrapf(err, "Can't get latest chap")
+	err = s.comH[comic.Page](ctx, doc, comic)
+	return errors.Wrapf(err, "Can't get latest chap")
 }
 
 func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {

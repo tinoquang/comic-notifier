@@ -12,8 +12,3 @@ type Comic struct {
 	Date       string `json:"date"`
 	DateFormat string `json:"-"`
 }
-
-// ComicList contains multiple of comics
-type ComicList struct {
-	Comics []Comic `json:"comics"`
-}

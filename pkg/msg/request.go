@@ -11,97 +11,84 @@ import (
 )
 
 /*---------Request message method------------*/
-func (mh *msgHandler) getID(name string) string {
-	switch name {
-	case "sender":
-		return mh.req.Sender.ID
-	default:
-		util.Warning("Invalid type to get ID")
-		return ""
-	}
-}
-
-func (mh *msgHandler) getUserMsg() string {
-	return mh.req.Message.Text
-}
 
 // Handle text message from user
 // Only handle comic page link, other message type is discarded
-func (mh *msgHandler) handleText() {
+func handleText(svr ServerInterface, msg Messaging) {
 
-	mh.sendActionBack("typing_on")
-	defer mh.sendActionBack("typing_off")
+	sendActionBack(msg.Sender.ID, "typing_on")
+	defer sendActionBack(msg.Sender.ID, "typing_off")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
-	subID, comic, err := mh.svr.SubscribeComic(ctx, "psid", mh.getID("sender"), mh.getUserMsg())
+	subID, comic, err := svr.SubscribeComic(ctx, "psid", msg.Sender.ID, msg.Message.Text)
 	if err != nil {
-		mh.sendTextBack(err.Error())
+		sendTextBack(msg.Sender.ID, err.Error())
 		return
 	}
 
-	mh.sendTextBack("Subscribed")
+	sendTextBack(msg.Sender.ID, "Subscribed")
 
 	// send back message in template with buttons
-	mh.sendNormalReply(subID, comic)
+	sendNormalReply(msg.Sender.ID, subID, comic)
 }
 
-func (mh *msgHandler) handlePostback() {
+func handlePostback(svr ServerInterface, msg Messaging) {
 
-	mh.sendActionBack("typing_on")
-	defer mh.sendActionBack("typing_off")
+	sendActionBack(msg.Sender.ID, "typing_on")
+	defer sendActionBack(msg.Sender.ID, "typing_off")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
-	subID, err := strconv.Atoi(mh.req.PostBack.Payload)
+	subID, err := strconv.Atoi(msg.PostBack.Payload)
 
-	s, err := mh.svr.GetSubscriber(ctx, subID)
+	s, err := svr.GetSubscriber(ctx, subID)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			mh.sendTextBack(fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
+			sendTextBack(msg.Sender.ID, fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
 			return
 		}
 		util.Danger(err)
 		return
 	}
 
-	mh.sendQuickReplyChoice(s)
+	sendQuickReplyChoice(msg.Sender.ID, s)
 	return
 }
 
-func (mh *msgHandler) handleQuickReply() {
+func handleQuickReply(svr ServerInterface, msg Messaging) {
 
-	mh.sendActionBack("typing_on")
-	defer mh.sendActionBack("typing_off")
+	sendActionBack(msg.Sender.ID, "typing_on")
+	defer sendActionBack(msg.Sender.ID, "typing_off")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
-	if mh.req.Message.QuickReply.Payload == "Not unsub" {
+	if msg.Message.QuickReply.Payload == "Not unsub" {
 		return
 	}
 
-	subID, err := strconv.Atoi(mh.req.Message.QuickReply.Payload)
+	subID, err := strconv.Atoi(msg.Message.QuickReply.Payload)
 
-	s, err := mh.svr.GetSubscriber(ctx, subID)
+	s, err := svr.GetSubscriber(ctx, subID)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			mh.sendTextBack(fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
+			sendTextBack(msg.Sender.ID, fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
 			return
 		}
 		util.Danger(err)
 		return
 	}
 
-	err = mh.svr.UnsubscribeComic(ctx, subID)
+	err = svr.UnsubscribeComic(ctx, subID)
 	if err != nil {
-		mh.sendTextBack("Please try again later")
+		sendTextBack(msg.Sender.ID, "Please try again later")
 	} else {
-		mh.sendTextBack(fmt.Sprintf("Unsubscribe %s", s.ComicName))
+		sendTextBack(msg.Sender.ID, fmt.Sprintf("Unsubscribe %s", s.ComicName))
 	}
 	return
 }

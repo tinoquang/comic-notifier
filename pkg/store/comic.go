@@ -15,8 +15,8 @@ import (
 type ComicInterface interface {
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
 	Create(ctx context.Context, comic *model.Comic) error
-	// Update()
-	// List()
+	Update(ctx context.Context, comic *model.Comic) error
+	List(ctx context.Context) ([]model.Comic, error)
 }
 
 type comicDB struct {
@@ -55,6 +55,18 @@ func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 	})
 	return err
 
+}
+
+func (c *comicDB) Update(ctx context.Context, comic *model.Comic) error {
+
+	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, date=$4 WHERE id=$1"
+	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.Date)
+	return err
+}
+
+func (c *comicDB) List(ctx context.Context) ([]model.Comic, error) {
+
+	return c.getBySQL(ctx, "")
 }
 
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {

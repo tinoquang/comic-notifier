@@ -5,6 +5,7 @@ type Subscriber struct {
 	ID        int    `json:"id"`
 	Page      string `json:"page"`
 	UserID    int    `json:"userid"`
+	UserPSID  string `json:"userpsid"`
 	UserName  string `json:"username"`
 	ComicID   int    `json:"comicid"`
 	ComicName string `json:"comicname"`

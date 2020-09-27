@@ -77,9 +77,10 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
 			}
+		} else {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
 		}
-		util.Danger(err)
-		return nil, errors.New("Please try again later")
 	}
 
 	// Validate users is in user DB or not
@@ -103,9 +104,10 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
 			}
+		} else {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
 		}
-		util.Danger(err)
-		return nil, errors.New("Please try again later")
 	}
 
 	subscriber, err := s.store.Subscriber.Get(ctx, user.ID, comic.ID)

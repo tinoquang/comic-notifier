@@ -32,7 +32,8 @@ func (s *Server) initComicHandler() {
 func (s *Server) getComicInfo(ctx context.Context, page string, URL string) (comic *model.Comic, err error) {
 
 	comic = &model.Comic{
-		URL: URL,
+		Page: page,
+		URL:  URL,
 	}
 
 	defer func() {

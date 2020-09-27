@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -29,6 +30,47 @@ func (mh *msgHandler) sendActionBack(action string) {
 	util.Info("Send action " + action + " to user")
 
 	callSendAPI(res)
+}
+
+// Use to send message within 24-hour window of FACEBOOK policy
+func (mh *msgHandler) sendNormalReply(comic *model.Comic) {
+
+	response := &Response{
+		Recipient: &User{ID: mh.getID("sender")},
+		Message: &RespMsg{
+			Template: &Attachment{
+				Type: "template",
+				Payloads: &Payload{
+					TemplateType: "generic",
+					Elements: []Element{
+						{
+							Title:    comic.Name + comic.LatestChap,
+							ImageURL: comic.ImageURL,
+							Subtitle: comic.Page,
+							DefaultAction: &Action{
+								Type: "web_url",
+								URL:  comic.ChapURL,
+							},
+							Buttons: []Button{
+								{
+									Type:  "web_url",
+									URL:   comic.ChapURL,
+									Title: "Read Now",
+								},
+								{
+									Type:    "postback",
+									Title:   "Unsubscribe",
+									Payload: comic.URL,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	callSendAPI(response)
 }
 
 func callSendAPI(r *Response) {

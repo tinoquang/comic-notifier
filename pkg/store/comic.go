@@ -46,11 +46,11 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 
 func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
-	query := "INSERT INTO comics (name, url, image_url, latest_chap, chap_url, date, date_format) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
+	query := "INSERT INTO comics (page, name, url, image_url, latest_chap, chap_url, date, date_format) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
 
 	err := db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
-			ctx, query, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
+			ctx, query, comic.Page, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
 		).Scan(&comic.ID)
 	})
 	return err
@@ -68,7 +68,7 @@ func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{
 	defer rows.Close()
 	for rows.Next() {
 		comic := model.Comic{}
-		err := rows.Scan(&comic.ID, &comic.Name, &comic.URL, &comic.ImageURL, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
+		err := rows.Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.ImageURL, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
 		if err != nil {
 			util.Danger()
 			return nil, err

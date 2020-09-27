@@ -2,7 +2,6 @@ package msg
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -30,7 +29,7 @@ func (mh *msgHandler) handleText() {
 	mh.sendActionBack("typing_on")
 	defer mh.sendActionBack("typing_off")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
 	comic, err := mh.svr.SubscribeComic(ctx, "psid", mh.getID("sender"), mh.getUserMsg())
@@ -40,10 +39,7 @@ func (mh *msgHandler) handleText() {
 	}
 
 	mh.sendTextBack("Subscribed")
-	fmt.Println(comic)
 
-	// Call send API
-	util.Info("Parsing complelte, send URL back to user")
 	// send back message in template with buttons
-	// sendNormalReply(m.Sender.ID, &comic)
+	mh.sendNormalReply(comic)
 }

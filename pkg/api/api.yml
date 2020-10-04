@@ -1,0 +1,173 @@
+openapi: "3.0.3"
+info:
+  version: "1.0"
+  title: "Cominify API"
+  description: API for Cominify chatbot
+servers:
+  - url: https://localhost:8080/api/v1
+    description: Local Test Server
+paths:
+  /users:
+    get:
+      description: "Return list of users"
+      operationId: Users
+      tags:
+        - user
+      response:
+        "200":
+          description: Successfully return a list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comic"
+  /users/{id}:
+    get:
+      description: "Return list of users"
+      operationId: GetUser
+      tags:
+        - user
+      parameters:
+        - name: id
+          in: path
+          description: Comic ID
+          require: true
+          schema:
+            type: integer
+      response:
+        "200":
+          description: Successfully return a list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comic"
+  /users/{id}/comics:
+    get:
+      description: "Return list of comics which user subscribed to"
+      operationId: GetUserComics
+      tags:
+        - user
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+      response:
+        "200":
+          description: Successfully return a list of comics which user subscribed to
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comic"
+        "404":
+          description: User not found
+    post:
+      operationId: SubscribeComic
+      description: User subscribe to new comic
+      tags:
+        - user
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+      response:
+        "200":
+          description: Successfully subscribed to a comic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comic"
+        "404":
+          description: User not found
+  /users/{user_id}/comics/{comic_id}:
+    get:
+    delete:
+  /comics:
+    get:
+      # summary: "Get list of comics"
+      description: "Return list of comics"
+      operationId: Comics
+      tags:
+        - comic
+      response:
+        "200":
+          description: Successfully return a list of comics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comic"
+  /comics/{id}:
+    get:
+      description: "Return comics based on ID"
+      operationId: GetComic
+      tags:
+        - comic
+      parameters:
+        - name: id
+          in: path
+          description: Comic ID
+          require: true
+          schema:
+            type: integer
+      response:
+        "200":
+          description: Found comic with ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comic"
+        "404":
+          description: Comics does not exists
+components:
+  schemas:
+    Comic:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Comic ID
+        page:
+          type: string
+          description: Page to read comic
+        name:
+          type: string
+          description: Comic name
+        url:
+          type: string
+          description: Comic url
+        latest:
+          type: string
+          description: Comic's latest chapter
+        chap-url:
+          type: string
+          description: Chapter url
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: UserID
+        name:
+          type: string
+          description: Comic name
+        psid:
+          type: string
+          description: Page scope ID
+        appid:
+          type: string
+          description: App scope ID
+        comics:
+          type: integer
+          description: Number of comics subscribed

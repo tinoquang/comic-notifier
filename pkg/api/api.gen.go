@@ -6,222 +6,36 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 
+	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 )
-
-// RequestEditorFn  is the function signature for the RequestEditor callback function
-type RequestEditorFn func(ctx context.Context, req *http.Request) error
-
-// Doer performs HTTP requests.
-//
-// The standard http.Client implements this interface.
-type HttpRequestDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-// Client which conforms to the OpenAPI3 specification for this service.
-type Client struct {
-	// The endpoint of the server conforming to this interface, with scheme,
-	// https://api.deepmap.com for example.
-	Server string
-
-	// Doer for performing requests, typically a *http.Client with any
-	// customized settings, such as certificate chains.
-	Client HttpRequestDoer
-
-	// A callback for modifying requests which are generated before sending over
-	// the network.
-	RequestEditor RequestEditorFn
-}
-
-// ClientOption allows setting custom parameters during construction
-type ClientOption func(*Client) error
-
-// Creates a new Client, with reasonable defaults
-func NewClient(server string, opts ...ClientOption) (*Client, error) {
-	// create a client with sane default values
-	client := Client{
-		Server: server,
-	}
-	// mutate client and add all optional params
-	for _, o := range opts {
-		if err := o(&client); err != nil {
-			return nil, err
-		}
-	}
-	// ensure the server URL always has a trailing slash
-	if !strings.HasSuffix(client.Server, "/") {
-		client.Server += "/"
-	}
-	// create httpClient, if not already present
-	if client.Client == nil {
-		client.Client = http.DefaultClient
-	}
-	return &client, nil
-}
-
-// WithHTTPClient allows overriding the default Doer, which is
-// automatically created using http.Client. This is useful for tests.
-func WithHTTPClient(doer HttpRequestDoer) ClientOption {
-	return func(c *Client) error {
-		c.Client = doer
-		return nil
-	}
-}
-
-// WithRequestEditorFn allows setting up a callback function, which will be
-// called right before sending the request. This can be used to mutate the request.
-func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
-	return func(c *Client) error {
-		c.RequestEditor = fn
-		return nil
-	}
-}
-
-// The interface specification for the client above.
-type ClientInterface interface {
-	// Comics request
-	Comics(ctx context.Context) (*http.Response, error)
-}
-
-func (c *Client) Comics(ctx context.Context) (*http.Response, error) {
-	req, err := NewComicsRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if c.RequestEditor != nil {
-		err = c.RequestEditor(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return c.Client.Do(req)
-}
-
-// NewComicsRequest generates requests for Comics
-func NewComicsRequest(server string) (*http.Request, error) {
-	var err error
-
-	queryUrl, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	basePath := fmt.Sprintf("/comics")
-	if basePath[0] == '/' {
-		basePath = basePath[1:]
-	}
-
-	queryUrl, err = queryUrl.Parse(basePath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryUrl.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// ClientWithResponses builds on ClientInterface to offer response payloads
-type ClientWithResponses struct {
-	ClientInterface
-}
-
-// NewClientWithResponses creates a new ClientWithResponses, which wraps
-// Client with return type handling
-func NewClientWithResponses(server string, opts ...ClientOption) (*ClientWithResponses, error) {
-	client, err := NewClient(server, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &ClientWithResponses{client}, nil
-}
-
-// WithBaseURL overrides the baseURL.
-func WithBaseURL(baseURL string) ClientOption {
-	return func(c *Client) error {
-		newBaseURL, err := url.Parse(baseURL)
-		if err != nil {
-			return err
-		}
-		c.Server = newBaseURL.String()
-		return nil
-	}
-}
-
-// ClientWithResponsesInterface is the interface specification for the client with responses above.
-type ClientWithResponsesInterface interface {
-	// Comics request
-	ComicsWithResponse(ctx context.Context) (*ComicsResponse, error)
-}
-
-type ComicsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r ComicsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ComicsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ComicsWithResponse request returning *ComicsResponse
-func (c *ClientWithResponses) ComicsWithResponse(ctx context.Context) (*ComicsResponse, error) {
-	rsp, err := c.Comics(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return ParseComicsResponse(rsp)
-}
-
-// ParseComicsResponse parses an HTTP response from a ComicsWithResponse call
-func ParseComicsResponse(rsp *http.Response) (*ComicsResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer rsp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ComicsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	}
-
-	return response, nil
-}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
 	// (GET /comics)
 	Comics(ctx echo.Context) error
+
+	// (GET /comics/{id})
+	GetComic(ctx echo.Context, id int) error
+
+	// (GET /users)
+	Users(ctx echo.Context) error
+
+	// (GET /users/{id})
+	GetUser(ctx echo.Context, id int) error
+
+	// (GET /users/{id}/comics)
+	GetUserComics(ctx echo.Context, id int) error
+
+	// (POST /users/{id}/comics)
+	SubscribeComic(ctx echo.Context, id int) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -235,6 +49,79 @@ func (w *ServerInterfaceWrapper) Comics(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.Comics(ctx)
+	return err
+}
+
+// GetComic converts echo context to params.
+func (w *ServerInterfaceWrapper) GetComic(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetComic(ctx, id)
+	return err
+}
+
+// Users converts echo context to params.
+func (w *ServerInterfaceWrapper) Users(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.Users(ctx)
+	return err
+}
+
+// GetUser converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetUser(ctx, id)
+	return err
+}
+
+// GetUserComics converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUserComics(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetUserComics(ctx, id)
+	return err
+}
+
+// SubscribeComic converts echo context to params.
+func (w *ServerInterfaceWrapper) SubscribeComic(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.SubscribeComic(ctx, id)
 	return err
 }
 
@@ -261,18 +148,27 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 	}
 
 	router.GET("/comics", wrapper.Comics)
+	router.GET("/comics/:id", wrapper.GetComic)
+	router.GET("/users", wrapper.Users)
+	router.GET("/users/:id", wrapper.GetUser)
+	router.GET("/users/:id/comics", wrapper.GetUserComics)
+	router.POST("/users/:id/comics", wrapper.SubscribeComic)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/2SQQavbMBCE/4qY9mgiv77LQ7fQU6CH0PQWclCVdawiS0K7Dhjj/16kpC2kJy/W7Dcz",
-	"u8KlKadIURhm3Tr4OCSYFVdiV3wWnyIM9seDGlJRX9Pkox8W5UYrP5Ogg3gJBIO/T/vjAR3uVPix+7br",
-	"sXVImaLNHgbvu373jg7ZylhdoV2avGvjjeR/9+8kc4kqeBaVBvVUN2SxVXO4PgO034U4p8hUQV/6vn5c",
-	"ikKxoW3Owbu2pn9x5a9gN9Jk6+SFphbkc6EBBp/0vwPph4x1c6qdZMm1ui3FLti2rXsJfpqdI+ZhDmFR",
-	"5dHCvvaoa38iM0ycQ+gg9sYwZzQNLo3NVOpVYc4r5hJgMIpkNlqH5GwYE4v56D96bbPX9ze8pvlWVeoH",
-	"sahTQ2G7bL8DAAD//wS3KkgCAgAA",
+	"H4sIAAAAAAAC/9yVP2/bPBDGvwpx7zsKkdJkCLgFLRoY6BA07VRkoKmTxUIiWfJk1zD03YujZDexYUdN",
+	"O9SdLEsP78/zOxw3oF3rnUVLEeSmz8DYyoHcQIlRB+PJOAsSbu9nonJBvHWtsaZaC10rmjuCDMhQgyBh",
+	"9+n2fgYZLDHE4ezlRQF9Bs6jVd6AhKuL4uIKMvCKas4KuXat0elxgXSY/SNSF6xoTCThKjGqU8igWDMr",
+	"xwLS64DROxuRA70pCv7RzhLaFFp53xidjuVfI8ffQNQ1toqfDGGbCvk/YAUS/st/GpQPspinTNwTrT23",
+	"rkJQa+j7Ptsr/KHTGmOsuqZZizB0ofb74GPbkiNI2zVNBqQWEeQXSBp4ZM3oUr4xZf+SVYNUzFXEUjgr",
+	"Zu8O7LpDGvpgEEG1SBg45X7EJBoCGP7P1CADq1pu3ZTJ8G+dCQiSQofZEzdHf4wlXGCAvn/8PToToBxC",
+	"eO86Ww6OiJWhmnvpM7gurg/tG2ZIlA6jsI4EfjeRfgFRF5OJ0+Z4EO9z+Ty+PZcpHro46RBLnho0aYRP",
+	"u3SHxEad0/CeA5RXbWKxqo2uU04Ruznr51gKcseo7Tb1SXasnISu/LfYvWTqsd2V/OKlVfHCmwQ/A+8i",
+	"HQm1yyrICYurobADpg9b2aTb5G+C+qrb5Bm7Z2CEGh36g4BYEzEst2Z2oQEJNZGPMs8bp1VTu0jyprgp",
+	"cuVNvryE/Yo/sEp8wkjiIYWC/rH/EQAA///nuawM+QkAAA==",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

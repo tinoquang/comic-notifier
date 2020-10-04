@@ -28,6 +28,22 @@ func (s *Server) initComicHandler() {
 
 }
 
+func getPageSource(pageURL string) (body []byte, err error) {
+
+	resp, err := http.Get(pageURL)
+
+	if err != nil {
+		util.Danger(err)
+		return
+	}
+
+	// do this now so it won't be forgotten
+	defer resp.Body.Close()
+
+	body, err = ioutil.ReadAll(resp.Body)
+	return
+}
+
 // getComicInfo return link of latest chapter of a page
 func (s *Server) getComicInfo(ctx context.Context, comic *model.Comic) error {
 
@@ -108,7 +124,7 @@ func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 		return
 	}
 
-	if chapSelections := chapDoc.Find(".comicDetail2#lightgallery2").Find("a[href]"); chapSelections.Size() < 4 {
+	if chapSelections := chapDoc.Find(".comicDetail2#lightgallery2").Find("a[href]"); chapSelections.Size() < 3 {
 		util.Danger()
 		return errors.New("No new chapter, just some spoilers :)")
 
@@ -125,7 +141,7 @@ func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 
 func handleBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
-	var chapURL, chapName string
+	var chapURL, chapName, chapDate string
 	var html []byte
 	var max time.Time
 	var chapDoc *goquery.Document
@@ -157,30 +173,28 @@ func handleBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.C
 			max = t
 			chapURL, _ = item.Find(".title").Find("a[href]").Attr("href")
 			chapName = item.Find(".title").Find("a[href]").Text()
-			comic.Date = date
+			chapDate = date
 		}
 	})
 
 	chapURL = "https://blogtruyen.vn" + chapURL
 
-	if comic.URL != "" {
-		// Not 1st time update, check if chapter is full uploaded (to avoid spolier chap)
-		html, err = getPageSource(chapURL)
-		if err != nil {
-			util.Danger()
-			return
-		}
+	// Check if chapter is full uploaded (to avoid spolier chap)
+	html, err = getPageSource(chapURL)
+	if err != nil {
+		util.Danger()
+		return
+	}
 
-		chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
-		if err != nil {
-			util.Danger()
-			return
-		}
+	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		util.Danger()
+		return
+	}
 
-		if chapSelections := chapDoc.Find("#content").Find("img[src]"); chapSelections.Size() < 4 {
-			util.Danger()
-			return errors.New("No new chapter, just some spoilers :)")
-		}
+	if chapSelections := chapDoc.Find("#content").Find("img[src]"); chapSelections.Size() < 3 {
+		util.Danger()
+		return errors.New("No new chapter, just some spoilers :)")
 	}
 
 	if comic.ChapURL == chapURL {
@@ -189,45 +203,77 @@ func handleBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.C
 
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
+	comic.Date = chapDate
 	return
 }
 
 func handleTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
-	// chap.ComicName = doc.Find(".center").Find("h1").Text()
-	// imageURL, _ := doc.Find(".left").Find("img[src]").Attr("src")
+	var chapURL, chapName, chapDate string
+	var html []byte
+	var max time.Time
+	var chapDoc *goquery.Document
+
+	comic.Name = doc.Find(".center").Find("h1").Text()
+	comic.ImageURL, _ = doc.Find(".left").Find("img[src]").Attr("src")
+
 	// u, err := url.Parse(imageURL)
 	// u.Host = "truyenqq.com"
 	// chap.ImageURL = u.String()
 
-	// chap.DateFormat = "02/01/2006"
+	comic.DateFormat = "02/01/2006"
 
-	// selections := doc.Find(".works-chapter-item.row")
-	// if selections.Nodes == nil {
-	// 	return errors.New("URL is not a comic page")
-	// }
+	selections := doc.Find(".works-chapter-item.row")
+	if selections.Nodes == nil {
+		return errors.New("Please check your URL")
+	}
 
-	// max := time.Time{}
-	// // Iterate through all element which has same container to find link and chapter number
-	// selections.Each(func(index int, item *goquery.Selection) {
-	// 	// Get date release
-	// 	date := strings.TrimSpace(item.Find(".col-md-2.col-sm-2.col-xs-4.text-right").Text())
+	max = time.Time{}
+	// Iterate through all element which has same container to find link and chapter number
+	selections.Each(func(index int, item *goquery.Selection) {
+		// Get date release
+		date := strings.TrimSpace(item.Find(".col-md-2.col-sm-2.col-xs-4.text-right").Text())
 
-	// 	t, err := time.Parse("02/01/2006", date)
-	// 	if err != nil {
-	// 		util.Danger(err)
-	// 		return
-	// 	}
+		t, err := time.Parse("02/01/2006", date)
+		if err != nil {
+			util.Danger(err)
+			return
+		}
 
-	// 	if t.Sub(max).Seconds() > 0.0 {
-	// 		max = t
-	// 		chap.Name = item.Find("a[href]").Text()
-	// 		chap.URL, _ = item.Find("a").Attr("href")
-	// 		chap.Date = date
-	// 	}
+		if t.Sub(max).Seconds() > 0.0 {
+			max = t
+			chapName = item.Find("a[href]").Text()
+			chapURL, _ = item.Find("a").Attr("href")
+			chapDate = date
+		}
 
-	// })
+	})
 
+	// Check if chapter is full uploaded (to avoid spolier chap)
+	html, err = getPageSource(chapURL)
+	if err != nil {
+		util.Danger()
+		return
+	}
+
+	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		util.Danger()
+		return
+	}
+
+	if chapSelections := chapDoc.Find(".story-see-content").Find("img[src]"); chapSelections.Size() < 3 {
+		util.Danger()
+		return errors.New("No new chapter, just some spoilers :)")
+	}
+
+	if comic.ChapURL == chapURL {
+		return errors.New("No new chapter")
+	}
+
+	comic.LatestChap = chapName
+	comic.ChapURL = chapURL
+	comic.Date = chapDate
 	return
 }
 
@@ -265,21 +311,5 @@ func handleMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic
 
 	// })
 
-	return
-}
-
-func getPageSource(pageURL string) (body []byte, err error) {
-
-	resp, err := http.Get(pageURL)
-
-	if err != nil {
-		util.Danger(err)
-		return
-	}
-
-	// do this now so it won't be forgotten
-	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
 	return
 }

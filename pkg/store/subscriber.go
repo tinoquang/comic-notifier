@@ -13,10 +13,9 @@ import (
 
 // SubscriberInterface contains subscriber's interact method
 type SubscriberInterface interface {
-	Get(ctx context.Context, userid, comicid int) (*model.Subscriber, error)
-	GetByID(ctx context.Context, id int) (*model.Subscriber, error)
+	Get(ctx context.Context, psid string, comicid int) (*model.Subscriber, error)
 	Create(ctx context.Context, subscriber *model.Subscriber) error
-	Delete(ctx context.Context, id int) error
+	Delete(ctx context.Context, psid string, comicid int) error
 	ListByComicID(ctx context.Context, id int) ([]model.Subscriber, error)
 }
 
@@ -30,32 +29,16 @@ func NewSubscriberStore(dbconn *sql.DB, cfg *conf.Config) SubscriberInterface {
 	return &subscriberDB{dbconn: dbconn, cfg: cfg}
 }
 
-func (s *subscriberDB) Get(ctx context.Context, userid, comicid int) (*model.Subscriber, error) {
-	query := "WHERE user_id=$1 AND comic_id=$2"
+func (s *subscriberDB) Get(ctx context.Context, psid string, comicid int) (*model.Subscriber, error) {
+	query := "WHERE user_psid=$1 AND comic_id=$2"
 
-	subscribers, err := s.getBySQL(ctx, query, userid, comicid)
+	subscribers, err := s.getBySQL(ctx, query, psid, comicid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get subscriber")
 	}
 
 	if len(subscribers) == 0 {
-		return &model.Subscriber{}, errors.New(fmt.Sprintf("subscriber with userid = %d and comicid = %d not found", userid, comicid))
-	}
-
-	return &subscribers[0], nil
-}
-
-func (s *subscriberDB) GetByID(ctx context.Context, id int) (*model.Subscriber, error) {
-
-	query := "WHERE id=$1"
-
-	subscribers, err := s.getBySQL(ctx, query, id)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get subscriber")
-	}
-
-	if len(subscribers) == 0 {
-		return &model.Subscriber{}, errors.New(fmt.Sprintf("subscriber with id = %d not found", id))
+		return &model.Subscriber{}, errors.New(fmt.Sprintf("subscriber with psid = %s and comicid = %d not found", psid, comicid))
 	}
 
 	return &subscribers[0], nil
@@ -63,20 +46,20 @@ func (s *subscriberDB) GetByID(ctx context.Context, id int) (*model.Subscriber, 
 
 func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
 
-	query := "INSERT INTO subscribers (page, user_id, user_psid, username, comic_id, comicname) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
+	query := "INSERT INTO subscribers (user_psid, comic_id) VALUES ($1,$2) RETURNING id"
 
 	err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
-			ctx, query, subscriber.Page, subscriber.UserID, subscriber.UserPSID, subscriber.UserName, subscriber.ComicID, subscriber.ComicName,
+			ctx, query, subscriber.PSID, subscriber.ComicID,
 		).Scan(&subscriber.ID)
 	})
 	return err
 }
 
-func (s *subscriberDB) Delete(ctx context.Context, id int) error {
+func (s *subscriberDB) Delete(ctx context.Context, psid string, comicid int) error {
 
-	query := "DELETE FROM subscribers WHERE id=$1"
-	_, err := s.dbconn.ExecContext(ctx, query, id)
+	query := "DELETE FROM subscribers WHERE user_psid=$1 AND comic_id=$2"
+	_, err := s.dbconn.ExecContext(ctx, query, psid, comicid)
 	return err
 }
 
@@ -105,7 +88,7 @@ func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...inter
 	defer rows.Close()
 	for rows.Next() {
 		subscriber := model.Subscriber{}
-		err := rows.Scan(&subscriber.ID, &subscriber.Page, &subscriber.UserID, &subscriber.UserPSID, &subscriber.UserName, &subscriber.ComicID, &subscriber.ComicName)
+		err := rows.Scan(&subscriber.ID, &subscriber.PSID, &subscriber.ComicID)
 		if err != nil {
 			return nil, err
 		}

@@ -22,7 +22,7 @@ func handleText(svr ServerInterface, msg Messaging) {
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
-	subID, comic, err := svr.SubscribeComic(ctx, "psid", msg.Sender.ID, msg.Message.Text)
+	comic, err := svr.SubscribeComic(ctx, "psid", msg.Sender.ID, msg.Message.Text)
 	if err != nil {
 		sendTextBack(msg.Sender.ID, err.Error())
 		return
@@ -31,7 +31,7 @@ func handleText(svr ServerInterface, msg Messaging) {
 	sendTextBack(msg.Sender.ID, "Subscribed")
 
 	// send back message in template with buttons
-	sendNormalReply(msg.Sender.ID, subID, comic)
+	sendNormalReply(msg.Sender.ID, comic)
 }
 
 func handlePostback(svr ServerInterface, msg Messaging) {
@@ -42,16 +42,15 @@ func handlePostback(svr ServerInterface, msg Messaging) {
 	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
-	subID, err := strconv.Atoi(msg.PostBack.Payload)
+	comicID, _ := strconv.Atoi(msg.PostBack.Payload)
 
-	s, err := svr.GetSubscriber(ctx, subID)
+	c, err := svr.GetSubscriber(ctx, subID)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			sendTextBack(msg.Sender.ID, fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
 			return
 		}
-		util.Danger(err)
 		return
 	}
 

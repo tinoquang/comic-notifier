@@ -24,14 +24,15 @@ type ServerInterface interface {
 	GetPage(ctx context.Context, name string) (*model.Page, error)
 
 	// Comic interface
+	Comics(ctx context.Context) ([]model.Comic, error)
 	UpdateComic(ctx context.Context, comic *model.Comic) (bool, error)
-	ListComic(ctx context.Context) ([]model.Comic, error)
+	GetComicByUserID(ctx context.Context, userID, comicID int) (*model.Comic, error)
+	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error)
+	UnsubscribeComic(ctx context.Context, userID, comicID int) error
 
-	// Subscirber interface
-	GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error)
-	GetSubscriberByComicID(ctx context.Context, comicID int) ([]model.Subscriber, error)
-	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error)
-	UnsubscribeComic(ctx context.Context, id int) error
+	// User interface
+	GetUserByPSID(ctx context.Context, psid string) (*model.User, error)
+	GetUserByComicID(ctx context.Context, comicID int) ([]model.User, error)
 }
 
 // Handler main handler for incoming HTTP request

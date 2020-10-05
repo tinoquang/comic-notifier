@@ -34,7 +34,7 @@ func sendActionBack(senderid, action string) {
 }
 
 // Use to send message within 24-hour window of FACEBOOK policy
-func sendNormalReply(senderid string, subID int, comic *model.Comic) {
+func sendNormalReply(senderid string, comic *model.Comic) {
 
 	response := &Response{
 		Recipient: &User{ID: senderid},
@@ -61,7 +61,7 @@ func sendNormalReply(senderid string, subID int, comic *model.Comic) {
 								{
 									Type:    "postback",
 									Title:   "Unsubscribe",
-									Payload: strconv.Itoa(subID),
+									Payload: strconv.Itoa(comic.ID),
 								},
 							},
 						},
@@ -74,7 +74,7 @@ func sendNormalReply(senderid string, subID int, comic *model.Comic) {
 	callSendAPI(response)
 }
 
-func sendMsgTagsReply(senderid string, subID int, comic *model.Comic) {
+func sendMsgTagsReply(senderid string, comic *model.Comic) {
 
 	response := &Response{
 		Recipient: &User{ID: senderid},
@@ -101,7 +101,7 @@ func sendMsgTagsReply(senderid string, subID int, comic *model.Comic) {
 								{
 									Type:    "postback",
 									Title:   "Unsubscribe",
-									Payload: strconv.Itoa(subID),
+									Payload: strconv.Itoa(comic.ID),
 								},
 							},
 						},
@@ -117,19 +117,19 @@ func sendMsgTagsReply(senderid string, subID int, comic *model.Comic) {
 	return
 }
 
-func sendQuickReplyChoice(senderid string, s *model.Subscriber) {
+func sendQuickReplyChoice(senderid string, c *model.Comic) {
 
 	// send back quick reply "Are you sure ?" for user to confirm
 	response := &Response{
 		Recipient: &User{ID: senderid},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
-			Text: "Unsubscribe " + s.ComicName + "\nAre you sure ?",
+			Text: "Unsubscribe " + c.Name + "\nAre you sure ?",
 			Options: []QuickReply{
 				{
 					Type:     "text",
 					Title:    "Yes",
-					Payload:  strconv.Itoa(s.ID),
+					Payload:  strconv.Itoa(c.ID),
 					ImageURL: "https://www.vhv.rs/dpng/d/356-3568543_check-icon-green-tick-hd-png-download.png",
 				},
 				{

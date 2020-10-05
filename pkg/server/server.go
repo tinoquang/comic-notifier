@@ -39,10 +39,29 @@ func (s *Server) GetPage(ctx context.Context, name string) (*model.Page, error) 
 	return s.store.Page.GetByName(ctx, name)
 }
 
+/* ===================== User ============================ */
+
+// Users (GET /users)
+func (s *Server) Users(ctx context.Context) ([]model.User, error) {
+
+	return s.store.User.List(ctx)
+}
+
+// GetUserByPSID (GET /users?psid=)
+func (s *Server) GetUserByPSID(ctx context.Context, psid string) (*model.User, error) {
+	return s.store.User.GetByFBID(ctx, "psid", psid)
+}
+
+// GetUserByComicID (GET /comics/{id}/users)
+func (s *Server) GetUserByComicID(ctx context.Context, comicID int) ([]model.User, error) {
+
+	return s.store.User.ListByComicID(ctx, comicID)
+}
+
 /* ===================== Comic ============================ */
 
-// ListComic (GET /comics)
-func (s *Server) ListComic(ctx context.Context) ([]model.Comic, error) {
+// Comics (GET /comics)
+func (s *Server) Comics(ctx context.Context) ([]model.Comic, error) {
 
 	return s.store.Comic.List(ctx)
 }
@@ -69,17 +88,17 @@ func (s *Server) UpdateComic(ctx context.Context, comic *model.Comic) (bool, err
 /* ===================== Subsciber ========================== */
 
 // SubscribeComic (POST /users/{id}/comics)
-func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (int, *model.Comic, error) {
+func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error) {
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
-		return 0, nil, errors.New("Please check your URL")
+		return nil, errors.New("Please check your URL")
 	}
 
 	// Check page support, if not send back "Page is not supported"
 	_, err = s.store.Page.GetByName(ctx, parsedURL.Hostname())
 	if err != nil {
-		return 0, nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
+		return nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
 	}
 
 	// Page URL validated, now check comics already in database
@@ -100,25 +119,25 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 			err = s.getComicInfo(ctx, comic)
 			if err != nil {
 				util.Danger(err)
-				return 0, nil, errors.New("Please check your URL")
+				return nil, errors.New("Please check your URL")
 			}
 
 			// Add new comic to DB
 			err = s.store.Comic.Create(ctx, comic)
 			if err != nil {
 				util.Danger(err)
-				return 0, nil, errors.New("Please try again later")
+				return nil, errors.New("Please try again later")
 			}
 		} else {
 			util.Danger(err)
-			return 0, nil, errors.New("Please try again later")
+			return nil, errors.New("Please try again later")
 		}
 	}
 
 	// Validate users is in user DB or not
 	// If not, add user to database, return "Subscribed to ..."
 	// else return "Already subscribed"
-	user, err := s.store.User.GetByID(ctx, field, id)
+	user, err := s.store.User.GetByFBID(ctx, field, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 
@@ -128,17 +147,17 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
-				return 0, nil, errors.New("Please try again later")
+				return nil, errors.New("Please try again later")
 			}
 			err = s.store.User.Create(ctx, user)
 
 			if err != nil {
 				util.Danger(err)
-				return 0, nil, errors.New("Please try again later")
+				return nil, errors.New("Please try again later")
 			}
 		} else {
 			util.Danger(err)
-			return 0, nil, errors.New("Please try again later")
+			return nil, errors.New("Please try again later")
 		}
 	}
 
@@ -146,40 +165,35 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			subscriber = &model.Subscriber{
-				Page:      comic.Page,
-				UserID:    user.ID,
-				UserPSID:  user.PSID,
-				UserName:  user.Name,
-				ComicID:   comic.ID,
-				ComicName: comic.Name,
+				PSID:    user.PSID,
+				ComicID: comic.ID,
 			}
 
 			err = s.store.Subscriber.Create(ctx, subscriber)
 			if err != nil {
 				util.Danger(err)
-				return 0, nil, errors.New("Please try again later")
+				return nil, errors.New("Please try again later")
 			}
-			return subscriber.ID, comic, nil
+			return comic, nil
 		}
 		util.Danger(err)
-		return 0, nil, errors.New("Please try again later")
+		return nil, errors.New("Please try again later")
 	}
-	return 0, nil, errors.New("Already subscribed")
+	return nil, errors.New("Already subscribed")
 }
 
-// GetSubscriber (GET /subscribers/{id})
-func (s *Server) GetSubscriber(ctx context.Context, id int) (*model.Subscriber, error) {
-	return s.store.Subscriber.GetByID(ctx, id)
+// UnsubscribeComic (DELETE /user/{user_id}/comic/{id})
+func (s *Server) UnsubscribeComic(ctx context.Context, psid string, comicID int) error {
+
+	return s.store.Subscriber.Delete(ctx, userID, comicID)
 }
 
-// UnsubscribeComic (DELETE /subscribers/{id})
-func (s *Server) UnsubscribeComic(ctx context.Context, id int) error {
+// GetComicByUserID (GET /user/{user_id}/comic/{id})
+func (s *Server) GetComicByUserID(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
+	_, err := s.store.Subscriber.Get(ctx, userID, comicID)
+	if err != nil {
+		return nil, err
+	}
 
-	return s.store.Subscriber.Delete(ctx, id)
-}
-
-// GetSubscriberByComicID (GET /comics/{id}/subscribers)
-func (s *Server) GetSubscriberByComicID(ctx context.Context, comicID int) ([]model.Subscriber, error) {
-
-	return s.store.Subscriber.ListByComicID(ctx, comicID)
+	return s.store.Comic.Get(ctx, comicID)
 }

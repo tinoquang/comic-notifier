@@ -13,7 +13,7 @@ paths:
       operationId: Users
       tags:
         - user
-      response:
+      responses:
         "200":
           description: Successfully return a list of users
           content:
@@ -35,7 +35,7 @@ paths:
           require: true
           schema:
             type: integer
-      response:
+      responses:
         "200":
           description: Successfully return a list of users
           content:
@@ -49,7 +49,7 @@ paths:
       description: "Return list of comics which user subscribed to"
       operationId: GetUserComics
       tags:
-        - user
+        - comic
       parameters:
         - name: id
           in: path
@@ -57,7 +57,7 @@ paths:
           required: true
           schema:
             type: integer
-      response:
+      responses:
         "200":
           description: Successfully return a list of comics which user subscribed to
           content:
@@ -72,7 +72,7 @@ paths:
       operationId: SubscribeComic
       description: User subscribe to new comic
       tags:
-        - user
+        - comic
       parameters:
         - name: id
           in: path
@@ -80,7 +80,14 @@ paths:
           required: true
           schema:
             type: integer
-      response:
+      requestBody:
+        description: "Comic link"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: https://beeng.net/truyen-tranh-online/toi-thang-cap-mot-minh-ss2-33790
+      responses:
         "200":
           description: Successfully subscribed to a comic
           content:
@@ -89,9 +96,30 @@ paths:
                 $ref: "#/components/schemas/Comic"
         "404":
           description: User not found
-  /users/{user_id}/comics/{comic_id}:
-    get:
+  /users/{user_id}/comics/{id}:
     delete:
+      description: Unsubscribe comic
+      operationId: UnsubscribeComic
+      tags:
+        - comic
+      parameters:
+        - name: user_id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          description: Comic ID
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Unsubscribe comic responses
+        "404":
+          description: Comic not found
   /comics:
     get:
       # summary: "Get list of comics"
@@ -99,7 +127,7 @@ paths:
       operationId: Comics
       tags:
         - comic
-      response:
+      responses:
         "200":
           description: Successfully return a list of comics
           content:
@@ -121,7 +149,7 @@ paths:
           require: true
           schema:
             type: integer
-      response:
+      responses:
         "200":
           description: Found comic with ID
           content:

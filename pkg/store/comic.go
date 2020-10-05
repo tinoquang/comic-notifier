@@ -13,6 +13,7 @@ import (
 
 // ComicInterface contains comic's interact method
 type ComicInterface interface {
+	Get(ctx context.Context, id int) (*model.Comic, error)
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
 	Create(ctx context.Context, comic *model.Comic) error
 	Update(ctx context.Context, comic *model.Comic) error
@@ -27,6 +28,21 @@ type comicDB struct {
 // NewComicStore return comic interfaces
 func NewComicStore(dbconn *sql.DB, cfg *conf.Config) ComicInterface {
 	return &comicDB{dbconn: dbconn, cfg: cfg}
+}
+
+func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {
+
+	comics, err := c.getBySQL(ctx, "WHERE id=$1", id)
+	if err != nil {
+		util.Danger()
+		return nil, err
+	}
+
+	if len(comics) == 0 {
+		return &model.Comic{}, errors.New("Comic not found")
+	}
+
+	return &comics[0], nil
 }
 
 func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error) {

@@ -13,10 +13,11 @@ import (
 
 // UserInterface contain user's interact method
 type UserInterface interface {
-	GetByID(ctx context.Context, field, id string) (*model.User, error)
+	GetByID(ctx context.Context, id int) (*model.User, error)
+	GetByFBID(ctx context.Context, field, id string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
-	//Update
-	//List
+	List(ctx context.Context) ([]model.User, error)
+	ListByComicID(ctx context.Context, comicID int) ([]model.User, error)
 }
 
 type userDB struct {
@@ -29,12 +30,26 @@ func NewUserStore(dbconn *sql.DB, cfg *conf.Config) UserInterface {
 	return &userDB{dbconn: dbconn, cfg: cfg}
 }
 
+func (u *userDB) GetByID(ctx context.Context, id int) (*model.User, error) {
+	query := "WHERE id=$1"
+	users, err := u.getBySQL(ctx, query, id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get user with id: %d", id)
+	}
+
+	if len(users) == 0 {
+		return &model.User{}, errors.New(fmt.Sprintf("User with id: %d not found", id))
+	}
+
+	return &users[0], nil
+}
+
 // field is either psid or appid
-func (u *userDB) GetByID(ctx context.Context, field, id string) (*model.User, error) {
+func (u *userDB) GetByFBID(ctx context.Context, field, id string) (*model.User, error) {
 	query := "WHERE " + field + "=$1"
 	users, err := u.getBySQL(ctx, query, id)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get customer with %s: %s", field, id)
+		return nil, errors.Wrapf(err, "failed to get user with %s: %s", field, id)
 	}
 
 	if len(users) == 0 {
@@ -46,7 +61,7 @@ func (u *userDB) GetByID(ctx context.Context, field, id string) (*model.User, er
 
 func (u *userDB) Create(ctx context.Context, user *model.User) error {
 
-	query := "insert into users (name, psid, appid, profile_pic) values ($1, $2, $3, $4) returning id"
+	query := "INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4) RETURNING id"
 
 	err := db.WithTransaction(ctx, u.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
@@ -54,6 +69,22 @@ func (u *userDB) Create(ctx context.Context, user *model.User) error {
 	})
 	return err
 
+}
+
+func (u *userDB) ListByComicID(ctx context.Context, comicID int) ([]model.User, error) {
+
+	query := "LEFT JOIN subscribers ON users.id=subscribers.user_id AND subscribers.comic_id=$1"
+	users, err := u.getBySQL(ctx, query, comicID)
+	if err != nil || len(users) == 0 {
+		return nil, errors.Wrapf(err, "failed to get list of users by comicID: %d", comicID)
+	}
+
+	return users, nil
+}
+
+func (u *userDB) List(ctx context.Context) ([]model.User, error) {
+
+	return u.getBySQL(ctx, "")
 }
 
 func (u *userDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.User, error) {

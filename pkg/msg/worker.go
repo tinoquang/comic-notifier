@@ -51,7 +51,7 @@ func updateThread(svr ServerInterface, workerNum, timeout int) {
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 		// Get all comics in DB
-		comics, err := svr.ListComic(ctx)
+		comics, err := svr.Comics(ctx)
 		if err != nil {
 			util.Info("Update new chapter fail, err: ", err)
 			util.Info("Sleep update routine for 30min, then go check new chapter again..........")

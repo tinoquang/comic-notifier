@@ -52,8 +52,8 @@ func (s *Server) GetUserByPSID(ctx context.Context, psid string) (*model.User, e
 	return s.store.User.GetByFBID(ctx, "psid", psid)
 }
 
-// GetUserByComicID (GET /comics/{id}/users)
-func (s *Server) GetUserByComicID(ctx context.Context, comicID int) ([]model.User, error) {
+// GetUsersByComicID (GET /comics/{id}/users)
+func (s *Server) GetUsersByComicID(ctx context.Context, comicID int) ([]model.User, error) {
 
 	return s.store.User.ListByComicID(ctx, comicID)
 }
@@ -84,8 +84,6 @@ func (s *Server) UpdateComic(ctx context.Context, comic *model.Comic) (bool, err
 	err = s.store.Comic.Update(ctx, comic)
 	return updated, err
 }
-
-/* ===================== Subsciber ========================== */
 
 // SubscribeComic (POST /users/{id}/comics)
 func (s *Server) SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error) {
@@ -161,7 +159,7 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 		}
 	}
 
-	subscriber, err := s.store.Subscriber.Get(ctx, user.ID, comic.ID)
+	subscriber, err := s.store.Subscriber.Get(ctx, user.PSID, comic.ID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			subscriber = &model.Subscriber{
@@ -185,12 +183,13 @@ func (s *Server) SubscribeComic(ctx context.Context, field string, id string, co
 // UnsubscribeComic (DELETE /user/{user_id}/comic/{id})
 func (s *Server) UnsubscribeComic(ctx context.Context, psid string, comicID int) error {
 
-	return s.store.Subscriber.Delete(ctx, userID, comicID)
+	return s.store.Subscriber.Delete(ctx, psid, comicID)
 }
 
-// GetComicByUserID (GET /user/{user_id}/comic/{id})
-func (s *Server) GetComicByUserID(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
-	_, err := s.store.Subscriber.Get(ctx, userID, comicID)
+// GetUserComic (GET /user/{user_id}/comic/{id})
+func (s *Server) GetUserComic(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
+
+	_, err := s.store.Subscriber.Get(ctx, psid, comicID)
 	if err != nil {
 		return nil, err
 	}

@@ -77,14 +77,14 @@ func updateThread(svr ServerInterface, workerNum, timeout int) {
 
 func notifyToUsers(cxt context.Context, svr ServerInterface, comic *model.Comic) {
 
-	subscribers, err := svr.GetSubscriberByComicID(cxt, comic.ID)
+	users, err := svr.GetUsersByComicID(cxt, comic.ID)
 	if err != nil {
 		util.Danger(err)
 		return
 	}
 
-	for _, s := range subscribers {
-		util.Info("Notify ", comic.Name, " to user ", s.UserName)
-		sendMsgTagsReply(s.UserPSID, s.ID, comic)
+	for _, u := range users {
+		util.Info("Notify ", comic.Name, " to user ", u.Name)
+		sendMsgTagsReply(u.PSID, comic)
 	}
 }

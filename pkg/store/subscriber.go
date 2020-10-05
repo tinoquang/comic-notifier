@@ -46,7 +46,7 @@ func (s *subscriberDB) Get(ctx context.Context, psid string, comicid int) (*mode
 
 func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
 
-	query := "INSERT INTO subscribers (user_psid, comic_id) VALUES ($1,$2) RETURNING id"
+	query := "INSERT INTO subscribers (user_psid, comic_id) VALUES ($1,$2)"
 
 	err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
@@ -88,7 +88,7 @@ func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...inter
 	defer rows.Close()
 	for rows.Next() {
 		subscriber := model.Subscriber{}
-		err := rows.Scan(&subscriber.ID, &subscriber.PSID, &subscriber.ComicID)
+		err := rows.Scan(&subscriber.PSID, &subscriber.ComicID)
 		if err != nil {
 			return nil, err
 		}

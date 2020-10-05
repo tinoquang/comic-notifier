@@ -26,13 +26,13 @@ type ServerInterface interface {
 	// Comic interface
 	Comics(ctx context.Context) ([]model.Comic, error)
 	UpdateComic(ctx context.Context, comic *model.Comic) (bool, error)
-	GetComicByUserID(ctx context.Context, userID, comicID int) (*model.Comic, error)
+	GetUserComic(ctx context.Context, psid string, comicID int) (*model.Comic, error)
 	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error)
-	UnsubscribeComic(ctx context.Context, userID, comicID int) error
+	UnsubscribeComic(ctx context.Context, psid string, comicID int) error
 
 	// User interface
 	GetUserByPSID(ctx context.Context, psid string) (*model.User, error)
-	GetUserByComicID(ctx context.Context, comicID int) ([]model.User, error)
+	GetUsersByComicID(ctx context.Context, comicID int) ([]model.User, error)
 }
 
 // Handler main handler for incoming HTTP request

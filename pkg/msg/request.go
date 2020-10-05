@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 /*---------Request message method------------*/
@@ -44,17 +42,17 @@ func handlePostback(svr ServerInterface, msg Messaging) {
 
 	comicID, _ := strconv.Atoi(msg.PostBack.Payload)
 
-	c, err := svr.GetSubscriber(ctx, subID)
+	c, err := svr.GetUserComic(ctx, msg.Sender.ID, comicID)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			sendTextBack(msg.Sender.ID, fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
+			sendTextBack(msg.Sender.ID, fmt.Sprintf("Comic %s is not subscribed", c.Name))
 			return
 		}
 		return
 	}
 
-	sendQuickReplyChoice(msg.Sender.ID, s)
+	sendQuickReplyChoice(msg.Sender.ID, c)
 	return
 }
 
@@ -70,24 +68,15 @@ func handleQuickReply(svr ServerInterface, msg Messaging) {
 		return
 	}
 
-	subID, err := strconv.Atoi(msg.Message.QuickReply.Payload)
+	comicID, err := strconv.Atoi(msg.Message.QuickReply.Payload)
 
-	s, err := svr.GetSubscriber(ctx, subID)
+	c, _ := svr.GetUserComic(ctx, msg.Sender.ID, comicID)
 
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			sendTextBack(msg.Sender.ID, fmt.Sprintf("Comic %s is not subscribed", s.ComicName))
-			return
-		}
-		util.Danger(err)
-		return
-	}
-
-	err = svr.UnsubscribeComic(ctx, subID)
+	err = svr.UnsubscribeComic(ctx, msg.Sender.ID, comicID)
 	if err != nil {
 		sendTextBack(msg.Sender.ID, "Please try again later")
 	} else {
-		sendTextBack(msg.Sender.ID, fmt.Sprintf("Unsubscribe %s", s.ComicName))
+		sendTextBack(msg.Sender.ID, fmt.Sprintf("Unsubscribe %s", c.Name))
 	}
 	return
 }

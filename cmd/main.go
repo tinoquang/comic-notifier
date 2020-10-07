@@ -28,6 +28,8 @@ func main() {
 	// Facebook webhook
 	msg.RegisterHandler(e.Group("/webhook"), cfg, svr)
 
+	// API handler register
+	// api.RegisterHandlers(e.Group("/api/v1"), svr)
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))
 

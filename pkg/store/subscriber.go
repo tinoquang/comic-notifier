@@ -3,9 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -13,10 +11,8 @@ import (
 
 // SubscriberInterface contains subscriber's interact method
 type SubscriberInterface interface {
-	Get(ctx context.Context, psid string, comicid int) (*model.Subscriber, error)
 	Create(ctx context.Context, subscriber *model.Subscriber) error
 	Delete(ctx context.Context, psid string, comicid int) error
-	ListByComicID(ctx context.Context, id int) ([]model.Subscriber, error)
 }
 
 type subscriberDB struct {
@@ -27,21 +23,6 @@ type subscriberDB struct {
 // NewSubscriberStore return subscriber interfaces
 func NewSubscriberStore(dbconn *sql.DB, cfg *conf.Config) SubscriberInterface {
 	return &subscriberDB{dbconn: dbconn, cfg: cfg}
-}
-
-func (s *subscriberDB) Get(ctx context.Context, psid string, comicid int) (*model.Subscriber, error) {
-	query := "WHERE user_psid=$1 AND comic_id=$2"
-
-	subscribers, err := s.getBySQL(ctx, query, psid, comicid)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get subscriber")
-	}
-
-	if len(subscribers) == 0 {
-		return &model.Subscriber{}, errors.New(fmt.Sprintf("subscriber with psid = %s and comicid = %d not found", psid, comicid))
-	}
-
-	return &subscribers[0], nil
 }
 
 func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
@@ -61,21 +42,6 @@ func (s *subscriberDB) Delete(ctx context.Context, psid string, comicid int) err
 	query := "DELETE FROM subscribers WHERE user_psid=$1 AND comic_id=$2"
 	_, err := s.dbconn.ExecContext(ctx, query, psid, comicid)
 	return err
-}
-
-func (s *subscriberDB) ListByComicID(ctx context.Context, id int) ([]model.Subscriber, error) {
-
-	query := "WHERE comic_id=$1"
-
-	subscribers, err := s.getBySQL(ctx, query, id)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get subscriber")
-	}
-
-	if len(subscribers) == 0 {
-		return nil, errors.New("subscriber not found")
-	}
-	return subscribers, nil
 }
 
 func (s *subscriberDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Subscriber, error) {

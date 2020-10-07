@@ -3,6 +3,8 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -11,21 +13,56 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-type comicHandler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
+func getUserInfoByID(field, id string, cfg *conf.Config) (user *model.User, err error) {
 
-func (s *Server) initComicHandler() {
+	user = &model.User{}
 
-	s.comH = make(map[string]comicHandler)
+	info := map[string]json.RawMessage{}
+	appInfo := []map[string]json.RawMessage{}
+	picture := map[string]json.RawMessage{}
+	queries := map[string]string{}
 
-	s.comH["beeng.net"] = handleBeeng
-	s.comH["mangak.info"] = handleMangaK
-	s.comH["truyenqq.com"] = handleTruyenqq
-	s.comH["blogtruyen.vn"] = handleBlogTruyen
+	switch field {
+	case "psid":
+		user.PSID = id
+		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
+		queries["access_token"] = cfg.FBSecret.PakeToken
+	case "appid":
+		user.AppID = id
+		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
+		queries["access_token"] = cfg.FBSecret.AppToken
+		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
+	default:
+		return nil, errors.New(fmt.Sprintf("Wrong field request, field: %s", field))
+	}
 
+	respBody, err := util.MakeGetRequest(cfg.Webhook.GraphEndpoint+id, queries)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(respBody, &info)
+	if err != nil {
+		return
+	}
+
+	user.Name = util.ConvertJSONToString(info["name"])
+
+	json.Unmarshal(info["ids_for_apps"], &info)
+	json.Unmarshal(info["picture"], &picture)
+	json.Unmarshal(picture["data"], &picture)
+	json.Unmarshal(info["data"], &appInfo)
+
+	user.AppID = util.ConvertJSONToString(appInfo[0]["id"])
+	user.ProfilePic = util.ConvertJSONToString(picture["url"])
+	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
+
+	return user, nil
 }
 
 func getPageSource(pageURL string) (body []byte, err error) {
@@ -45,7 +82,7 @@ func getPageSource(pageURL string) (body []byte, err error) {
 }
 
 // getComicInfo return link of latest chapter of a page
-func (s *Server) getComicInfo(ctx context.Context, comic *model.Comic) error {
+func getComicInfo(ctx context.Context, comic *model.Comic) error {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -65,7 +102,7 @@ func (s *Server) getComicInfo(ctx context.Context, comic *model.Comic) error {
 	}
 
 	// Find the class contain <a> tag with link of chapter
-	err = s.comH[comic.Page](ctx, doc, comic)
+	err = handler[comic.Page](ctx, doc, comic)
 	return errors.Wrapf(err, "Can't get latest chap")
 }
 

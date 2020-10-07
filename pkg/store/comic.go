@@ -15,9 +15,11 @@ import (
 type ComicInterface interface {
 	Get(ctx context.Context, id int) (*model.Comic, error)
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
+	GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error)
 	Create(ctx context.Context, comic *model.Comic) error
 	Update(ctx context.Context, comic *model.Comic) error
 	List(ctx context.Context) ([]model.Comic, error)
+	ListByPSID(ctx context.Context, psid string) ([]model.Comic, error)
 }
 
 type comicDB struct {
@@ -60,6 +62,23 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 	return &comics[0], nil
 }
 
+func (c *comicDB) GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
+
+	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id && subscibers.psid=$1"
+
+	comics, err := c.getBySQL(ctx, query, psid)
+	if err != nil {
+		util.Danger()
+		return nil, err
+	}
+
+	if len(comics) == 0 {
+		return &model.Comic{}, errors.New("Comic not found")
+	}
+
+	return &comics[0], nil
+}
+
 func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
 	query := "INSERT INTO comics (page, name, url, image_url, latest_chap, chap_url, date, date_format) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
@@ -83,6 +102,18 @@ func (c *comicDB) Update(ctx context.Context, comic *model.Comic) error {
 func (c *comicDB) List(ctx context.Context) ([]model.Comic, error) {
 
 	return c.getBySQL(ctx, "")
+}
+
+func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, error) {
+	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id && subscibers.psid=$1"
+
+	comics, err := c.getBySQL(ctx, query, psid)
+	if err != nil || len(comics) == 0 {
+		util.Danger()
+		return nil, err
+	}
+
+	return comics, nil
 }
 
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {

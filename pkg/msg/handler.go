@@ -20,9 +20,6 @@ var (
 // ServerInterface contain all server's method
 type ServerInterface interface {
 
-	// Page interface
-	GetPage(ctx context.Context, name string) (*model.Page, error)
-
 	// Comic interface
 	Comics(ctx context.Context) ([]model.Comic, error)
 	UpdateComic(ctx context.Context, comic *model.Comic) (bool, error)

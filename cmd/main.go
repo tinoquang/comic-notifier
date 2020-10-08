@@ -26,7 +26,7 @@ func main() {
 	svr := server.New(cfg, s)
 
 	// Facebook webhook
-	msg.RegisterHandler(e.Group("/webhook"), cfg, svr)
+	msg.RegisterHandler(e.Group("/webhook"), cfg, svr.Msg)
 
 	// API handler register
 	// api.RegisterHandlers(e.Group("/api/v1"), svr)

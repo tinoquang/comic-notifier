@@ -5,51 +5,33 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-var (
-	messengerEndpoint string
-	pageToken         string
-	webhookToken      string
-)
+var webhookToken string
 
 // ServerInterface contain all server's method
 type ServerInterface interface {
 
-	// Comic interface
-	Comics(ctx context.Context) ([]model.Comic, error)
-	UpdateComic(ctx context.Context, comic *model.Comic) (bool, error)
-	GetUserComic(ctx context.Context, psid string, comicID int) (*model.Comic, error)
-	SubscribeComic(ctx context.Context, field string, id string, comicURL string) (*model.Comic, error)
-	UnsubscribeComic(ctx context.Context, psid string, comicID int) error
-
-	// User interface
-	GetUserByPSID(ctx context.Context, psid string) (*model.User, error)
-	GetUsersByComicID(ctx context.Context, comicID int) ([]model.User, error)
+	// Handler msg interface
+	HandleTxtMsg(ctx context.Context, senderID string, text string)
+	HandlePostback(ctx context.Context, senderID, payload string)
+	HandleQuickReply(ctx context.Context, senderID, payload string)
 }
 
 // Handler main handler for incoming HTTP request
 type Handler struct {
-	svr ServerInterface
+	svi ServerInterface
 }
 
 // RegisterHandler : register webhook handler
-func RegisterHandler(g *echo.Group, cfg *conf.Config, svr ServerInterface) {
+func RegisterHandler(g *echo.Group, cfg *conf.Config, svi ServerInterface) {
 
-	// Get env config
-	messengerEndpoint = cfg.Webhook.GraphEndpoint + "me/messages"
 	webhookToken = cfg.Webhook.WebhookToken
-	pageToken = cfg.FBSecret.PakeToken
-
-	// Start worker pool
-	go updateThread(svr, cfg.WrkDat.WorkerNum, cfg.WrkDat.Timeout)
 
 	// Create main handler
-	h := Handler{svr: svr}
+	h := Handler{svi: svi}
 
 	// Register endpoint to handler
 	// Webhook verify message
@@ -85,22 +67,19 @@ func (h *Handler) parseUserMsg(c echo.Context) error {
 
 	// Parsing request
 	if err := c.Bind(m); err != nil {
-		return errors.Wrap(err, "Can't parse message from messenger")
+		return c.String(http.StatusBadRequest, "")
 	}
 
 	if m.Object == "page" {
 		for _, entry := range m.Entries {
-			// Mark message as "seen"
-			sendActionBack(entry.Messaging[0].Sender.ID, "mark_seen")
-
 			if len(entry.Messaging) != 0 {
 				switch {
 				case entry.Messaging[0].PostBack != nil:
-					go handlePostback(h.svr, entry.Messaging[0])
+					go h.handlePostback(entry.Messaging[0])
 				case entry.Messaging[0].Message.QuickReply != nil:
-					go handleQuickReply(h.svr, entry.Messaging[0])
+					go h.handleQuickReply(entry.Messaging[0])
 				case entry.Messaging[0].Message.Text != "":
-					go handleText(h.svr, entry.Messaging[0])
+					go h.handleText(entry.Messaging[0])
 				default:
 					util.Warning("Only support text, postback and quick-reply !!!")
 				}

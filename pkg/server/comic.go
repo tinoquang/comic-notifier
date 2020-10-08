@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -15,10 +16,105 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-func getUserInfoByID(field, id string, cfg *conf.Config) (user *model.User, err error) {
+func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, field string, id string, comicURL string) (*model.Comic, error) {
+
+	parsedURL, err := url.Parse(comicURL)
+	if err != nil || parsedURL.Host == "" {
+		return nil, errors.New("Please check your URL")
+	}
+
+	// Check page support, if not send back "Page is not supported"
+	_, err = store.Page.GetByName(ctx, parsedURL.Hostname())
+	if err != nil {
+		return nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
+	}
+
+	// Page URL validated, now check comics already in database
+	// util.Info("Validated " + page.Name)
+	comic, err := store.Comic.GetByURL(ctx, comicURL)
+
+	// If comic is not in database, query it's latest chap,
+	// add to database, then prepare response with latest chapter
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+
+			util.Info("Comic is not in DB yet, insert it")
+			comic = &model.Comic{
+				Page: parsedURL.Hostname(),
+				URL:  comicURL,
+			}
+			// Get all comic infos includes latest chapter
+			err = getComicInfo(ctx, comic)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please check your URL")
+			}
+
+			// Add new comic to DB
+			err = store.Comic.Create(ctx, comic)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+		} else {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
+		}
+	}
+
+	// Validate users is in user DB or not
+	// If not, add user to database, return "Subscribed to ..."
+	// else return "Already subscribed"
+	user, err := store.User.GetByFBID(ctx, field, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+
+			util.Info("Add new user")
+
+			user, err = getUserInfoByID(cfg, field, id)
+			// Check user already exist
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+			err = store.User.Create(ctx, user)
+
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+		} else {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
+		}
+	}
+
+	_, err = store.Comic.GetByPSID(ctx, user.PSID, comic.ID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			subscriber := &model.Subscriber{
+				PSID:    user.PSID,
+				ComicID: comic.ID,
+			}
+
+			err = store.Subscriber.Create(ctx, subscriber)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+			return comic, nil
+		}
+		util.Danger(err)
+		return nil, errors.New("Please try again later")
+	}
+	return nil, errors.New("Already subscribed")
+}
+
+func getUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
 
 	user = &model.User{}
 
@@ -63,22 +159,6 @@ func getUserInfoByID(field, id string, cfg *conf.Config) (user *model.User, err 
 	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
 
 	return user, nil
-}
-
-func getPageSource(pageURL string) (body []byte, err error) {
-
-	resp, err := http.Get(pageURL)
-
-	if err != nil {
-		util.Danger(err)
-		return
-	}
-
-	// do this now so it won't be forgotten
-	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
-	return
 }
 
 // getComicInfo return link of latest chapter of a page
@@ -176,6 +256,23 @@ func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 	return
 }
 
+func getPageSource(pageURL string) (body []byte, err error) {
+
+	resp, err := http.Get(pageURL)
+
+	if err != nil {
+		util.Danger(err)
+		return
+	}
+
+	// do this now so it won't be forgotten
+	defer resp.Body.Close()
+
+	body, err = ioutil.ReadAll(resp.Body)
+	return
+}
+
+/* Comic page crawler function */
 func handleBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
 	var chapURL, chapName, chapDate string

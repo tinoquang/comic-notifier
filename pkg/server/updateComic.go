@@ -1,11 +1,13 @@
-package msg
+package server
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -13,17 +15,36 @@ var (
 	wg sync.WaitGroup
 )
 
-func worker(svr ServerInterface, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
+// UpdateComic use when new chapter realease
+func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (bool, error) {
+
+	updated := true
+	err := getComicInfo(ctx, comic)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "No new chapter") {
+			updated = false
+		} else {
+			util.Danger()
+		}
+		return updated, err
+	}
+
+	err = store.Comic.Update(ctx, comic)
+	return updated, err
+}
+
+func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan *model.Comic) {
 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		util.Info("Comic ID", comic.ID, ": ", comic.Name, ": starting update...")
 
-		updated, err := svr.UpdateComic(ctx, &comic)
+		updated, err := updateComic(ctx, store, comic)
 
 		if err == nil {
 			util.Info("Comic ID", comic.ID, ": ", comic.Name, " new chapter ", comic.LatestChap)
-			notifyToUsers(ctx, svr, &comic)
+			notifyToUsers(ctx, store, comic)
 		} else {
 			if !updated {
 				util.Info("Comic ID", comic.ID, ": ", comic.Name, "has no update")
@@ -37,21 +58,21 @@ func worker(svr ServerInterface, wg *sync.WaitGroup, comicPool <-chan model.Comi
 }
 
 // UpdateThread read comic database and update each comic to each latest chap
-func updateThread(svr ServerInterface, workerNum, timeout int) {
+func updateComicThread(store *store.Stores, workerNum, timeout int) {
 
 	util.Info("Start update new chapter routine ...")
 
 	// Create and jobs
-	comicPool := make(chan model.Comic, workerNum)
+	comicPool := make(chan *model.Comic, workerNum)
 
 	for i := 0; i < workerNum; i++ {
-		go worker(svr, &wg, comicPool)
+		go worker(store, &wg, comicPool)
 	}
 	// Start infinite loop
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 		// Get all comics in DB
-		comics, err := svr.Comics(ctx)
+		comics, err := store.Comic.List(ctx)
 		if err != nil {
 			util.Info("Update new chapter fail, err: ", err)
 			util.Info("Sleep update routine for 30min, then go check new chapter again..........")
@@ -61,7 +82,7 @@ func updateThread(svr ServerInterface, workerNum, timeout int) {
 
 		// Query successful, for each comic put into job channel for worker to do the update stuffs
 		for _, comic := range comics {
-			comicPool <- comic
+			comicPool <- &comic
 			wg.Add(1)
 		}
 
@@ -75,9 +96,9 @@ func updateThread(svr ServerInterface, workerNum, timeout int) {
 
 }
 
-func notifyToUsers(cxt context.Context, svr ServerInterface, comic *model.Comic) {
+func notifyToUsers(ctx context.Context, store *store.Stores, comic *model.Comic) {
 
-	users, err := svr.GetUsersByComicID(cxt, comic.ID)
+	users, err := store.User.ListByComicID(ctx, comic.ID)
 	if err != nil {
 		util.Danger(err)
 		return

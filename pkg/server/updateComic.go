@@ -38,16 +38,16 @@ func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan *model.Com
 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		util.Info("Comic ID", comic.ID, ": ", comic.Name, ": starting update...")
+		util.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
 		updated, err := updateComic(ctx, store, comic)
 
 		if err == nil {
-			util.Info("Comic ID", comic.ID, ": ", comic.Name, " new chapter ", comic.LatestChap)
+			util.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
 			notifyToUsers(ctx, store, comic)
 		} else {
 			if !updated {
-				util.Info("Comic ID", comic.ID, ": ", comic.Name, "has no update")
+				util.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
 			} else {
 				util.Danger(err)
 			}

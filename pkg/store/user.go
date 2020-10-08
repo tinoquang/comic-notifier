@@ -16,7 +16,6 @@ type UserInterface interface {
 	GetByFBID(ctx context.Context, field, id string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	List(ctx context.Context) ([]model.User, error)
-	ListByComicID(ctx context.Context, comicID int) ([]model.User, error)
 }
 
 type userDB struct {
@@ -53,17 +52,6 @@ func (u *userDB) Create(ctx context.Context, user *model.User) error {
 	})
 	return err
 
-}
-
-func (u *userDB) ListByComicID(ctx context.Context, comicID int) ([]model.User, error) {
-
-	query := "LEFT JOIN subscribers ON users.id=subscribers.user_id AND subscribers.comic_id=$1"
-	users, err := u.getBySQL(ctx, query, comicID)
-	if err != nil || len(users) == 0 {
-		return nil, errors.Wrapf(err, "failed to get list of users by comicID: %d", comicID)
-	}
-
-	return users, nil
 }
 
 func (u *userDB) List(ctx context.Context) ([]model.User, error) {

@@ -98,14 +98,14 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 
 func notifyToUsers(ctx context.Context, store *store.Stores, comic *model.Comic) {
 
-	users, err := store.User.ListByComicID(ctx, comic.ID)
+	subscribers, err := store.Subscriber.ListByComicID(ctx, comic.ID)
 	if err != nil {
 		util.Danger(err)
 		return
 	}
 
-	for _, u := range users {
-		util.Info("Notify ", comic.Name, " to user ", u.Name)
-		sendMsgTagsReply(u.PSID, comic)
+	for _, s := range subscribers {
+		util.Info("Notify ", comic.Name, " to user ID", s.PSID)
+		sendMsgTagsReply(s.PSID, comic)
 	}
 }

@@ -57,7 +57,7 @@ type User struct {
 // Only handle comic page link, other message type is discarded
 func (h *Handler) handleText(msg Messaging) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	h.svi.HandleTxtMsg(ctx, msg.Sender.ID, msg.Message.Text)
@@ -66,7 +66,7 @@ func (h *Handler) handleText(msg Messaging) {
 
 func (h *Handler) handlePostback(msg Messaging) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	h.svi.HandlePostback(ctx, msg.Sender.ID, msg.PostBack.Payload)
@@ -75,7 +75,7 @@ func (h *Handler) handlePostback(msg Messaging) {
 
 func (h *Handler) handleQuickReply(msg Messaging) {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if msg.Message.QuickReply.Payload == "Not unsub" {

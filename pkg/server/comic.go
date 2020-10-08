@@ -51,7 +51,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 			err = getComicInfo(ctx, comic)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please check your URL")
+				return nil, errors.New("Please try again later")
 			}
 
 			// Add new comic to DB
@@ -93,7 +93,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 		}
 	}
 
-	_, err = store.Comic.GetByPSID(ctx, user.PSID, comic.ID)
+	_, err = store.Subscriber.Get(ctx, user.PSID, comic.ID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			subscriber := &model.Subscriber{
@@ -186,6 +186,22 @@ func getComicInfo(ctx context.Context, comic *model.Comic) error {
 	return errors.Wrapf(err, "Can't get latest chap")
 }
 
+func getPageSource(pageURL string) (body []byte, err error) {
+
+	resp, err := http.Get(pageURL)
+
+	if err != nil {
+		util.Danger(err)
+		return
+	}
+
+	// do this now so it won't be forgotten
+	defer resp.Body.Close()
+
+	body, err = ioutil.ReadAll(resp.Body)
+	return
+}
+
 func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
 	var max float64 = 0
@@ -241,7 +257,7 @@ func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 		return
 	}
 
-	if chapSelections := chapDoc.Find(".comicDetail2#lightgallery2").Find("a[href]"); chapSelections.Size() < 3 {
+	if chapSelections := chapDoc.Find(".comicDetail2#lightgallery2").Find("img"); chapSelections.Size() < 3 {
 		util.Danger()
 		return errors.New("No new chapter, just some spoilers :)")
 
@@ -253,22 +269,6 @@ func handleBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
-	return
-}
-
-func getPageSource(pageURL string) (body []byte, err error) {
-
-	resp, err := http.Get(pageURL)
-
-	if err != nil {
-		util.Danger(err)
-		return
-	}
-
-	// do this now so it won't be forgotten
-	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
 	return
 }
 

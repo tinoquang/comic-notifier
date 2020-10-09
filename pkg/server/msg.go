@@ -3,11 +3,15 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // MSG -> server handler for messenger endpoint
@@ -77,4 +81,118 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	} else {
 		sendTextBack(senderID, fmt.Sprintf("Unsubscribe %s", c.Name))
 	}
+}
+
+// Update comic helper
+func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, field string, id string, comicURL string) (*model.Comic, error) {
+
+	parsedURL, err := url.Parse(comicURL)
+	if err != nil || parsedURL.Host == "" {
+		return nil, errors.New("Please check your URL")
+	}
+
+	// Check page support, if not send back "Page is not supported"
+	_, err = store.Page.GetByName(ctx, parsedURL.Hostname())
+	if err != nil {
+		return nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
+	}
+
+	// Page URL validated, now check comics already in database
+	// util.Info("Validated " + page.Name)
+	comic, err := store.Comic.GetByURL(ctx, comicURL)
+
+	// If comic is not in database, query it's latest chap,
+	// add to database, then prepare response with latest chapter
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+
+			util.Info("Comic is not in DB yet, insert it")
+			comic = &model.Comic{
+				Page: parsedURL.Hostname(),
+				URL:  comicURL,
+			}
+			// Get all comic infos includes latest chapter
+			err = getComicInfo(ctx, comic)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+
+			// Add new comic to DB
+			err = store.Comic.Create(ctx, comic)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+		} else {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
+		}
+	}
+
+	// Validate users is in user DB or not
+	// If not, add user to database, return "Subscribed to ..."
+	// else return "Already subscribed"
+	user, err := store.User.GetByFBID(ctx, field, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+
+			util.Info("Add new user")
+
+			user, err = getUserInfoByID(cfg, field, id)
+			// Check user already exist
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+			err = store.User.Create(ctx, user)
+
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+		} else {
+			util.Danger(err)
+			return nil, errors.New("Please try again later")
+		}
+	}
+
+	_, err = store.Subscriber.Get(ctx, user.PSID, comic.ID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			subscriber := &model.Subscriber{
+				PSID:    user.PSID,
+				ComicID: comic.ID,
+			}
+
+			err = store.Subscriber.Create(ctx, subscriber)
+			if err != nil {
+				util.Danger(err)
+				return nil, errors.New("Please try again later")
+			}
+			return comic, nil
+		}
+		util.Danger(err)
+		return nil, errors.New("Please try again later")
+	}
+	return nil, errors.New("Already subscribed")
+}
+
+// UpdateComic use when new chapter realease
+func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (bool, error) {
+
+	updated := true
+	err := getComicInfo(ctx, comic)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "No new chapter") {
+			updated = false
+		} else {
+			util.Danger()
+		}
+		return updated, err
+	}
+
+	err = store.Comic.Update(ctx, comic)
+	return updated, err
 }

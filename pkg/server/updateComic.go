@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,25 +13,6 @@ import (
 var (
 	wg sync.WaitGroup
 )
-
-// UpdateComic use when new chapter realease
-func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (bool, error) {
-
-	updated := true
-	err := getComicInfo(ctx, comic)
-
-	if err != nil {
-		if strings.Contains(err.Error(), "No new chapter") {
-			updated = false
-		} else {
-			util.Danger()
-		}
-		return updated, err
-	}
-
-	err = store.Comic.Update(ctx, comic)
-	return updated, err
-}
 
 func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan *model.Comic) {
 

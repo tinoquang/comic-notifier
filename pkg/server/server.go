@@ -15,13 +15,13 @@ type Server struct {
 	Msg *MSG
 }
 
-type comicHandler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
+type comicCrawler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
 
 var (
 	messengerEndpoint string
 	pageToken         string
 	webhookToken      string
-	handler           map[string]comicHandler
+	crawler           map[string]comicCrawler
 )
 
 // New  create new server
@@ -47,11 +47,10 @@ func New(cfg *conf.Config, store *store.Stores) *Server {
 
 func initComicHandler() {
 
-	handler = make(map[string]comicHandler)
-
-	handler["beeng.net"] = handleBeeng
-	handler["mangak.info"] = handleMangaK
-	handler["truyenqq.com"] = handleTruyenqq
-	handler["blogtruyen.vn"] = handleBlogTruyen
+	crawler = make(map[string]comicCrawler)
+	crawler["beeng.net"] = crawlBeeng
+	crawler["mangak.info"] = crawlMangaK
+	crawler["truyenqq.com"] = crawlTruyenqq
+	crawler["blogtruyen.vn"] = crawlBlogTruyen
 
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -112,7 +113,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 				URL:  comicURL,
 			}
 			// Get all comic infos includes latest chapter
-			err = getComicInfo(ctx, comic)
+			err = crawler.GetComicInfo(ctx, comic)
 			if err != nil {
 				util.Danger(err)
 				return nil, errors.New("Please try again later")
@@ -139,7 +140,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 
 			util.Info("Add new user")
 
-			user, err = getUserInfoByID(cfg, field, id)
+			user, err = crawler.GetUserInfoByID(cfg, field, id)
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
@@ -176,23 +177,4 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 		return nil, errors.New("Please try again later")
 	}
 	return nil, errors.New("Already subscribed")
-}
-
-// UpdateComic use when new chapter realease
-func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (bool, error) {
-
-	updated := true
-	err := getComicInfo(ctx, comic)
-
-	if err != nil {
-		if strings.Contains(err.Error(), "No new chapter") {
-			updated = false
-		} else {
-			util.Danger()
-		}
-		return updated, err
-	}
-
-	err = store.Comic.Update(ctx, comic)
-	return updated, err
 }

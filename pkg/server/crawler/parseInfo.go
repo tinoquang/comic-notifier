@@ -1,12 +1,10 @@
-package server
+package crawler
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -16,7 +14,54 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-func getUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
+type comicCrawler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
+
+var crawler map[string]comicCrawler
+
+func init() {
+
+	crawler = make(map[string]comicCrawler)
+	crawler["beeng.net"] = crawlBeeng
+	crawler["mangak.info"] = crawlMangaK
+	crawler["truyenqq.com"] = crawlTruyenqq
+	crawler["blogtruyen.vn"] = crawlBlogTruyen
+
+}
+
+// GetComicInfo return link of latest chapter of a page
+func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = errors.New("Unknown panic")
+			}
+			util.Danger()
+		}
+		return
+	}()
+
+	html, err := getPageSource(comic.URL)
+	if err != nil {
+		return errors.Wrapf(err, "Can't retrieve page's HTML")
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		return errors.Wrapf(err, "Can't create goquery document object")
+	}
+
+	err = crawler[comic.Page](ctx, doc, comic)
+	return errors.Wrapf(err, "Can't get latest chap")
+}
+
+// GetUserInfoByID get user AppID using PSID or vice-versa
+func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
 
 	user = &model.User{}
 
@@ -61,44 +106,4 @@ func getUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err 
 	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
 
 	return user, nil
-}
-
-// getComicInfo return link of latest chapter of a page
-func getComicInfo(ctx context.Context, comic *model.Comic) error {
-
-	defer func() {
-		if err := recover(); err != nil {
-			util.Danger(err)
-			return
-		}
-	}()
-
-	html, err := getPageSource(comic.URL)
-	if err != nil {
-		return errors.Wrapf(err, "Can't retrieve page's HTML")
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
-	if err != nil {
-		return errors.Wrapf(err, "Can't create goquery document object")
-	}
-
-	err = crawler[comic.Page](ctx, doc, comic)
-	return errors.Wrapf(err, "Can't get latest chap")
-}
-
-func getPageSource(pageURL string) (body []byte, err error) {
-
-	resp, err := http.Get(pageURL)
-
-	if err != nil {
-		util.Danger(err)
-		return
-	}
-
-	// do this now so it won't be forgotten
-	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
-	return
 }

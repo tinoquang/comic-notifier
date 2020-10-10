@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -74,6 +76,25 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 		time.Sleep(time.Duration(timeout) * time.Minute)
 	}
 
+}
+
+// UpdateComic use when new chapter realease
+func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (bool, error) {
+
+	updated := true
+	err := crawler.GetComicInfo(ctx, comic)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "No new chapter") {
+			updated = false
+		} else {
+			util.Danger()
+		}
+		return updated, err
+	}
+
+	err = store.Comic.Update(ctx, comic)
+	return updated, err
 }
 
 func notifyToUsers(ctx context.Context, store *store.Stores, comic *model.Comic) {

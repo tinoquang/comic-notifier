@@ -1,8 +1,10 @@
-package server
+package crawler
 
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -12,31 +14,6 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
-
-func detectSpolier(chapURL string, attr1, attr2 string) error {
-	var chapDoc *goquery.Document
-
-	// Check if chapter is full upload (detect spolier chap)
-	html, err := getPageSource(chapURL)
-	if err != nil {
-		util.Danger()
-		return err
-	}
-
-	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
-	if err != nil {
-		util.Danger()
-		return err
-	}
-
-	if chapSelections := chapDoc.Find(attr1).Find(attr2); chapSelections.Size() < 3 {
-		util.Danger()
-		return errors.New("No new chapter, just some spoilers :)")
-
-	}
-
-	return nil
-}
 
 func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
@@ -253,4 +230,45 @@ func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 	// })
 
 	return
+}
+
+func getPageSource(pageURL string) (body []byte, err error) {
+
+	resp, err := http.Get(pageURL)
+
+	if err != nil {
+		util.Danger(err)
+		return
+	}
+
+	// do this now so it won't be forgotten
+	defer resp.Body.Close()
+
+	body, err = ioutil.ReadAll(resp.Body)
+	return
+}
+
+func detectSpolier(chapURL string, attr1, attr2 string) error {
+	var chapDoc *goquery.Document
+
+	// Check if chapter is full upload (detect spolier chap)
+	html, err := getPageSource(chapURL)
+	if err != nil {
+		util.Danger()
+		return err
+	}
+
+	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		util.Danger()
+		return err
+	}
+
+	if chapSelections := chapDoc.Find(attr1).Find(attr2); chapSelections.Size() < 3 {
+		util.Danger()
+		return errors.New("No new chapter, just some spoilers :)")
+
+	}
+
+	return nil
 }

@@ -58,7 +58,7 @@ func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber)
 
 func (s *subscriberDB) ListByComicID(ctx context.Context, comicID int) ([]model.Subscriber, error) {
 
-	return s.getBySQL(ctx, "comic_id=$1", comicID)
+	return s.getBySQL(ctx, "WHERE comic_id=$1", comicID)
 }
 
 func (s *subscriberDB) Delete(ctx context.Context, psid string, comicID int) error {

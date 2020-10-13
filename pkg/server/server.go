@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
@@ -30,6 +31,7 @@ func New(cfg *conf.Config, store *store.Stores) *Server {
 		Msg: NewMSG(cfg, store),
 	}
 
+	crawler.New(cfg)
 	// Start update-comic thread
 	go updateComicThread(store, cfg.WrkDat.WorkerNum, cfg.WrkDat.Timeout)
 	return s

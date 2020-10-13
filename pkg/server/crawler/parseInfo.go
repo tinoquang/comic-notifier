@@ -18,7 +18,8 @@ type comicCrawler func(ctx context.Context, doc *goquery.Document, comic *model.
 
 var crawler map[string]comicCrawler
 
-func init() {
+// New create new crawler
+func New(cfg *conf.Config) {
 
 	crawler = make(map[string]comicCrawler)
 	crawler["beeng.net"] = crawlBeeng
@@ -26,6 +27,9 @@ func init() {
 	crawler["truyenqq.com"] = crawlTruyenqq
 	crawler["blogtruyen.vn"] = crawlBlogTruyen
 
+	apiEndpoint = cfg.Imgur.Endpoint
+	accessToken = cfg.Imgur.AccessToken
+	refreshToken = cfg.Imgur.RefreshToken
 }
 
 // GetComicInfo return link of latest chapter of a page

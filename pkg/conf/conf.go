@@ -33,6 +33,13 @@ type WorkerData struct {
 	Timeout   int
 }
 
+// Imgur token info
+type Imgur struct {
+	Endpoint     string
+	AccessToken  string
+	RefreshToken string
+}
+
 // Config main struct for get config from env
 type Config struct {
 	Webhook     WebhookCfg
@@ -40,6 +47,7 @@ type Config struct {
 	DBInfo      string
 	PageSupport *model.PageList
 	WrkDat      WorkerData
+	Imgur       Imgur
 }
 
 // New return new configuration
@@ -65,6 +73,11 @@ func New() *Config {
 		WrkDat: WorkerData{
 			WorkerNum: getEnvAsInt("WORKER_NUM", 10),
 			Timeout:   getEnvAsInt("WORKER_TIMEOUT", 30),
+		},
+		Imgur: Imgur{
+			Endpoint:     getEnv("IMGUR_ENDPOINT", ""),
+			AccessToken:  getEnv("IMGUR_ACCESS_TOKEN", ""),
+			RefreshToken: getEnv("IMGUR_REFRESH_TOKEN", ""),
 		},
 	}
 }

@@ -16,17 +16,17 @@ var (
 	wg sync.WaitGroup
 )
 
-func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan *model.Comic) {
+func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		util.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
-		updated, err := updateComic(ctx, store, comic)
+		updated, err := updateComic(ctx, store, &comic)
 
 		if err == nil {
 			util.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
-			notifyToUsers(ctx, store, comic)
+			notifyToUsers(ctx, store, &comic)
 		} else {
 			if !updated {
 				util.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
@@ -45,7 +45,7 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 	util.Info("Start update new chapter routine ...")
 
 	// Create and jobs
-	comicPool := make(chan *model.Comic, workerNum)
+	comicPool := make(chan model.Comic, workerNum)
 
 	for i := 0; i < workerNum; i++ {
 		go worker(store, &wg, comicPool)
@@ -56,15 +56,14 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 		// Get all comics in DB
 		comics, err := store.Comic.List(ctx)
 		if err != nil {
-			util.Info("Update new chapter fail, err: ", err)
-			util.Info("Sleep update routine for 30min, then go check new chapter again..........")
+			util.Info("Get list of comic fails, sleep sometimes...")
 			time.Sleep(time.Duration(timeout) * time.Minute)
 			continue
 		}
 
 		// Query successful, for each comic put into job channel for worker to do the update stuffs
 		for _, comic := range comics {
-			comicPool <- &comic
+			comicPool <- comic
 			wg.Add(1)
 		}
 

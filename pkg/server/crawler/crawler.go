@@ -24,12 +24,16 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	comic.DateFormat = "02/01/2006"
 
 	// Download cover image of comic
-	comic.ImageURL, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
-	// err = comic.DownloadImage(imageURL, "beeng")
-	// if err != nil {
-	// 	util.Danger("Download image failed, comic:", comic.Name)
-	// 	return
-	// }
+	if comic.ImageURL == "" {
+		imageURL, _ := doc.Find(".cover").Find("img[src]").Attr("data-src")
+		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
+		if err != nil {
+			util.Danger(err)
+			comic.ImageURL = imageURL
+		} else {
+			comic.ImageURL = imgurLink
+		}
+	}
 
 	// Query latest chap
 	selections := doc.Find(".listChapters").Find(".list").Find("li")
@@ -79,12 +83,16 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
 
-	comic.ImageURL, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
-	// err = comic.DownloadImage(imageURL, "blogtruyen")
-	// if err != nil {
-	// 	util.Danger("Download image failed, comic:", comic.Name)
-	// 	return
-	// }
+	if comic.ImageURL == "" {
+		imageURL, _ := doc.Find(".thumbnail").Find("img[src]").Attr("src")
+		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
+		if err != nil {
+			util.Danger(err)
+			comic.ImageURL = imageURL
+		} else {
+			comic.ImageURL = imgurLink
+		}
+	}
 
 	// Query latest chap
 	selections := doc.Find(".list-wrap#list-chapters").Find("p")

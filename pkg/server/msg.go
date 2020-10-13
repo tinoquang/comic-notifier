@@ -107,7 +107,6 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 
-			util.Info("Comic is not in DB yet, insert it")
 			comic = &model.Comic{
 				Page: parsedURL.Hostname(),
 				URL:  comicURL,
@@ -131,6 +130,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 		}
 	}
 
+	util.Info("Added new comic: ", comic.Name)
 	// Validate users is in user DB or not
 	// If not, add user to database, return "Subscribed to ..."
 	// else return "Already subscribed"

@@ -38,6 +38,11 @@ type Comic struct {
 	Url *string `json:"url,omitempty"`
 }
 
+// ComicPage defines model for ComicPage.
+type ComicPage struct {
+	Comics []Comic `json:"comics"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -46,21 +51,6 @@ type ServerInterface interface {
 
 	// (GET /comics/{id})
 	GetComic(ctx echo.Context, id int) error
-
-	// (GET /users)
-	Users(ctx echo.Context) error
-
-	// (GET /users/{id})
-	GetUser(ctx echo.Context, id int) error
-
-	// (GET /users/{id}/comics)
-	GetUserComics(ctx echo.Context, id int) error
-
-	// (POST /users/{id}/comics)
-	SubscribeComic(ctx echo.Context, id int) error
-
-	// (DELETE /users/{user_id}/comics/{id})
-	UnsubscribeComic(ctx echo.Context, userId int, id int) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -93,87 +83,6 @@ func (w *ServerInterfaceWrapper) GetComic(ctx echo.Context) error {
 	return err
 }
 
-// Users converts echo context to params.
-func (w *ServerInterfaceWrapper) Users(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Users(ctx)
-	return err
-}
-
-// GetUser converts echo context to params.
-func (w *ServerInterfaceWrapper) GetUser(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetUser(ctx, id)
-	return err
-}
-
-// GetUserComics converts echo context to params.
-func (w *ServerInterfaceWrapper) GetUserComics(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetUserComics(ctx, id)
-	return err
-}
-
-// SubscribeComic converts echo context to params.
-func (w *ServerInterfaceWrapper) SubscribeComic(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.SubscribeComic(ctx, id)
-	return err
-}
-
-// UnsubscribeComic converts echo context to params.
-func (w *ServerInterfaceWrapper) UnsubscribeComic(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "user_id" -------------
-	var userId int
-
-	err = runtime.BindStyledParameter("simple", false, "user_id", ctx.Param("user_id"), &userId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user_id: %s", err))
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.UnsubscribeComic(ctx, userId, id)
-	return err
-}
-
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -198,31 +107,22 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 
 	router.GET("/comics", wrapper.Comics)
 	router.GET("/comics/:id", wrapper.GetComic)
-	router.GET("/users", wrapper.Users)
-	router.GET("/users/:id", wrapper.GetUser)
-	router.GET("/users/:id/comics", wrapper.GetUserComics)
-	router.POST("/users/:id/comics", wrapper.SubscribeComic)
-	router.DELETE("/users/:user_id/comics/:id", wrapper.UnsubscribeComic)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xXTU/cMBD9K5ZbqZdkE1ik0twoVdFKPaBSThWqvMlsYprYxp4AK5T/Xo2T/ST7Ubaq",
-	"Sk+Y8Ywn897zePaJp7oyWoFCx5Mn7tICKuGX57qSKS2M1QYsSvDmtBAmrG1J6wxcaqVBqRVP+HkhDIJl",
-	"tBlwnBrgCXdopcp5E3CZ9YRQDjb6tPCXCiEHSwGlQHC4IeidY+0+S9u0fSmVqGBTUr/XE2NE3hNzKXJg",
-	"qJkFkbHUI9MT2w+LT9cLSjO36PEtpMgbMkk10c+PObscsYm2jI5TcjKlunGskU6VWEKXyW+dXY54wO/B",
-	"ujb2aBDT52kDShjJEz4cxIMhp2Kx8KxGvia/zKEH86+AtVWslA6ZnrDO2x9pBfmMslmpZLbgjFauVcxx",
-	"HHvhaIWg/NnCmFKmPi66dZRgpjxaSYTKB761MOEJfxMtNBp1Ao1adS4AFNaKaYvf6pdf1WkKzk3qspwy",
-	"25Yh1gvxTIjc8eQ7b9m9IVOHSvQks2YXNK0rGwsHGdOqFfUqPBeA5510jLCiAgRLKbfcCkn/E0t8pma6",
-	"RwTwXS0t8ARtDcESeOvXqLk5kI09SHgO+mddq+6esAeJBRXTBPwkPtlwPxzLNDimNDJ4lA43U1I7D9p+",
-	"Om2d13m47qyvRqVtGcuIkGUZkL0kuh2VC0AC5lWJ8x8k4UWdlD0UMi18CubqMfmPIWOoN7E077RbuSLP",
-	"vajK/jOudqG6qRd5wKgJTaiB9faggBvdN5Vcr2ShWUHBw3xUWCXxaua213Pw51m8q8HhR51N1whEeMTI",
-	"lEKuUQePojJ+xCgQjUuiaAyg8oECjNDWU1AhWqGKUKtSKohQyxALofIwFSasNIaVVEXo3HE4HL7/EPdM",
-	"Qs8IbvtMKdVPYuvvP2ErAltRDxMdrQeoaKln0J8fi8Yx7+QZlIA9o+i1WqisX15LHocLrPu831NZ8PJX",
-	"44BWtAMntojZOovsoq4JuAN7P8PSD/3zi1HqVJSFdpicxqdxJIyM7o/4uri+kBf7Rj9frvxRvLlpfgUA",
-	"AP//jPQQqYwNAAA=",
+	"H4sIAAAAAAAC/6RUTW/TQBD9K6sBiYupXdpD5VtVBIrUQ0S5oR6267G9lb27zI4LUeT/jmYdJ5A4fIjb",
+	"eOfzvTfjLRjfB+/QcYRyC9G02Otk3vneGjEC+YDEFtOzaXV4O1AndoXRkA1svYMS7lodGEmJMwPeBIQS",
+	"IpN1DYwZ2GohRXqo1ftDvHWMDZIkdJox8pmkN1FNfmWmtkstne7xXNPkW8gJulnIWesGFXtFqCtlEjML",
+	"ucu0pHaLpIz7F//0jIalRgpfLw5xbwVuKkcYg3dREBzJI+5kWcY+Ga8JayjhVX6QOt/pnE8iH+bQRHqT",
+	"BiP8OljCCsovc9HHURzW1f50ttv1StWelBR0tt6ILPzkWUBb7nBHRHLdrleQwQtSnHIvLwoZwQd0Olgo",
+	"4eqiuLgSaJrbBCE/wGpwYSU+IQ/kVCcE+VrtolNJ0hKzqmYl5HlmLxV8VxQTcY7Rpdo6hM6alJc/R2kw",
+	"H8a/8ZpUPOV2zI6mfxiMwRjroes2iiYo+hhMWhbdxL0eIkc2M5NvbTX+iZ4pVD3piJXybrq7Xyn6iHy3",
+	"2+6gSffISNLyN4dr5VuUgvng5NT3CwQl04DZTwQeX/r4+J+K/MWCn5L+wQ9ud8rqm+VWwIwZXBfXZ044",
+	"qspjVM6zwu828hlJxgwi0stMW/olQMscYpnnnTe6a33k8qa4KXIdbP5yCcej3UuU+iw/t4dUCsbH8UcA",
+	"AAD//4k2VZmqBQAA",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

@@ -61,7 +61,7 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 	}
 
 	err = crawler[comic.Page](ctx, doc, comic)
-	return errors.Wrapf(err, "Can't get latest chap")
+	return errors.Wrapf(err, "Can't get latest chap from", comic.Page)
 }
 
 // GetUserInfoByID get user AppID using PSID or vice-versa

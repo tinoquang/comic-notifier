@@ -1,8 +1,13 @@
 package server
 
 import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // API -> server handler for api endpoint
@@ -14,6 +19,36 @@ type API struct {
 // NewAPI return new api interface
 func NewAPI(c *conf.Config, s *store.Stores) *API {
 	return &API{cfg: c, store: s}
+}
+
+// Comics (GET /comics)
+func (a *API) Comics(ctx echo.Context) error {
+
+	comicPage := api.ComicPage{}
+
+	comics, err := a.store.Comic.List(ctx.Request().Context())
+	if err != nil {
+		util.Danger(err)
+		return err
+	}
+
+	for i := range comics {
+		c := comics[i]
+		comicPage.Comics = append(comicPage.Comics, api.Comic{
+			Id:      &c.ID,
+			Page:    &c.Page,
+			Name:    &c.Name,
+			Url:     &c.URL,
+			Latest:  &c.LatestChap,
+			ChapUrl: &c.ChapURL,
+		})
+	}
+	return ctx.JSON(http.StatusOK, &comicPage)
+}
+
+// GetComic (GET /comics/{id})
+func (a *API) GetComic(ctx echo.Context, id int) error {
+	return nil
 }
 
 // // GetPage (GET /pages/{name})

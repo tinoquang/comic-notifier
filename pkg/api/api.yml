@@ -7,119 +7,119 @@ servers:
   - url: https://localhost:8080/api/v1
     description: Local Test Server
 paths:
-  /users:
-    get:
-      description: "Return list of users"
-      operationId: Users
-      tags:
-        - user
-      responses:
-        "200":
-          description: Successfully return a list of users
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Comic"
-  /users/{id}:
-    get:
-      description: "Return list of users"
-      operationId: GetUser
-      tags:
-        - user
-      parameters:
-        - name: id
-          in: path
-          description: Comic ID
-          require: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Successfully return a list of users
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Comic"
-  /users/{id}/comics:
-    get:
-      description: "Return list of comics which user subscribed to"
-      operationId: GetUserComics
-      tags:
-        - comic
-      parameters:
-        - name: id
-          in: path
-          description: User ID
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Successfully return a list of comics which user subscribed to
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Comic"
-        "404":
-          description: User not found
-    post:
-      operationId: SubscribeComic
-      description: User subscribe to new comic
-      tags:
-        - comic
-      parameters:
-        - name: id
-          in: path
-          description: User ID
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        description: "Comic link"
-        content:
-          text/plain:
-            schema:
-              type: string
-              example: https://beeng.net/truyen-tranh-online/toi-thang-cap-mot-minh-ss2-33790
-      responses:
-        "200":
-          description: Successfully subscribed to a comic
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Comic"
-        "404":
-          description: User not found
-  /users/{user_id}/comics/{id}:
-    delete:
-      description: Unsubscribe comic
-      operationId: UnsubscribeComic
-      tags:
-        - comic
-      parameters:
-        - name: user_id
-          in: path
-          description: User ID
-          required: true
-          schema:
-            type: integer
-        - name: id
-          in: path
-          description: Comic ID
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Unsubscribe comic responses
-        "404":
-          description: Comic not found
+  # /users:
+  #   get:
+  #     description: "Return list of users"
+  #     operationId: Users
+  #     tags:
+  #       - user
+  #     responses:
+  #       "200":
+  #         description: Successfully return a list of users
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: "#/components/schemas/Comic"
+  # /users/{id}:
+  #   get:
+  #     description: "Return list of users"
+  #     operationId: GetUser
+  #     tags:
+  #       - user
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         description: Comic ID
+  #         require: true
+  #         schema:
+  #           type: integer
+  #     responses:
+  #       "200":
+  #         description: Successfully return a list of users
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: "#/components/schemas/Comic"
+  # /users/{id}/comics:
+  #   get:
+  #     description: "Return list of comics which user subscribed to"
+  #     operationId: GetUserComics
+  #     tags:
+  #       - comic
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         description: User ID
+  #         required: true
+  #         schema:
+  #           type: integer
+  #     responses:
+  #       "200":
+  #         description: Successfully return a list of comics which user subscribed to
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: "#/components/schemas/Comic"
+  #       "404":
+  #         description: User not found
+  #   post:
+  #     operationId: SubscribeComic
+  #     description: User subscribe to new comic
+  #     tags:
+  #       - comic
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         description: User ID
+  #         required: true
+  #         schema:
+  #           type: integer
+  #     requestBody:
+  #       description: "Comic link"
+  #       content:
+  #         text/plain:
+  #           schema:
+  #             type: string
+  #             example: https://beeng.net/truyen-tranh-online/toi-thang-cap-mot-minh-ss2-33790
+  #     responses:
+  #       "200":
+  #         description: Successfully subscribed to a comic
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Comic"
+  #       "404":
+  #         description: User not found
+  # /users/{user_id}/comics/{id}:
+  #   delete:
+  #     description: Unsubscribe comic
+  #     operationId: UnsubscribeComic
+  #     tags:
+  #       - comic
+  #     parameters:
+  #       - name: user_id
+  #         in: path
+  #         description: User ID
+  #         required: true
+  #         schema:
+  #           type: integer
+  #       - name: id
+  #         in: path
+  #         description: Comic ID
+  #         required: true
+  #         schema:
+  #           type: integer
+  #     responses:
+  #       "200":
+  #         description: Unsubscribe comic responses
+  #       "404":
+  #         description: Comic not found
   /comics:
     get:
       # summary: "Get list of comics"
@@ -135,7 +135,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Comic"
+                  $ref: "#/components/schemas/ComicPage"
   /comics/{id}:
     get:
       description: "Return comics based on ID"
@@ -181,21 +181,30 @@ components:
         chap-url:
           type: string
           description: Chapter url
-    User:
-      type: object
+    ComicPage:
+      description: List comic response
+      required:
+        - comics
       properties:
-        id:
-          type: integer
-          description: UserID
-        name:
-          type: string
-          description: Comic name
-        psid:
-          type: string
-          description: Page scope ID
-        appid:
-          type: string
-          description: App scope ID
         comics:
-          type: integer
-          description: Number of comics subscribed
+          type: array
+          items:
+            $ref: "#/components/schemas/Comic"
+    # User:
+    #   type: object
+    #   properties:
+    #     id:
+    #       type: integer
+    #       description: UserID
+    #     name:
+    #       type: string
+    #       description: Comic name
+    #     psid:
+    #       type: string
+    #       description: Page scope ID
+    #     appid:
+    #       type: string
+    #       description: App scope ID
+    #     comics:
+    #       type: integer
+    #       description: Number of comics subscribed

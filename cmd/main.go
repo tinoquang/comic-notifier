@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
@@ -29,7 +30,12 @@ func main() {
 	msg.RegisterHandler(e.Group("/webhook"), cfg, svr.Msg)
 
 	// API handler register
-	// api.RegisterHandlers(e.Group("/api/v1"), svr)
+	api.RegisterHandlers(e.Group("/api/v1"), svr.API)
+
+	// Front-end route
+	e.Static("/static", "ui/static")
+	e.File("/", "ui/index.html")
+
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))
 

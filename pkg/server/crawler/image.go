@@ -31,7 +31,7 @@ type imageResponse struct {
 func uploadImagetoImgur(title string, imageURL string) (string, error) {
 
 	response := &imageResponse{}
-	url := "https://api.imgur.com/3/image"
+	url := apiEndpoint + "image"
 	method := "POST"
 
 	payload := &bytes.Buffer{}
@@ -60,10 +60,6 @@ func uploadImagetoImgur(title string, imageURL string) (string, error) {
 		return "", err
 	}
 	defer res.Body.Close()
-	// body, err := ioutil.ReadAll(res.Body)
-	// if err != nil {
-	// 	fmt.Println("cant parse response body")
-	// }
 
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(response)

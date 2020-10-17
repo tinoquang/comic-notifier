@@ -11,9 +11,61 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
+
+type comicCrawler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
+
+var crawler map[string]comicCrawler
+
+// New create new crawler
+func New(cfg *conf.Config) {
+
+	crawler = make(map[string]comicCrawler)
+	crawler["beeng.net"] = crawlBeeng
+	crawler["mangak.info"] = crawlMangaK
+	crawler["truyenqq.com"] = crawlTruyenqq
+	crawler["blogtruyen.vn"] = crawlBlogTruyen
+
+	apiEndpoint = cfg.Imgur.Endpoint
+	accessToken = cfg.Imgur.AccessToken
+	refreshToken = cfg.Imgur.RefreshToken
+}
+
+// GetComicInfo return link of latest chapter of a page
+func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = errors.New("Unknown panic")
+			}
+			util.Danger()
+		}
+		return
+	}()
+
+	util.Info("Start parsing URL")
+	html, err := getPageSource(comic.URL)
+	if err != nil {
+		return errors.Wrapf(err, "Can't retrieve page's HTML")
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		return errors.Wrapf(err, "Can't create goquery document object")
+	}
+
+	err = crawler[comic.Page](ctx, doc, comic)
+	return errors.Wrapf(err, "Can't get latest chap from", comic.Page)
+}
 
 func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
@@ -79,10 +131,12 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	var chapURL, chapName, chapDate string
 	var max time.Time
 
+	util.Info("start crawling")
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
 
+	util.Info("start parsing image")
 	if comic.ImageURL == "" {
 		imageURL, _ := doc.Find(".thumbnail").Find("img[src]").Attr("src")
 		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
@@ -100,6 +154,7 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 		return errors.New("URL is not a comic page")
 	}
 
+	util.Info("start find latest chap")
 	// Find latest chap
 	selections.Each(func(index int, item *goquery.Selection) {
 

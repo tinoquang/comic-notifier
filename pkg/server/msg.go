@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -140,7 +141,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 
 			util.Info("Add new user")
 
-			user, err = crawler.GetUserInfoByID(cfg, field, id)
+			user, err = getUserInfoByID(cfg, field, id)
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
@@ -177,4 +178,52 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 		return nil, errors.New("Please try again later")
 	}
 	return nil, errors.New("Already subscribed")
+}
+
+// GetUserInfoByID get user AppID using PSID or vice-versa
+func getUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
+
+	user = &model.User{}
+
+	info := map[string]json.RawMessage{}
+	appInfo := []map[string]json.RawMessage{}
+	picture := map[string]json.RawMessage{}
+	queries := map[string]string{}
+
+	switch field {
+	case "psid":
+		user.PSID = id
+		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
+		queries["access_token"] = cfg.FBSecret.PakeToken
+	case "appid":
+		user.AppID = id
+		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
+		queries["access_token"] = cfg.FBSecret.AppToken
+		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
+	default:
+		return nil, errors.New(fmt.Sprintf("Wrong field request, field: %s", field))
+	}
+
+	respBody, err := util.MakeGetRequest(cfg.Webhook.GraphEndpoint+id, queries)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(respBody, &info)
+	if err != nil {
+		return
+	}
+
+	user.Name = util.ConvertJSONToString(info["name"])
+
+	json.Unmarshal(info["ids_for_apps"], &info)
+	json.Unmarshal(info["picture"], &picture)
+	json.Unmarshal(picture["data"], &picture)
+	json.Unmarshal(info["data"], &appInfo)
+
+	user.AppID = util.ConvertJSONToString(appInfo[0]["id"])
+	user.ProfilePic = util.ConvertJSONToString(picture["url"])
+	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
+
+	return user, nil
 }

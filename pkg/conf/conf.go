@@ -111,7 +111,7 @@ func getEnvAsInt(name string, defaultVal int) int {
 }
 
 func getDBSecret() string {
-	DBConfig, err := url.Parse(getEnv("DBSECRET_URL", ""))
+	DBConfig, err := url.Parse(getEnv("DATABASE_URL", ""))
 
 	if err != nil {
 		panic(err)

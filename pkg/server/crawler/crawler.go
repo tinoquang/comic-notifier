@@ -75,18 +75,6 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	comic.Name = doc.Find(".detail").Find("h4").Text()
 	comic.DateFormat = "02/01/2006"
 
-	// Download cover image of comic
-	if comic.ImageURL == "" {
-		imageURL, _ := doc.Find(".cover").Find("img[src]").Attr("data-src")
-		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
-		if err != nil {
-			util.Danger(err)
-			comic.ImageURL = imageURL
-		} else {
-			comic.ImageURL = imgurLink
-		}
-	}
-
 	// Query latest chap
 	selections := doc.Find(".listChapters").Find(".list").Find("li")
 	if selections.Nodes == nil {
@@ -111,13 +99,27 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 		}
 	})
 
-	err = detectSpolier(chapURL, ".comicDetail2#lightgallery2", "img")
-	if err != nil {
-		return
+	if comic.ChapURL != "" {
+		err = detectSpolier(chapURL, ".comicDetail2#lightgallery2", "img")
+		if err != nil {
+			return
+		}
 	}
 
 	if chapURL == comic.ChapURL {
 		return errors.New("No new chapter")
+	}
+
+	// Download cover image of comic
+	if comic.ImageURL == "" {
+		imageURL, _ := doc.Find(".cover").Find("img[src]").Attr("data-src")
+		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
+		if err != nil {
+			util.Danger(err)
+			comic.ImageURL = imageURL
+		} else {
+			comic.ImageURL = imgurLink
+		}
 	}
 
 	comic.LatestChap = chapName
@@ -135,18 +137,6 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
-
-	util.Info("start parsing image")
-	if comic.ImageURL == "" {
-		imageURL, _ := doc.Find(".thumbnail").Find("img[src]").Attr("src")
-		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
-		if err != nil {
-			util.Danger(err)
-			comic.ImageURL = imageURL
-		} else {
-			comic.ImageURL = imgurLink
-		}
-	}
 
 	// Query latest chap
 	selections := doc.Find(".list-wrap#list-chapters").Find("p")
@@ -171,13 +161,27 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 
 	chapURL = "https://blogtruyen.vn" + chapURL
 
-	err = detectSpolier(chapURL, "#content", "img[src]")
-	if err != nil {
-		return
+	if comic.ChapURL != "" {
+		err = detectSpolier(chapURL, "#content", "img[src]")
+		if err != nil {
+			return
+		}
 	}
 
 	if comic.ChapURL == chapURL {
 		return errors.New("No new chapter")
+	}
+
+	util.Info("start parsing image")
+	if comic.ImageURL == "" {
+		imageURL, _ := doc.Find(".thumbnail").Find("img[src]").Attr("src")
+		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
+		if err != nil {
+			util.Danger(err)
+			comic.ImageURL = imageURL
+		} else {
+			comic.ImageURL = imgurLink
+		}
 	}
 
 	comic.LatestChap = chapName

@@ -38,7 +38,11 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	comic, err := subscribeComic(ctx, m.cfg, m.store, "psid", senderID, text)
 	if err != nil {
-		sendTextBack(senderID, err.Error())
+		if strings.Contains(err.Error(), "Already") {
+			sendTextBack(senderID, "Already subscribed")
+		} else {
+			sendTextBack(senderID, "Please try again later")
+		}
 		return
 	}
 
@@ -116,18 +120,18 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 			err = crawler.GetComicInfo(ctx, comic)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return nil, err
 			}
 
 			// Add new comic to DB
 			err = store.Comic.Create(ctx, comic)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return nil, err
 			}
 		} else {
 			util.Danger(err)
-			return nil, errors.New("Please try again later")
+			return nil, err
 		}
 	}
 
@@ -145,17 +149,17 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 			// Check user already exist
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return nil, err
 			}
 			err = store.User.Create(ctx, user)
 
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return nil, err
 			}
 		} else {
 			util.Danger(err)
-			return nil, errors.New("Please try again later")
+			return nil, err
 		}
 	}
 
@@ -170,12 +174,12 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 			err = store.Subscriber.Create(ctx, subscriber)
 			if err != nil {
 				util.Danger(err)
-				return nil, errors.New("Please try again later")
+				return nil, err
 			}
 			return comic, nil
 		}
 		util.Danger(err)
-		return nil, errors.New("Please try again later")
+		return nil, err
 	}
 	return nil, errors.New("Already subscribed")
 }

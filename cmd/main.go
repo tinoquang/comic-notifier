@@ -41,6 +41,6 @@ func main() {
 	auth.RegisterHandler(e.Group("/login"), cfg)
 
 	// Start the server
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":" + cfg.Port))
 
 }

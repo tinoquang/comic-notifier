@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
+	"github.com/tinoquang/comic-notifier/pkg/auth"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
@@ -32,9 +33,12 @@ func main() {
 	// API handler register
 	api.RegisterHandlers(e.Group("/api/v1"), svr.API)
 
-	// Front-end route
+	/* Routing */
 	e.Static("/static", "ui/static")
 	e.File("/", "ui/index.html")
+
+	// Authentication JWT
+	auth.RegisterHandler(e.Group("/login"), cfg)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":8080"))

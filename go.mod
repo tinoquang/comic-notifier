@@ -6,6 +6,7 @@ go 1.13
 require (
 	github.com/PuerkitoBio/goquery v1.6.0
 	github.com/deepmap/oapi-codegen v1.3.13
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/getkin/kin-openapi v0.22.1
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/joho/godotenv v1.3.0

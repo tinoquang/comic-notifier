@@ -48,6 +48,7 @@ type Config struct {
 	PageSupport *model.PageList
 	WrkDat      WorkerData
 	Imgur       Imgur
+	JWT         string
 }
 
 // New return new configuration
@@ -79,6 +80,7 @@ func New() *Config {
 			AccessToken:  getEnv("IMGUR_ACCESS_TOKEN", ""),
 			RefreshToken: getEnv("IMGUR_REFRESH_TOKEN", ""),
 		},
+		JWT: getEnv("JWT_SECRET", ""),
 	}
 }
 

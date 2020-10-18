@@ -3,7 +3,6 @@ package img
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"mime/multipart"
 	"net/http"
 
@@ -15,18 +14,19 @@ var (
 	apiEndpoint  string
 	accessToken  string
 	refreshToken string
+	clientID     string
 )
 
-// Data --> imageResponse content
-type Data struct {
-	ID         string `json:"id"`
-	DeleteHash string `json:"deletehash"`
-	Link       string `json:"link"`
+// Img --> imageResponse content
+type Img struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Link  string `json:"link"`
 }
 
 // response when create add new image to Imgur gallery
 type imageResponse struct {
-	Data *Data
+	Img *Img `json:"data"`
 }
 
 // SetEnvVar set environment var for interacting with Imgur API
@@ -34,14 +34,14 @@ func SetEnvVar(cfg *conf.Config) {
 	apiEndpoint = cfg.Imgur.Endpoint
 	accessToken = cfg.Imgur.AccessToken
 	refreshToken = cfg.Imgur.RefreshToken
+	clientID = cfg.Imgur.ClientID
 }
 
 // UploadImagetoImgur add image to Imgur gallery and return link to new image
-func UploadImagetoImgur(title string, imageURL string) (string, error) {
+func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 
 	response := &imageResponse{}
 	url := apiEndpoint + "image"
-	method := "POST"
 
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
@@ -51,14 +51,16 @@ func UploadImagetoImgur(title string, imageURL string) (string, error) {
 
 	err := writer.Close()
 	if err != nil {
-		fmt.Println(err)
+		util.Danger(err)
+		return nil, err
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest(method, url, payload)
+	req, err := http.NewRequest("POST", url, payload)
 
 	if err != nil {
-		fmt.Println(err)
+		util.Danger(err)
+		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
@@ -66,12 +68,88 @@ func UploadImagetoImgur(title string, imageURL string) (string, error) {
 	res, err := client.Do(req)
 	if err != nil {
 		util.Danger(err)
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(response)
 
-	return response.Data.Link, err
+	return response.Img, err
+}
+
+// // UpdateImage update imgur image
+// func UpdateImage(imageID, imageURL string) (img *Img, err error) {
+
+// 	img, err = GetImageFromImgur(imageID)
+// 	if err != nil {
+// 		util.Danger(err)
+// 		return
+// 	}
+
+// 	if strings.Compare(img.Description, imageURL) != 0 {
+// 		err = DeleteImg(imageID)
+// 		if err != nil {
+// 			util.Danger(err)
+// 			return
+// 		}
+
+// 		img, err = UploadImagetoImgur(img.Title, imageURL)
+// 		if err != nil {
+// 			util.Danger(err)
+// 			return
+// 		}
+// 	}
+
+// 	return
+// }
+
+// GetImageFromImgur get img using image ID from Imgur
+// func GetImageFromImgur(imageID string) (*Img, error) {
+
+// 	response := &imageResponse{}
+// 	url := apiEndpoint + "image/" + imageID
+
+// 	client := &http.Client{}
+// 	req, err := http.NewRequest("GET", url, nil)
+
+// 	if err != nil {
+// 		util.Danger(err)
+// 		return nil, err
+// 	}
+
+// 	req.Header.Add("Authorization", "Client-ID "+clientID)
+// 	res, err := client.Do(req)
+// 	if err != nil {
+// 		util.Danger(err)
+// 		return nil, err
+// 	}
+// 	defer res.Body.Close()
+
+// 	decoder := json.NewDecoder(res.Body)
+// 	err = decoder.Decode(response)
+
+// 	return response.Img, err
+// }
+
+// DeleteImg delete img in imgur
+func DeleteImg(imageID string) {
+
+	url := apiEndpoint + "image/" + imageID
+
+	client := &http.Client{}
+	req, err := http.NewRequest("DELETE", url, nil)
+
+	if err != nil {
+		util.Danger(err)
+		return
+	}
+
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+	_, err = client.Do(req)
+	if err != nil {
+		util.Danger(err)
+	}
+
+	return
 }

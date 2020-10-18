@@ -6,7 +6,8 @@ type Comic struct {
 	Page       string `json:"page"`
 	Name       string `json:"name"`
 	URL        string `json:"url"`
-	ImageURL   string `json:"-"`
+	ImgurID    string `json:"-"`
+	ImgurLink  string `json:"-"`
 	LatestChap string `json:"latest"`
 	ChapURL    string `json:"chap-url"`
 	Date       string `json:"-"`

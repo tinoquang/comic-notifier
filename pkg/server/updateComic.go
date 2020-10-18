@@ -22,13 +22,13 @@ func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comi
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		util.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
-		updated, err := updateComic(ctx, store, &comic)
+		err := updateComic(ctx, store, &comic)
 
 		if err == nil {
 			util.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
 			notifyToUsers(ctx, store, &comic)
 		} else {
-			if !updated {
+			if strings.Contains(err.Error(), "No new chapter") {
 				util.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
 			} else {
 				util.Danger(err)
@@ -78,22 +78,15 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 }
 
 // UpdateComic use when new chapter realease
-func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (bool, error) {
+func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (err error) {
 
-	updated := true
-	err := crawler.GetComicInfo(ctx, comic)
-
+	err = crawler.GetComicInfo(ctx, comic)
 	if err != nil {
-		if strings.Contains(err.Error(), "No new chapter") {
-			updated = false
-		} else {
-			util.Danger()
-		}
-		return updated, err
+		return
 	}
 
 	err = store.Comic.Update(ctx, comic)
-	return updated, err
+	return
 }
 
 func notifyToUsers(ctx context.Context, store *store.Stores, comic *model.Comic) {

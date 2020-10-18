@@ -93,6 +93,15 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 // Update comic helper
 func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, field string, id string, comicURL string) (*model.Comic, error) {
 
+	var err error
+	newComic := false
+	imgurID := ""
+	defer func() {
+		if newComic && err != nil && err.Error() != "Already subscribed" {
+			img.DeleteImg(imgurID)
+		}
+	}()
+
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
 		return nil, errors.New("Please check your URL")
@@ -105,7 +114,6 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 	}
 
 	// Page URL validated, now check comics already in database
-	// util.Info("Validated " + page.Name)
 	comic, err := store.Comic.GetByURL(ctx, comicURL)
 
 	// If comic is not in database, query it's latest chap,
@@ -123,6 +131,8 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 				util.Danger(err)
 				return nil, err
 			}
+			newComic = true
+			imgurID = comic.ImgurID
 
 			// Add new comic to DB
 			err = store.Comic.Create(ctx, comic)
@@ -130,6 +140,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 				util.Danger(err)
 				return nil, err
 			}
+
 		} else {
 			util.Danger(err)
 			return nil, err
@@ -137,6 +148,7 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 	}
 
 	util.Info("Added new comic: ", comic.Name)
+
 	// Validate users is in user DB or not
 	// If not, add user to database, return "Subscribed to ..."
 	// else return "Already subscribed"
@@ -176,14 +188,6 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 			if err != nil {
 				util.Danger(err)
 				return nil, err
-			}
-
-			// Upload image to imgur
-			imgurLink, err := img.UploadImagetoImgur(comic.Name, comic.ImageURL)
-			if err != nil {
-				util.Danger(err)
-			} else {
-				comic.ImageURL = imgurLink
 			}
 
 			return comic, nil

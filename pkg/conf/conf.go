@@ -38,6 +38,7 @@ type Imgur struct {
 	Endpoint     string
 	AccessToken  string
 	RefreshToken string
+	ClientID     string
 }
 
 // Config main struct for get config from env
@@ -80,6 +81,7 @@ func New() *Config {
 			Endpoint:     getEnv("IMGUR_ENDPOINT", ""),
 			AccessToken:  getEnv("IMGUR_ACCESS_TOKEN", ""),
 			RefreshToken: getEnv("IMGUR_REFRESH_TOKEN", ""),
+			ClientID:     getEnv("IMGUR_CLIENT_ID", ""),
 		},
 		JWT:  getEnv("JWT_SECRET", ""),
 		Port: getEnv("PORT", ""),

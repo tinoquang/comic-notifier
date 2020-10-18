@@ -85,9 +85,21 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	err = m.store.Subscriber.Delete(ctx, senderID, comicID)
 	if err != nil {
 		sendTextBack(senderID, "Please try again later")
-	} else {
-		sendTextBack(senderID, fmt.Sprintf("Unsubscribe %s", c.Name))
+		return
 	}
+
+	s, err := m.store.Subscriber.ListByComicID(ctx, comicID)
+	if err != nil {
+		util.Danger(err)
+
+	}
+
+	if len(s) == 0 {
+		img.DeleteImg(c.ImgurID)
+		m.store.Comic.Delete(ctx, comicID)
+	}
+	sendTextBack(senderID, fmt.Sprintf("Unsubscribe %s\n Done!", c.Name))
+
 }
 
 // Update comic helper

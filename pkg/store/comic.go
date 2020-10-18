@@ -18,6 +18,7 @@ type ComicInterface interface {
 	GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error)
 	Create(ctx context.Context, comic *model.Comic) error
 	Update(ctx context.Context, comic *model.Comic) error
+	Delete(ctx context.Context, id int) error
 	List(ctx context.Context) ([]model.Comic, error)
 	ListByPSID(ctx context.Context, psid string) ([]model.Comic, error)
 }
@@ -96,6 +97,16 @@ func (c *comicDB) Update(ctx context.Context, comic *model.Comic) error {
 
 	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, date=$4 WHERE id=$1"
 	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.Date)
+	return err
+}
+
+func (c *comicDB) Delete(ctx context.Context, id int) error {
+
+	query := "DELETE FROM comics WHERE id=$1"
+	_, err := c.dbconn.ExecContext(ctx, query, id)
+	if err != nil {
+		util.Danger(err)
+	}
 	return err
 }
 

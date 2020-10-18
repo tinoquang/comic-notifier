@@ -64,11 +64,11 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 
 func (c *comicDB) GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
 
-	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id AND subscribers.psid=$1"
+	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id AND subscribers.user_psid=$1"
 
 	comics, err := c.getBySQL(ctx, query, psid)
 	if err != nil {
-		util.Danger()
+		util.Danger(err)
 		return nil, err
 	}
 
@@ -105,7 +105,7 @@ func (c *comicDB) List(ctx context.Context) ([]model.Comic, error) {
 }
 
 func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, error) {
-	query := "LEFT JOIN subscribers as subs ON comics.id=subs.comic_id && subs.psid=$1"
+	query := "LEFT JOIN subscribers as subs ON comics.id=subs.comic_id && subs.user_psid=$1"
 
 	comics, err := c.getBySQL(ctx, query, psid)
 	if err != nil || len(comics) == 0 {
@@ -117,7 +117,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, e
 }
 
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {
-	rows, err := c.dbconn.QueryContext(ctx, "SELECT * FROM comics "+query, args...)
+	rows, err := c.dbconn.QueryContext(ctx, "SELECT comics.* FROM comics "+query, args...)
 	if err != nil {
 		util.Danger()
 		return nil, err

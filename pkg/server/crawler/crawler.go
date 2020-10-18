@@ -52,7 +52,6 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 		return
 	}()
 
-	util.Info("Start parsing URL")
 	html, err := getPageSource(comic.URL)
 	if err != nil {
 		return errors.Wrapf(err, "Can't retrieve page's HTML")
@@ -133,7 +132,6 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	var chapURL, chapName, chapDate string
 	var max time.Time
 
-	util.Info("start crawling")
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
@@ -144,7 +142,6 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 		return errors.New("URL is not a comic page")
 	}
 
-	util.Info("start find latest chap")
 	// Find latest chap
 	selections.Each(func(index int, item *goquery.Selection) {
 

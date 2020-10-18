@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -29,9 +30,6 @@ func New(cfg *conf.Config) {
 	crawler["truyenqq.com"] = crawlTruyenqq
 	crawler["blogtruyen.vn"] = crawlBlogTruyen
 
-	apiEndpoint = cfg.Imgur.Endpoint
-	accessToken = cfg.Imgur.AccessToken
-	refreshToken = cfg.Imgur.RefreshToken
 }
 
 // GetComicInfo return link of latest chapter of a page
@@ -112,7 +110,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	// Download cover image of comic
 	if comic.ImageURL == "" {
 		imageURL, _ := doc.Find(".cover").Find("img[src]").Attr("data-src")
-		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
+		imgurLink, err := img.UploadImagetoImgur(comic.Name, imageURL)
 		if err != nil {
 			util.Danger(err)
 			comic.ImageURL = imageURL
@@ -135,6 +133,7 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
+	comic.ImageURL, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
 
 	// Query latest chap
 	selections := doc.Find(".list-wrap#list-chapters").Find("p")
@@ -167,18 +166,6 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 
 	if comic.ChapURL == chapURL {
 		return errors.New("No new chapter")
-	}
-
-	util.Info("start parsing image")
-	if comic.ImageURL == "" {
-		imageURL, _ := doc.Find(".thumbnail").Find("img[src]").Attr("src")
-		imgurLink, err := uploadImagetoImgur(comic.Name, imageURL)
-		if err != nil {
-			util.Danger(err)
-			comic.ImageURL = imageURL
-		} else {
-			comic.ImageURL = imgurLink
-		}
 	}
 
 	comic.LatestChap = chapName

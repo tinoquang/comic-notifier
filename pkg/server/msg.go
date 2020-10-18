@@ -12,6 +12,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
+	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -176,6 +177,15 @@ func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, 
 				util.Danger(err)
 				return nil, err
 			}
+
+			// Upload image to imgur
+			imgurLink, err := img.UploadImagetoImgur(comic.Name, comic.ImageURL)
+			if err != nil {
+				util.Danger(err)
+			} else {
+				comic.ImageURL = imgurLink
+			}
+
 			return comic, nil
 		}
 		util.Danger(err)

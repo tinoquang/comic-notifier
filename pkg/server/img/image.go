@@ -1,4 +1,4 @@
-package crawler
+package img
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -18,6 +19,7 @@ var (
 
 // Data --> imageResponse content
 type Data struct {
+	ID         string `json:"id"`
 	DeleteHash string `json:"deletehash"`
 	Link       string `json:"link"`
 }
@@ -27,8 +29,15 @@ type imageResponse struct {
 	Data *Data
 }
 
+// SetEnvVar set environment var for interacting with Imgur API
+func SetEnvVar(cfg *conf.Config) {
+	apiEndpoint = cfg.Imgur.Endpoint
+	accessToken = cfg.Imgur.AccessToken
+	refreshToken = cfg.Imgur.RefreshToken
+}
+
 // UploadImagetoImgur add image to Imgur gallery and return link to new image
-func uploadImagetoImgur(title string, imageURL string) (string, error) {
+func UploadImagetoImgur(title string, imageURL string) (string, error) {
 
 	response := &imageResponse{}
 	url := apiEndpoint + "image"

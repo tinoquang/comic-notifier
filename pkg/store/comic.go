@@ -86,7 +86,7 @@ func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
 	err := db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
-			ctx, query, comic.Page, comic.Name, comic.URL, comic.ImgurID, comic.ImgurLink, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
+			ctx, query, comic.Page, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
 		).Scan(&comic.ID)
 	})
 	return err
@@ -138,7 +138,7 @@ func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{
 	defer rows.Close()
 	for rows.Next() {
 		comic := model.Comic{}
-		err := rows.Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.ImgurID, &comic.ImgurLink, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
+		err := rows.Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.ImageURL, &comic.ImgurID, &comic.ImgurLink, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
 		if err != nil {
 			util.Danger(err)
 			return nil, err

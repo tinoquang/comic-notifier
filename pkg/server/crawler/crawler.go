@@ -3,6 +3,8 @@ package crawler
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -13,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -30,6 +31,54 @@ func New(cfg *conf.Config) {
 	crawler["truyenqq.com"] = crawlTruyenqq
 	crawler["blogtruyen.vn"] = crawlBlogTruyen
 
+}
+
+// GetUserInfoByID get user AppID using PSID or vice-versa
+func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
+
+	user = &model.User{}
+
+	info := map[string]json.RawMessage{}
+	appInfo := []map[string]json.RawMessage{}
+	picture := map[string]json.RawMessage{}
+	queries := map[string]string{}
+
+	switch field {
+	case "psid":
+		user.PSID = id
+		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
+		queries["access_token"] = cfg.FBSecret.PakeToken
+	case "appid":
+		user.AppID = id
+		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
+		queries["access_token"] = cfg.FBSecret.AppToken
+		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
+	default:
+		return nil, fmt.Errorf("Wrong field request, field: %s", field)
+	}
+
+	respBody, err := util.MakeGetRequest(cfg.Webhook.GraphEndpoint+id, queries)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(respBody, &info)
+	if err != nil {
+		return
+	}
+
+	user.Name = util.ConvertJSONToString(info["name"])
+
+	json.Unmarshal(info["ids_for_apps"], &info)
+	json.Unmarshal(info["picture"], &picture)
+	json.Unmarshal(picture["data"], &picture)
+	json.Unmarshal(info["data"], &appInfo)
+
+	user.AppID = util.ConvertJSONToString(appInfo[0]["id"])
+	user.ProfilePic = util.ConvertJSONToString(picture["url"])
+	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
+
+	return user, nil
 }
 
 // GetComicInfo return link of latest chapter of a page
@@ -71,6 +120,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 
 	comic.Name = doc.Find(".detail").Find("h4").Text()
 	comic.DateFormat = "02/01/2006"
+	comic.ImageURL, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
 
 	// Query latest chap
 	selections := doc.Find(".listChapters").Find(".list").Find("li")
@@ -108,15 +158,14 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	}
 
 	// Download cover image of comic
-	imageURL, _ := doc.Find(".cover").Find("img[src]").Attr("data-src")
-	img, err := img.UploadImagetoImgur(comic.Page+" "+comic.Name, imageURL)
-	if err != nil {
-		util.Danger(err)
-		return err
-	}
+	// img, err := img.UploadImagetoImgur(comic.Page+" "+comic.Name, imageURL)
+	// if err != nil {
+	// 	util.Danger(err)
+	// 	return err
+	// }
 
-	comic.ImgurID = img.ID
-	comic.ImgurLink = img.Link
+	// comic.ImgurID = img.ID
+	// comic.ImgurLink = img.Link
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	return
@@ -131,6 +180,7 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
+	comic.ImageURL, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
 
 	// Query latest chap
 	selections := doc.Find(".list-wrap#list-chapters").Find("p")
@@ -165,15 +215,14 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	}
 
 	// Download cover image of comic and upload to imgur if detect new chapter
-	imageURL, _ := doc.Find(".thumbnail").Find("img[src]").Attr("src")
-	img, err := img.UploadImagetoImgur(comic.Page+" "+comic.Name, imageURL)
-	if err != nil {
-		util.Danger(err)
-		return err
-	}
+	// img, err := img.UploadImagetoImgur(comic.Page+" "+comic.Name, imageURL)
+	// if err != nil {
+	// 	util.Danger(err)
+	// 	return err
+	// }
 
-	comic.ImgurID = img.ID
-	comic.ImgurLink = img.Link
+	// comic.ImgurID = img.ID
+	// comic.ImgurLink = img.Link
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	comic.Date = chapDate

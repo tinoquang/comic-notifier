@@ -43,14 +43,15 @@ type Imgur struct {
 
 // Config main struct for get config from env
 type Config struct {
+	Port        string
+	PageSupport *model.PageList
 	Webhook     WebhookCfg
 	FBSecret    FacebookSecret
 	DBInfo      string
-	PageSupport *model.PageList
 	WrkDat      WorkerData
 	Imgur       Imgur
 	JWT         string
-	Port        string
+	CtxTimeout  int
 }
 
 // New return new configuration
@@ -83,8 +84,9 @@ func New() *Config {
 			RefreshToken: getEnv("IMGUR_REFRESH_TOKEN", ""),
 			ClientID:     getEnv("IMGUR_CLIENT_ID", ""),
 		},
-		JWT:  getEnv("JWT_SECRET", ""),
-		Port: getEnv("PORT", ""),
+		JWT:        getEnv("JWT_SECRET", ""),
+		Port:       getEnv("PORT", ""),
+		CtxTimeout: getEnvAsInt("CTX_TIMEOUT", 15),
 	}
 }
 

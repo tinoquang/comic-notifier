@@ -112,7 +112,7 @@ func sendNormalReply(senderid string, comic *model.Comic) {
 					Elements: []Element{
 						{
 							Title:    comic.Name + "\n" + comic.LatestChap,
-							ImageURL: comic.ImgurLink,
+							ImageURL: string(comic.ImgurLink),
 							Subtitle: comic.Page,
 							DefaultAction: &Action{
 								Type: "web_url",
@@ -152,7 +152,7 @@ func sendMsgTagsReply(senderid string, comic *model.Comic) {
 					Elements: []Element{
 						{
 							Title:    comic.Name + "\n" + comic.LatestChap,
-							ImageURL: comic.ImgurLink,
+							ImageURL: string(comic.ImgurLink),
 							Subtitle: comic.Page,
 							DefaultAction: &Action{
 								Type: "web_url",

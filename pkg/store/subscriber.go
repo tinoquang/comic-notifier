@@ -38,7 +38,7 @@ func (s *subscriberDB) Get(ctx context.Context, psid string, comicID int) (*mode
 	}
 
 	if len(subscribers) == 0 {
-		return &model.Subscriber{}, errors.New("Comic not found")
+		return &model.Subscriber{}, errors.New("Subscriber not found")
 	}
 
 	return &subscribers[0], nil

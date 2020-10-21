@@ -22,6 +22,7 @@ type ServerInterface interface {
 
 // Handler main handler for incoming HTTP request
 type Handler struct {
+	cfg *conf.Config
 	svi ServerInterface
 }
 
@@ -31,7 +32,7 @@ func RegisterHandler(g *echo.Group, cfg *conf.Config, svi ServerInterface) {
 	webhookToken = cfg.Webhook.WebhookToken
 
 	// Create main handler
-	h := Handler{svi: svi}
+	h := Handler{cfg: cfg, svi: svi}
 
 	// Register endpoint to handler
 	// Webhook verify message
@@ -75,11 +76,11 @@ func (h *Handler) parseUserMsg(c echo.Context) error {
 			if len(entry.Messaging) != 0 {
 				switch {
 				case entry.Messaging[0].PostBack != nil:
-					go h.handlePostback(entry.Messaging[0])
+					go h.handlePostback(entry.Messaging[0], h.cfg.CtxTimeout)
 				case entry.Messaging[0].Message.QuickReply != nil:
-					go h.handleQuickReply(entry.Messaging[0])
+					go h.handleQuickReply(entry.Messaging[0], h.cfg.CtxTimeout)
 				case entry.Messaging[0].Message.Text != "":
-					go h.handleText(entry.Messaging[0])
+					go h.handleText(entry.Messaging[0], h.cfg.CtxTimeout)
 				default:
 					util.Warning("Only support text, postback and quick-reply !!!")
 				}

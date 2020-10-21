@@ -2,16 +2,12 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -37,7 +33,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	sendActionBack(senderID, "typing_on")
 	defer sendActionBack(senderID, "typing_off")
 
-	comic, err := subscribeComic(ctx, m.cfg, m.store, "psid", senderID, text)
+	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
 	if err != nil {
 		if strings.Contains(err.Error(), "Already") {
 			sendTextBack(senderID, "Already subscribed")
@@ -95,7 +91,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	}
 
 	if len(s) == 0 {
-		img.DeleteImg(c.ImgurID)
+		img.DeleteImg(string(c.ImgurID))
 		m.store.Comic.Delete(ctx, comicID)
 	}
 	sendTextBack(senderID, fmt.Sprintf("Unsubscribe %s\n Done!", c.Name))
@@ -103,157 +99,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 }
 
 // Update comic helper
-func subscribeComic(ctx context.Context, cfg *conf.Config, store *store.Stores, field string, id string, comicURL string) (*model.Comic, error) {
+func (m *MSG) subscribeComic(ctx context.Context, field, id, comicURL string) (*model.Comic, error) {
 
-	var err error
-	newComic := false
-	imgurID := ""
-	defer func() {
-		if newComic && err != nil && err.Error() != "Already subscribed" {
-			img.DeleteImg(imgurID)
-		}
-	}()
-
-	parsedURL, err := url.Parse(comicURL)
-	if err != nil || parsedURL.Host == "" {
-		return nil, errors.New("Please check your URL")
-	}
-
-	// Check page support, if not send back "Page is not supported"
-	_, err = store.Page.GetByName(ctx, parsedURL.Hostname())
-	if err != nil {
-		return nil, errors.New("Sorry, page " + parsedURL.Hostname() + " is not supported yet")
-	}
-
-	// Page URL validated, now check comics already in database
-	comic, err := store.Comic.GetByURL(ctx, comicURL)
-
-	// If comic is not in database, query it's latest chap,
-	// add to database, then prepare response with latest chapter
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-
-			comic = &model.Comic{
-				Page: parsedURL.Hostname(),
-				URL:  comicURL,
-			}
-			// Get all comic infos includes latest chapter
-			err = crawler.GetComicInfo(ctx, comic)
-			if err != nil {
-				util.Danger(err)
-				return nil, err
-			}
-			newComic = true
-			imgurID = comic.ImgurID
-
-			// Add new comic to DB
-			err = store.Comic.Create(ctx, comic)
-			if err != nil {
-				util.Danger(err)
-				return nil, err
-			}
-
-		} else {
-			util.Danger(err)
-			return nil, err
-		}
-	}
-
-	util.Info("Added new comic: ", comic.Name)
-
-	// Validate users is in user DB or not
-	// If not, add user to database, return "Subscribed to ..."
-	// else return "Already subscribed"
-	user, err := store.User.GetByFBID(ctx, field, id)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-
-			util.Info("Add new user")
-
-			user, err = getUserInfoByID(cfg, field, id)
-			// Check user already exist
-			if err != nil {
-				util.Danger(err)
-				return nil, err
-			}
-			err = store.User.Create(ctx, user)
-
-			if err != nil {
-				util.Danger(err)
-				return nil, err
-			}
-		} else {
-			util.Danger(err)
-			return nil, err
-		}
-	}
-
-	_, err = store.Subscriber.Get(ctx, user.PSID, comic.ID)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			subscriber := &model.Subscriber{
-				PSID:    user.PSID,
-				ComicID: comic.ID,
-			}
-
-			err = store.Subscriber.Create(ctx, subscriber)
-			if err != nil {
-				util.Danger(err)
-				return nil, err
-			}
-
-			return comic, nil
-		}
-		util.Danger(err)
-		return nil, err
-	}
-	return nil, errors.New("Already subscribed")
-}
-
-// GetUserInfoByID get user AppID using PSID or vice-versa
-func getUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
-
-	user = &model.User{}
-
-	info := map[string]json.RawMessage{}
-	appInfo := []map[string]json.RawMessage{}
-	picture := map[string]json.RawMessage{}
-	queries := map[string]string{}
-
-	switch field {
-	case "psid":
-		user.PSID = id
-		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
-		queries["access_token"] = cfg.FBSecret.PakeToken
-	case "appid":
-		user.AppID = id
-		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
-		queries["access_token"] = cfg.FBSecret.AppToken
-		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
-	default:
-		return nil, errors.New(fmt.Sprintf("Wrong field request, field: %s", field))
-	}
-
-	respBody, err := util.MakeGetRequest(cfg.Webhook.GraphEndpoint+id, queries)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal(respBody, &info)
-	if err != nil {
-		return
-	}
-
-	user.Name = util.ConvertJSONToString(info["name"])
-
-	json.Unmarshal(info["ids_for_apps"], &info)
-	json.Unmarshal(info["picture"], &picture)
-	json.Unmarshal(picture["data"], &picture)
-	json.Unmarshal(info["data"], &appInfo)
-
-	user.AppID = util.ConvertJSONToString(appInfo[0]["id"])
-	user.ProfilePic = util.ConvertJSONToString(picture["url"])
-	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
-
-	return user, nil
+	return m.store.SubscribeComic(ctx, field, id, comicURL)
 }

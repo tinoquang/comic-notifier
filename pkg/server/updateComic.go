@@ -85,6 +85,7 @@ func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (
 		return
 	}
 
+	img.UpdateImage(comic.ImgurID, comic)
 	err = store.Comic.Update(ctx, comic)
 	return
 }

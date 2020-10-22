@@ -157,15 +157,6 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 		}
 	}
 
-	// Download cover image of comic
-	// img, err := img.UploadImagetoImgur(comic.Page+" "+comic.Name, imageURL)
-	// if err != nil {
-	// 	util.Danger(err)
-	// 	return err
-	// }
-
-	// comic.ImgurID = img.ID
-	// comic.ImgurLink = img.Link
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	return
@@ -214,15 +205,6 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 		}
 	}
 
-	// Download cover image of comic and upload to imgur if detect new chapter
-	// img, err := img.UploadImagetoImgur(comic.Page+" "+comic.Name, imageURL)
-	// if err != nil {
-	// 	util.Danger(err)
-	// 	return err
-	// }
-
-	// comic.ImgurID = img.ID
-	// comic.ImgurLink = img.Link
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	comic.Date = chapDate

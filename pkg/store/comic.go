@@ -95,8 +95,8 @@ func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
 func (c *comicDB) Update(ctx context.Context, comic *model.Comic) error {
 
-	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, date=$4 WHERE id=$1"
-	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.Date)
+	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, img_url=$4, imgur_id=$5, imgur_link=$6, date=$7 WHERE id=$1"
+	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.ImageURL, comic.ImgurID, comic.ImgurLink, comic.Date)
 	return err
 }
 

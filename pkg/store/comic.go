@@ -65,9 +65,9 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 
 func (c *comicDB) GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
 
-	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id AND subscribers.user_psid=$1"
+	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2"
 
-	comics, err := c.getBySQL(ctx, query, psid)
+	comics, err := c.getBySQL(ctx, query, psid, comicID)
 	if err != nil {
 		util.Danger(err)
 		return nil, err

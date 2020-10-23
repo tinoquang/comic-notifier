@@ -63,7 +63,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			sendTextBack(senderID, fmt.Sprintf("Comic %s is not subscribed", c.Name))
+			sendTextBack(senderID, "You haven't subscribe this comic yet!")
 			return
 		}
 		return
@@ -76,7 +76,12 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	comicID, err := strconv.Atoi(payload)
 
-	c, _ := m.store.Comic.GetByPSID(ctx, senderID, comicID)
+	c, err := m.store.Comic.GetByPSID(ctx, senderID, comicID)
+	if err != nil {
+		util.Danger(err)
+		sendTextBack(senderID, "Please try again later")
+		return
+	}
 
 	err = m.store.Subscriber.Delete(ctx, senderID, comicID)
 	if err != nil {

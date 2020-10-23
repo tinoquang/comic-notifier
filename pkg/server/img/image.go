@@ -139,6 +139,7 @@ func GetImageFromImgur(imageID string) (*Img, error) {
 // DeleteImg delete img in imgur
 func DeleteImg(imageID string) {
 
+	util.Info("Delete image id:", imageID)
 	url := apiEndpoint + "image/" + imageID
 
 	client := &http.Client{}
@@ -155,5 +156,6 @@ func DeleteImg(imageID string) {
 		util.Danger(err)
 	}
 
+	util.Info("Delete image, err:", err)
 	return
 }

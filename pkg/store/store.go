@@ -95,9 +95,12 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 			return
 		}
 
-		query = "INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4) RETURNING psid"
-		inErr = tx.QueryRowContext(ctx, query, user.Name, user.PSID /*user.AppID, */, user.ProfilePic).Scan(&user.PSID)
-		if inErr != nil {
+		query = `INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4)
+				ON CONFLICT (psid)
+				DO NOTHING
+				RETURNING psid`
+		inErr = tx.QueryRowContext(ctx, query, user.Name, user.PSID, user.AppID, user.ProfilePic).Scan(&user.PSID)
+		if inErr != nil && inErr != sql.ErrNoRows {
 			util.Danger(inErr)
 			return
 		}

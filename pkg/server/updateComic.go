@@ -8,6 +8,7 @@ import (
 
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
+	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -85,7 +86,7 @@ func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (
 		return
 	}
 
-	img.UpdateImage(comic.ImgurID, comic)
+	img.UpdateImage(string(comic.ImgurID), comic)
 	err = store.Comic.Update(ctx, comic)
 	return
 }

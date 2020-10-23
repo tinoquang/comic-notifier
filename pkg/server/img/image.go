@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
+	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -80,7 +83,7 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 }
 
 // UpdateImage update imgur image
-func UpdateImage(imageID, comic *model.Comic) (err error) {
+func UpdateImage(imageID string, comic *model.Comic) (err error) {
 
 	img, err := GetImageFromImgur(imageID)
 	if err != nil {
@@ -91,21 +94,17 @@ func UpdateImage(imageID, comic *model.Comic) (err error) {
 	if strings.Compare(img.Description, comic.ImageURL) == 0 {
 		return errors.Errorf("%s %s : Cover-image is up-to-date\n", comic.Page, comic.Name)
 	}
-	
+
 	img, err = UploadImagetoImgur(img.Title, comic.ImageURL)
 	if err != nil {
 		util.Danger("Can't upload image to imgur, err :", err)
 		return
 	}
 
-	err = DeleteImg(imageID)
-	if err != nil {
-		util.Danger("Can't delete image to imgur, err :", err)
-		return
-	}
+	DeleteImg(imageID)
 
-	comic.ImgurID = img.ID
-	comic.ImgurLink = img.Link
+	comic.ImgurID = model.NullString(img.ID)
+	comic.ImgurLink = model.NullString(img.Link)
 	return
 }
 

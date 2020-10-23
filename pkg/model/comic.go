@@ -1,7 +1,6 @@
 package model
 
 import (
-	"database/sql/driver"
 	"errors"
 )
 
@@ -20,8 +19,10 @@ type Comic struct {
 	DateFormat string     `json:"-"`
 }
 
+// NullString represent empty string for database
 type NullString string
 
+// Scan method of Nullstring
 func (s *NullString) Scan(value interface{}) error {
 	if value == nil {
 		*s = ""
@@ -34,9 +35,11 @@ func (s *NullString) Scan(value interface{}) error {
 	*s = NullString(strVal)
 	return nil
 }
-func (s NullString) Value() (driver.Value, error) {
+
+// Value return string
+func (s NullString) Value() string {
 	if len(s) == 0 { // if nil or empty string
-		return nil, nil
+		return ""
 	}
-	return string(s), nil
+	return string(s)
 }

@@ -130,6 +130,12 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 			}
 			comic.ImgurID = model.NullString(image.ID)
 			comic.ImgurLink = model.NullString(image.Link)
+			query := "UPDATE comics SET imgur_id=$2, imgur_link=$3 WHERE id=$1 RETURNING id, imgur_id, imgur_link"
+			inErr = tx.QueryRowContext(ctx, query, comic.ID, image.ID, image.Link).Scan(&comic.ID, &comic.ImgurID, &comic.ImgurLink)
+			if inErr != nil {
+				img.DeleteImg(image.ID)
+				return
+			}
 		}
 
 		return

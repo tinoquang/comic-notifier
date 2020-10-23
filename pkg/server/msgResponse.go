@@ -190,7 +190,7 @@ func sendQuickReplyChoice(senderid string, c *model.Comic) {
 		Recipient: &User{ID: senderid},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
-			Text: "Unsubscribe " + c.Name + "\nAre you sure ?",
+			Text: "Unsub " + c.Name + "\nAre you sure ?",
 			Options: []QuickReply{
 				{
 					Type:     "text",

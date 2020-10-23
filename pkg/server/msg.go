@@ -94,7 +94,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 		img.DeleteImg(string(c.ImgurID))
 		m.store.Comic.Delete(ctx, comicID)
 	}
-	sendTextBack(senderID, fmt.Sprintf("Unsubscribe %s\n Done!", c.Name))
+	sendTextBack(senderID, fmt.Sprintf("Unsub %s\nSuccess!", c.Name))
 
 }
 

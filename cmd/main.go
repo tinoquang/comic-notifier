@@ -16,7 +16,7 @@ func main() {
 	e := echo.New()
 
 	// Get environment variable
-	cfg := conf.New()
+	cfg := conf.New("")
 
 	// Connect to DB
 	dbconn := db.New(cfg)

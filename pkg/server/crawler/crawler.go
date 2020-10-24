@@ -110,7 +110,7 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 	}
 
 	err = crawler[comic.Page](ctx, doc, comic)
-	return errors.Wrapf(err, "Can't get latest chap from", comic.Page)
+	return errors.Wrapf(err, "Can't get latest chap from %s", comic.Page)
 }
 
 func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {

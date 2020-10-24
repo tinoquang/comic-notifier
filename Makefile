@@ -24,3 +24,7 @@ gen:
 clean:
 	rm -f ${BINARY}
 .PHONY: clean
+
+test: 
+	go test -v ./pkg/server/img/
+.PHONY: test

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -55,10 +56,12 @@ type Config struct {
 }
 
 // New return new configuration
-func New() *Config {
+func New(path string) *Config {
 
-	if err := godotenv.Load(".env"); err != nil {
-		util.Danger("Can't load env file")
+	absPath, _ := filepath.Abs(path + ".env")
+	fmt.Println(absPath)
+	if err := godotenv.Load(path + ".env"); err != nil {
+		util.Danger("Can't load env file, err:", err)
 	}
 
 	return &Config{
@@ -73,7 +76,7 @@ func New() *Config {
 			AppToken:  getEnv("FBSECRET_APP_TOKEN", ""),
 		},
 		DBInfo:      getDBSecret(),
-		PageSupport: getPageSupport(),
+		PageSupport: getPageSupport(path),
 		WrkDat: WorkerData{
 			WorkerNum: getEnvAsInt("WORKER_NUM", 10),
 			Timeout:   getEnvAsInt("WORKER_TIMEOUT", 30),
@@ -128,9 +131,9 @@ func getDBSecret() string {
 	return psqlInfo
 }
 
-func getPageSupport() *model.PageList {
+func getPageSupport(path string) *model.PageList {
 
-	jsonFile, err := os.Open("./pkg/conf/page_support.json")
+	jsonFile, err := os.Open(path + "page_support.json")
 	if err != nil {
 		panic(err)
 	}

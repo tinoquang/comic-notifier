@@ -52,6 +52,7 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 	writer.WriteField("image", imageURL)
 	writer.WriteField("type", "url")
 	writer.WriteField("title", title)
+	writer.WriteField("description", imageURL)
 
 	err := writer.Close()
 	if err != nil {
@@ -137,7 +138,7 @@ func GetImageFromImgur(imageID string) (*Img, error) {
 }
 
 // DeleteImg delete img in imgur
-func DeleteImg(imageID string) {
+func DeleteImg(imageID string) error {
 
 	url := apiEndpoint + "image/" + imageID
 
@@ -146,7 +147,7 @@ func DeleteImg(imageID string) {
 
 	if err != nil {
 		util.Danger(err)
-		return
+		return err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
@@ -155,5 +156,5 @@ func DeleteImg(imageID string) {
 		util.Danger(err)
 	}
 
-	return
+	return err
 }

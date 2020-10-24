@@ -13,19 +13,27 @@ func TestUploadDeleteImage(t *testing.T) {
 	SetEnvVar(cfg)
 
 	assert := assert.New(t)
-	imageURL := "https://img.blogtruyen.com/manga/0/139/tokyo one piece halloween 188699.jpg"
-
-	img, err := UploadImagetoImgur("test image", imageURL)
-	if err != nil {
-		t.Fatal("failed to upload image to imgur")
+	imageURLs := []string{
+		"https://img.blogtruyen.com/manga/0/139/tokyo one piece halloween 188699.jpg",
+		"https://img.blogtruyen.com/manga/8/8981/giphy (2).gif",
+		"https://cdn2.beeng.net/mangas/2020/07/26/05/a-tu-la-tay-du-ngoai-truyen.jpg",
 	}
 
-	assert.NotEmpty(img.ID)
-	assert.NotEmpty(img.Link)
-	assert.NotEmpty(img.Title)
+	for _, url := range imageURLs {
+		img, err := UploadImagetoImgur("test image", url)
+		if err != nil {
+			t.Fatal("failed to upload image to imgur")
+		}
 
-	err = DeleteImg(img.ID)
-	if err != nil {
-		t.Fatal("fail to delete image uploaded to imgur")
+		assert.NotEmpty(img.ID)
+		assert.NotEmpty(img.Link)
+		assert.NotEmpty(img.Title)
+		assert.NotEmpty(img.Description)
+
+		err = DeleteImg(img.ID)
+		if err != nil {
+			t.Fatal("fail to delete image uploaded to imgur")
+		}
 	}
+
 }

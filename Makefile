@@ -26,5 +26,5 @@ clean:
 .PHONY: clean
 
 test: 
-	go test -v ./pkg/server/img/
+	go test -v -cover ./...
 .PHONY: test

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -58,8 +57,6 @@ type Config struct {
 // New return new configuration
 func New(path string) *Config {
 
-	absPath, _ := filepath.Abs(path + ".env")
-	fmt.Println(absPath)
 	if err := godotenv.Load(path + ".env"); err != nil {
 		util.Danger("Can't load env file, err:", err)
 	}

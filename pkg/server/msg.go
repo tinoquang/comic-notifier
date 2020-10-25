@@ -37,6 +37,9 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	if err != nil {
 		if strings.Contains(err.Error(), "Already") {
 			sendTextBack(senderID, "Already subscribed")
+		} else if strings.Contains(err.Error(), "too fast") {
+			// Upload image API is busy
+			sendTextBack(senderID, "Please try again later") // handle later: get time delay and send back to user
 		} else {
 			sendTextBack(senderID, "Please try again later")
 		}

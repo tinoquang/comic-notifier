@@ -25,6 +25,11 @@ clean:
 	rm -f ${BINARY}
 .PHONY: clean
 
+re-test: 
+	go clean -testcache
+	go test -v -cover ./...
+.PHONY: re-test
+
 test: 
 	go test -v -cover ./...
 .PHONY: test

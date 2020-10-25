@@ -20,17 +20,24 @@ var (
 	clientID     string
 )
 
+type imgError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 // Img --> imageResponse content
 type Img struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Link        string `json:"link"`
-	Description string `json:"description"`
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Link        string   `json:"link"`
+	Description string   `json:"description"`
+	Error       imgError `json:"error"`
 }
 
 // response when create add new image to Imgur gallery
 type imageResponse struct {
-	Img *Img `json:"data"`
+	Img     *Img `json:"data"`
+	Success bool `json:"success"`
 }
 
 // SetEnvVar set environment var for interacting with Imgur API
@@ -80,11 +87,18 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 	decoder := json.NewDecoder(res.Body)
 	err = decoder.Decode(response)
 
+	if response.Success != true {
+		return nil, errors.New(response.Img.Error.Message)
+	}
 	return response.Img, err
 }
 
 // UpdateImage update imgur image
 func UpdateImage(imageID string, comic *model.Comic) (err error) {
+
+	if imageID == "" {
+		return errors.New("Image ID is empty")
+	}
 
 	img, err := GetImageFromImgur(imageID)
 	if err != nil {
@@ -92,6 +106,7 @@ func UpdateImage(imageID string, comic *model.Comic) (err error) {
 		return
 	}
 
+	img.Description = strings.Replace(img.Description, " . ", ".", -1)
 	if strings.Compare(img.Description, comic.ImageURL) == 0 {
 		return errors.Errorf("%s %s : Cover-image is up-to-date\n", comic.Page, comic.Name)
 	}
@@ -139,6 +154,10 @@ func GetImageFromImgur(imageID string) (*Img, error) {
 
 // DeleteImg delete img in imgur
 func DeleteImg(imageID string) error {
+
+	if imageID == "" {
+		return errors.New("Image ID is empty")
+	}
 
 	url := apiEndpoint + "image/" + imageID
 

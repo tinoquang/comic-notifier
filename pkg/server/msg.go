@@ -35,6 +35,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
 	if err != nil {
+		util.Danger(err)
 		if strings.Contains(err.Error(), "Already") {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {

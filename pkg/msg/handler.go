@@ -68,7 +68,7 @@ func (h *Handler) parseUserMsg(c echo.Context) error {
 
 	// Parsing request
 	if err := c.Bind(m); err != nil {
-		return c.String(http.StatusBadRequest, "")
+		return c.NoContent(http.StatusBadRequest)
 	}
 
 	if m.Object == "page" {
@@ -92,5 +92,5 @@ func (h *Handler) parseUserMsg(c echo.Context) error {
 		util.Warning("Message request unknown!!!")
 	}
 
-	return c.String(http.StatusOK, "")
+	return c.NoContent(http.StatusOK)
 }

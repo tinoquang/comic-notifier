@@ -6,6 +6,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/auth"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
+	"github.com/tinoquang/comic-notifier/pkg/mdw"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
 	"github.com/tinoquang/comic-notifier/pkg/server"
 	"github.com/tinoquang/comic-notifier/pkg/store"
@@ -31,14 +32,18 @@ func main() {
 	msg.RegisterHandler(e.Group("/webhook"), cfg, svr.Msg)
 
 	// API handler register
-	api.RegisterHandlers(e.Group("/api/v1"), svr.API)
+	apiGroup := e.Group("/api/v1")
+	apiGroup.Use(mdw.CheckLoginStatus)
+	api.RegisterHandlers(apiGroup, svr.API)
 
 	/* Routing */
 	e.Static("/static", "ui/static")
-	e.File("/", "ui/index.html")
+	e.GET("/", func(c echo.Context) error {
+		return c.File("ui/index.html")
+	}, mdw.CheckLoginStatus)
 
 	// Authentication JWT
-	auth.RegisterHandler(e.Group("/login"), cfg)
+	auth.RegisterHandler(e.Group(""), cfg)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":" + cfg.Port))

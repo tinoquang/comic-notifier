@@ -5,12 +5,21 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
+var (
+	jwtKey string
+)
+
+// SetConfig set jwtKey value for parsing JWT cookie
+func SetConfig(cfg *conf.Config) {
+	jwtKey = cfg.JWT
+}
+
 // CheckLoginStatus validate jwt cookie in request
 func CheckLoginStatus(next echo.HandlerFunc) echo.HandlerFunc {
-	key := "cc57a4c9-9751-4418-a498-ecf7c3c1d7fd"
 	return func(c echo.Context) (err error) {
 		jwtCookie, err := c.Cookie("_session")
 		if err != nil {
@@ -24,7 +33,7 @@ func CheckLoginStatus(next echo.HandlerFunc) echo.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(key), nil
+			return []byte(jwtKey), nil
 		})
 		if err != nil {
 			util.Danger(err)

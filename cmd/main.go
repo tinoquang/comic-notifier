@@ -19,6 +19,9 @@ func main() {
 	// Get environment variable
 	cfg := conf.New("")
 
+	// Set middleware config
+	mdw.SetConfig(cfg)
+
 	// Connect to DB
 	dbconn := db.New(cfg)
 

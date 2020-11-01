@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -23,6 +24,10 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	resp, err := http.Get(reqURL.String())
 	if err != nil {
 		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
 	}
 
 	defer resp.Body.Close()

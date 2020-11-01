@@ -23,7 +23,7 @@ var (
 func New(cfg *conf.Config, store *store.Stores) *Server {
 
 	// Get env config
-	messengerEndpoint = cfg.Webhook.GraphEndpoint + "me/messages"
+	messengerEndpoint = cfg.Webhook.GraphEndpoint + "/me/messages"
 	webhookToken = cfg.Webhook.WebhookToken
 	pageToken = cfg.FBSecret.PakeToken
 

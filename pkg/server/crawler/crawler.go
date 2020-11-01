@@ -57,7 +57,7 @@ func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err 
 		return nil, fmt.Errorf("Wrong field request, field: %s", field)
 	}
 
-	respBody, err := util.MakeGetRequest(cfg.Webhook.GraphEndpoint+id, queries)
+	respBody, err := util.MakeGetRequest(fmt.Sprintf("%s/%s", cfg.Webhook.GraphEndpoint, id), queries)
 	if err != nil {
 		return
 	}

@@ -23,7 +23,6 @@ func CheckLoginStatus(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		jwtCookie, err := c.Cookie("_session")
 		if err != nil {
-			util.Info("err", err)
 			return echo.ErrUnauthorized
 		}
 

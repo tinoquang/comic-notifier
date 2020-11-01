@@ -91,6 +91,7 @@ func (h *Handler) auth(c echo.Context) error {
 		HttpOnly: true,
 	}
 	c.SetCookie(cookie)
+
 	return c.Redirect(http.StatusPermanentRedirect, "/")
 }
 

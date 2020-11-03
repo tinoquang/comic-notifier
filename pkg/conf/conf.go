@@ -44,6 +44,7 @@ type Imgur struct {
 // Config main struct for get config from env
 type Config struct {
 	Port        string
+	LocalPort   string
 	Host        string
 	PageSupport *model.PageList
 	Webhook     WebhookCfg
@@ -87,6 +88,7 @@ func New(path string) *Config {
 		},
 		JWT:        getEnv("JWT_SECRET", ""),
 		Port:       getEnv("PORT", ""),
+		LocalPort:  getEnv("LOCAL_PORT", ""),
 		Host:       getEnv("HOST", ""),
 		CtxTimeout: getEnvAsInt("CTX_TIMEOUT", 15),
 	}

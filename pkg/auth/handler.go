@@ -11,6 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/mdw"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -24,8 +25,13 @@ func RegisterHandler(g *echo.Group, cfg *conf.Config) {
 
 	h := Handler{cfg: cfg}
 
+	g.GET("/status", h.loggedIn, mdw.CheckLoginStatus)
 	g.GET("/login", h.login)
 	g.GET("/auth", h.auth)
+}
+
+func (h *Handler) loggedIn(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) login(c echo.Context) error {
@@ -39,7 +45,7 @@ func (h *Handler) login(c echo.Context) error {
 
 	authURL.RawQuery = q.Encode()
 
-	return c.Redirect(http.StatusMovedPermanently, authURL.String())
+	return c.Redirect(http.StatusTemporaryRedirect, authURL.String())
 }
 
 func (h *Handler) auth(c echo.Context) error {
@@ -93,7 +99,7 @@ func (h *Handler) auth(c echo.Context) error {
 	}
 	c.SetCookie(cookie)
 
-	return c.Redirect(http.StatusPermanentRedirect, "/")
+	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s:%s", h.cfg.Host, h.cfg.LocalPort))
 }
 
 func (h *Handler) generateJWT(userAppID string) (string, error) {

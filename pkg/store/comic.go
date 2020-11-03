@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // ComicInterface contains comic's interact method
@@ -37,7 +37,7 @@ func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {
 
 	comics, err := c.getBySQL(ctx, "WHERE id=$1", id)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 
 	comics, err := c.getBySQL(ctx, "WHERE url=$1", URL)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (c *comicDB) CheckComicSubscribe(ctx context.Context, psid string, comicID 
 
 	comics, err := c.getBySQL(ctx, query, psid, comicID)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 
@@ -106,7 +106,7 @@ func (c *comicDB) Delete(ctx context.Context, id int) error {
 	query := "DELETE FROM comics WHERE id=$1"
 	_, err := c.dbconn.ExecContext(ctx, query, id)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 	}
 	return err
 }
@@ -122,7 +122,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, e
 
 	comics, err := c.getBySQL(ctx, query, psid)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 
@@ -136,7 +136,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, e
 func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{}) ([]model.Comic, error) {
 	rows, err := c.dbconn.QueryContext(ctx, "SELECT comics.* FROM comics "+query, args...)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return nil, err
 	}
 
@@ -146,14 +146,14 @@ func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{
 		comic := model.Comic{}
 		err := rows.Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.ImageURL, &comic.ImgurID, &comic.ImgurLink, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
 		if err != nil {
-			util.Danger(err)
+			logging.Danger(err)
 			return nil, err
 		}
 
 		comics = append(comics, comic)
 	}
 	if err = rows.Err(); err != nil {
-		util.Danger()
+		logging.Danger()
 		return nil, err
 	}
 

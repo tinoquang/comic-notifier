@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // WebhookCfg for facebook webhook
@@ -60,7 +60,7 @@ type Config struct {
 func New(path string) *Config {
 
 	if err := godotenv.Load(path + ".env"); err != nil {
-		util.Danger("Can't load env file, err:", err)
+		logging.Danger("Can't load env file, err:", err)
 	}
 
 	return &Config{

@@ -6,8 +6,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/store"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // API -> server handler for api endpoint
@@ -28,7 +28,7 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	comics, err := a.store.Comic.List(ctx.Request().Context())
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
@@ -59,7 +59,7 @@ func (a *API) GetUserComics(ctx echo.Context, id string) error {
 	comicPage := api.ComicPage{}
 	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), id)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 

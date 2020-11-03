@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // MSG -> server handler for messenger endpoint
@@ -35,7 +35,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		if strings.Contains(err.Error(), "Already") {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {
@@ -82,7 +82,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 
 	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		sendTextBack(senderID, "Please try again later")
 		return
 	}
@@ -95,7 +95,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 
 	s, err := m.store.Subscriber.ListByComicID(ctx, comicID)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 
 	}
 

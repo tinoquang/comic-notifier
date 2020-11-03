@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // SubscriberInterface contains subscriber's interact method
@@ -33,7 +33,7 @@ func (s *subscriberDB) Get(ctx context.Context, psid string, comicID int) (*mode
 
 	subscribers, err := s.getBySQL(ctx, "WHERE user_psid=$1 AND comic_id=$2", psid, comicID)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return nil, err
 	}
 

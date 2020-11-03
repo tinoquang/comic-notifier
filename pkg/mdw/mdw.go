@@ -34,7 +34,7 @@ func CheckLoginStatus(next echo.HandlerFunc) echo.HandlerFunc {
 			return []byte(jwtKey), nil
 		})
 		if err != nil {
-			// util.Danger(err)
+			// logging.Danger(err)
 			return echo.ErrUnauthorized
 		}
 

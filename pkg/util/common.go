@@ -1,10 +1,16 @@
 package util
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
+
+	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
 // MakeGetRequest send HTTP GET request with mapped queries
@@ -38,4 +44,52 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	}
 
 	return
+}
+
+// GetUserInfoByID get user AppID using PSID or vice-versa
+func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
+
+	user = &model.User{}
+
+	info := map[string]json.RawMessage{}
+	appInfo := []map[string]json.RawMessage{}
+	picture := map[string]json.RawMessage{}
+	queries := map[string]string{}
+
+	switch field {
+	case "psid":
+		user.PSID = id
+		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
+		queries["access_token"] = cfg.FBSecret.PakeToken
+	case "appid":
+		user.AppID = id
+		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
+		queries["access_token"] = cfg.FBSecret.AppToken
+		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
+	default:
+		return nil, fmt.Errorf("Wrong field request, field: %s", field)
+	}
+
+	respBody, err := MakeGetRequest(fmt.Sprintf("%s/%s", cfg.Webhook.GraphEndpoint, id), queries)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(respBody, &info)
+	if err != nil {
+		return
+	}
+
+	user.Name = ConvertJSONToString(info["name"])
+
+	json.Unmarshal(info["ids_for_apps"], &info)
+	json.Unmarshal(info["picture"], &picture)
+	json.Unmarshal(picture["data"], &picture)
+	json.Unmarshal(info["data"], &appInfo)
+
+	user.AppID = ConvertJSONToString(appInfo[0]["id"])
+	user.ProfilePic = ConvertJSONToString(picture["url"])
+	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
+
+	return user, nil
 }

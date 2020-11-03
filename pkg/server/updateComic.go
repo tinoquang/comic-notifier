@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
@@ -21,18 +21,18 @@ func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comi
 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		util.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
+		logging.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
 		err := updateComic(ctx, store, &comic)
 
 		if err == nil {
-			util.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
+			logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
 			notifyToUsers(ctx, store, &comic)
 		} else {
 			if strings.Contains(err.Error(), "No new chapter") {
-				util.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
+				logging.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
 			} else {
-				util.Danger(err)
+				logging.Danger(err)
 			}
 		}
 		cancel()
@@ -43,7 +43,7 @@ func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comi
 // UpdateThread read comic database and update each comic to each latest chap
 func updateComicThread(store *store.Stores, workerNum, timeout int) {
 
-	util.Info("Start update new chapter routine ...")
+	logging.Info("Start update new chapter routine ...")
 
 	// Create and jobs
 	comicPool := make(chan model.Comic, workerNum)
@@ -57,7 +57,7 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 		// Get all comics in DB
 		comics, err := store.Comic.List(ctx)
 		if err != nil {
-			util.Info("Get list of comic fails, sleep sometimes...")
+			logging.Info("Get list of comic fails, sleep sometimes...")
 			time.Sleep(time.Duration(timeout) * time.Minute)
 			continue
 		}
@@ -70,7 +70,7 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 
 		// Wait util all comics is updated, then sleep 30min and start checking again
 		wg.Wait()
-		util.Info("All comics is up-to-date")
+		logging.Info("All comics is up-to-date")
 
 		cancel()
 		time.Sleep(time.Duration(timeout) * time.Minute)
@@ -95,12 +95,12 @@ func notifyToUsers(ctx context.Context, store *store.Stores, comic *model.Comic)
 
 	subscribers, err := store.Subscriber.ListByComicID(ctx, comic.ID)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return
 	}
 
 	for _, s := range subscribers {
-		util.Info("Notify ", comic.Name, " to user ID", s.PSID)
+		logging.Info("Notify ", comic.Name, " to user ID", s.PSID)
 		sendMsgTagsReply(s.PSID, comic)
 	}
 }

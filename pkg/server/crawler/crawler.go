@@ -3,8 +3,6 @@ package crawler
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -14,8 +12,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 type comicCrawler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
@@ -33,54 +31,6 @@ func New(cfg *conf.Config) {
 
 }
 
-// GetUserInfoByID get user AppID using PSID or vice-versa
-func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
-
-	user = &model.User{}
-
-	info := map[string]json.RawMessage{}
-	appInfo := []map[string]json.RawMessage{}
-	picture := map[string]json.RawMessage{}
-	queries := map[string]string{}
-
-	switch field {
-	case "psid":
-		user.PSID = id
-		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
-		queries["access_token"] = cfg.FBSecret.PakeToken
-	case "appid":
-		user.AppID = id
-		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
-		queries["access_token"] = cfg.FBSecret.AppToken
-		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
-	default:
-		return nil, fmt.Errorf("Wrong field request, field: %s", field)
-	}
-
-	respBody, err := util.MakeGetRequest(fmt.Sprintf("%s/%s", cfg.Webhook.GraphEndpoint, id), queries)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal(respBody, &info)
-	if err != nil {
-		return
-	}
-
-	user.Name = util.ConvertJSONToString(info["name"])
-
-	json.Unmarshal(info["ids_for_apps"], &info)
-	json.Unmarshal(info["picture"], &picture)
-	json.Unmarshal(picture["data"], &picture)
-	json.Unmarshal(info["data"], &appInfo)
-
-	user.AppID = util.ConvertJSONToString(appInfo[0]["id"])
-	user.ProfilePic = util.ConvertJSONToString(picture["url"])
-	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
-
-	return user, nil
-}
-
 // GetComicInfo return link of latest chapter of a page
 func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 
@@ -94,7 +44,7 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 			default:
 				err = errors.New("Unknown panic")
 			}
-			util.Danger()
+			logging.Danger()
 		}
 		return
 	}()
@@ -135,7 +85,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 		if len(text) >= 2 && (text[0] == "Chương" || text[0] == "Chapter") {
 			chapNum, err := strconv.ParseFloat(text[1], 64)
 			if err != nil {
-				util.Danger(err)
+				logging.Danger(err)
 			}
 
 			if max < chapNum {
@@ -241,7 +191,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comi
 
 		t, err := time.Parse("02/01/2006", date)
 		if err != nil {
-			util.Danger(err)
+			logging.Danger(err)
 			return
 		}
 
@@ -257,18 +207,18 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comi
 	// Check if chapter is full uploaded (to avoid spolier chap)
 	html, err = getPageSource(chapURL)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return
 	}
 
 	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return
 	}
 
 	if chapSelections := chapDoc.Find(".story-see-content").Find("img[src]"); chapSelections.Size() < 3 {
-		util.Danger()
+		logging.Danger()
 		return errors.New("No new chapter, just some spoilers :)")
 	}
 
@@ -304,7 +254,7 @@ func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 
 	// 	t, err := time.Parse("02-01-2006", date)
 	// 	if err != nil {
-	// 		util.Danger(err)
+	// 		logging.Danger(err)
 	// 		return
 	// 	}
 
@@ -325,7 +275,7 @@ func getPageSource(pageURL string) (body []byte, err error) {
 	resp, err := http.Get(pageURL)
 
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return
 	}
 
@@ -342,18 +292,18 @@ func detectSpolier(chapURL string, attr1, attr2 string) error {
 	// Check if chapter is full upload (detect spolier chap)
 	html, err := getPageSource(chapURL)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return err
 	}
 
 	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return err
 	}
 
 	if chapSelections := chapDoc.Find(attr1).Find(attr2); chapSelections.Size() < 3 {
-		util.Danger()
+		logging.Danger()
 		return errors.New("No new chapter, just some spoilers :)")
 
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/mdw"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -82,34 +83,41 @@ func (h *Handler) auth(c echo.Context) error {
 
 	respBody, err := util.MakeGetRequest(h.cfg.Webhook.GraphEndpoint+"/oauth/access_token", queries)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return c.NoContent(http.StatusBadRequest)
 	}
 
 	tokenRes := make(map[string]json.RawMessage)
 	err = json.Unmarshal(respBody, &tokenRes)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	userAppID, err := h.validateToken(util.ConvertJSONToString(tokenRes["access_token"]))
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	jwtCookie, err := h.generateJWT(userAppID)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	cookie := &http.Cookie{
 		Name:     "_session",
 		Value:    jwtCookie,
-		Expires:  time.Now().AddDate(0, 1, 0),
+		Expires:  time.Now().AddDate(0, 0, 1),
 		HttpOnly: true,
+	}
+	c.SetCookie(cookie)
+
+	cookie = &http.Cookie{
+		Name:    "uaid",
+		Value:   userAppID,
+		Expires: time.Now().AddDate(0, 1, 0),
 	}
 	c.SetCookie(cookie)
 
@@ -146,14 +154,14 @@ func (h *Handler) validateToken(token string) (userAppID string, err error) {
 
 	respBody, err := util.MakeGetRequest("https://graph.facebook.com/debug_token", queries)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return
 	}
 
 	err = json.Unmarshal(respBody, &tokenResponse)
 	err = json.Unmarshal(tokenResponse["data"], &tokenResponse)
 	if err != nil {
-		util.Danger()
+		logging.Danger()
 		return
 	}
 

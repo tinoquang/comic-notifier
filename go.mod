@@ -4,6 +4,7 @@ module github.com/tinoquang/comic-notifier
 go 1.13
 
 require (
+	cloud.google.com/go/logging v1.1.1
 	github.com/PuerkitoBio/goquery v1.6.0
 	github.com/deepmap/oapi-codegen v1.3.13
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

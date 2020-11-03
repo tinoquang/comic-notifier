@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 /* -------------Message response format----------- */
@@ -94,7 +94,7 @@ func sendActionBack(senderid, action string) {
 		Recipient: &User{ID: senderid},
 		Action:    action,
 	}
-	// util.Info("Send action " + action + " to user")
+	// logging.Info("Send action " + action + " to user")
 
 	callSendAPI(res)
 }
@@ -216,13 +216,13 @@ func callSendAPI(r *Response) {
 	encoder := json.NewEncoder(body)
 
 	if err := encoder.Encode(&r); err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return
 	}
 
 	request, err := http.NewRequest("POST", messengerEndpoint, body)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return
 	}
 
@@ -238,7 +238,7 @@ func callSendAPI(r *Response) {
 	// Send POST message to FACEBOOK API
 	_, err = client.Do(request)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 	}
 
 	return

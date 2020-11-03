@@ -6,7 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/util"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
 
 var webhookToken string
@@ -82,14 +82,14 @@ func (h *Handler) parseUserMsg(c echo.Context) error {
 				case entry.Messaging[0].Message.Text != "":
 					go h.handleText(entry.Messaging[0], h.cfg.CtxTimeout)
 				default:
-					util.Warning("Only support text, postback and quick-reply !!!")
+					logging.Warning("Only support text, postback and quick-reply !!!")
 				}
 			} else {
-				util.Warning("Messge from messenger is empty !")
+				logging.Warning("Messge from messenger is empty !")
 			}
 		}
 	} else {
-		util.Warning("Message request unknown!!!")
+		logging.Warning("Message request unknown!!!")
 	}
 
 	return c.NoContent(http.StatusOK)

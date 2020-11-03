@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
@@ -63,7 +63,7 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 
 	err := writer.Close()
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 	req, err := http.NewRequest("POST", url, payload)
 
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 
@@ -79,7 +79,7 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	res, err := client.Do(req)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -102,7 +102,7 @@ func UpdateImage(imageID string, comic *model.Comic) (err error) {
 
 	img, err := GetImageFromImgur(imageID)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return
 	}
 
@@ -113,7 +113,7 @@ func UpdateImage(imageID string, comic *model.Comic) (err error) {
 
 	img, err = UploadImagetoImgur(img.Title, comic.ImageURL)
 	if err != nil {
-		util.Danger("Can't upload image to imgur, err :", err)
+		logging.Danger("Can't upload image to imgur, err :", err)
 		return
 	}
 
@@ -134,14 +134,14 @@ func GetImageFromImgur(imageID string) (*Img, error) {
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 
 	req.Header.Add("Authorization", "Client-ID "+clientID)
 	res, err := client.Do(req)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -165,14 +165,14 @@ func DeleteImg(imageID string) error {
 	req, err := http.NewRequest("DELETE", url, nil)
 
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 		return err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	_, err = client.Do(req)
 	if err != nil {
-		util.Danger(err)
+		logging.Danger(err)
 	}
 
 	return err

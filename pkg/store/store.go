@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
@@ -67,14 +68,14 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 		if inErr != nil {
 
 			if inErr != sql.ErrNoRows {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return inErr
 			}
 
 			// Get all comic infos includes latest chapter
 			inErr = crawler.GetComicInfo(ctx, comic)
 			if inErr != nil {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return inErr
 			}
 			// Add new comic to DB
@@ -85,7 +86,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 				Scan(&comic.ID)
 
 			if inErr != nil {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return inErr
 			}
 		} else {
@@ -100,20 +101,20 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 		if inErr != nil {
 
 			if inErr != sql.ErrNoRows {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return inErr
 			}
 
-			user, inErr = crawler.GetUserInfoByID(s.cfg, field, id)
+			user, inErr = util.GetUserInfoByID(s.cfg, field, id)
 			if inErr != nil {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return inErr
 			}
 
 			query := `INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4) RETURNING psid`
 			inErr = tx.QueryRowContext(ctx, query, user.Name, user.PSID, user.AppID, user.ProfilePic).Scan(&user.PSID)
 			if inErr != nil && inErr != sql.ErrNoRows {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return inErr
 			}
 		}
@@ -121,7 +122,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 		subscriber, inErr := s.Subscriber.Get(ctx, user.PSID, comic.ID)
 		if inErr != nil {
 			if !strings.Contains(inErr.Error(), "not found") {
-				util.Danger(inErr)
+				logging.Danger(inErr)
 				return
 			}
 
@@ -138,7 +139,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 		if newComic != 0 {
 			image, e := img.UploadImagetoImgur(comic.Page+" "+comic.Name, comic.ImageURL)
 			if e != nil {
-				util.Danger(e)
+				logging.Danger(e)
 				return e
 			}
 			comic.ImgurID = model.NullString(image.ID)

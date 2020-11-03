@@ -25,9 +25,11 @@ func RegisterHandler(g *echo.Group, cfg *conf.Config) {
 
 	h := Handler{cfg: cfg}
 
+	g.GET("/auth", h.auth)
 	g.GET("/status", h.loggedIn, mdw.CheckLoginStatus)
 	g.GET("/login", h.login)
-	g.GET("/auth", h.auth)
+	g.GET("/logout", h.logout)
+
 }
 
 func (h *Handler) loggedIn(c echo.Context) error {
@@ -46,6 +48,18 @@ func (h *Handler) login(c echo.Context) error {
 	authURL.RawQuery = q.Encode()
 
 	return c.Redirect(http.StatusTemporaryRedirect, authURL.String())
+}
+
+func (h *Handler) logout(c echo.Context) error {
+
+	cookie := &http.Cookie{
+		Name:     "_session",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+	}
+	c.SetCookie(cookie)
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) auth(c echo.Context) error {
@@ -99,7 +113,7 @@ func (h *Handler) auth(c echo.Context) error {
 	}
 	c.SetCookie(cookie)
 
-	return c.Redirect(http.StatusPermanentRedirect, fmt.Sprintf("%s:%s", h.cfg.Host, h.cfg.LocalPort))
+	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:%s", h.cfg.Host, h.cfg.LocalPort))
 }
 
 func (h *Handler) generateJWT(userAppID string) (string, error) {

@@ -15,7 +15,7 @@ import (
 type ComicInterface interface {
 	Get(ctx context.Context, id int) (*model.Comic, error)
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
-	GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error)
+	CheckComicSubscribe(ctx context.Context, psid string, comicID int) (*model.Comic, error)
 	Create(ctx context.Context, comic *model.Comic) error
 	Update(ctx context.Context, comic *model.Comic) error
 	Delete(ctx context.Context, id int) error
@@ -63,7 +63,8 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 	return &comics[0], nil
 }
 
-func (c *comicDB) GetByPSID(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
+// CheckComicSubscribe check if user has already subscribed to comic
+func (c *comicDB) CheckComicSubscribe(ctx context.Context, psid string, comicID int) (*model.Comic, error) {
 
 	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2"
 
@@ -115,13 +116,18 @@ func (c *comicDB) List(ctx context.Context) ([]model.Comic, error) {
 	return c.getBySQL(ctx, "")
 }
 
+// ListByPSID used to list all comics of specific user
 func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, error) {
-	query := "LEFT JOIN subscribers as subs ON comics.id=subs.comic_id && subs.user_psid=$1"
+	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE subscribers.user_psid=$1"
 
 	comics, err := c.getBySQL(ctx, query, psid)
-	if err != nil || len(comics) == 0 {
-		util.Danger()
+	if err != nil {
+		util.Danger(err)
 		return nil, err
+	}
+
+	if len(comics) == 0 {
+		return []model.Comic{}, errors.New("Comic not found")
 	}
 
 	return comics, nil

@@ -63,7 +63,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 
 	comicID, _ := strconv.Atoi(payload)
 
-	c, err := m.store.Comic.GetByPSID(ctx, senderID, comicID)
+	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -80,7 +80,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	comicID, err := strconv.Atoi(payload)
 
-	c, err := m.store.Comic.GetByPSID(ctx, senderID, comicID)
+	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
 	if err != nil {
 		util.Danger(err)
 		sendTextBack(senderID, "Please try again later")

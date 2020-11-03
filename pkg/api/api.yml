@@ -44,30 +44,30 @@ paths:
   #               type: array
   #               items:
   #                 $ref: "#/components/schemas/Comic"
-  # /users/{id}/comics:
-  #   get:
-  #     description: "Return list of comics which user subscribed to"
-  #     operationId: GetUserComics
-  #     tags:
-  #       - comic
-  #     parameters:
-  #       - name: id
-  #         in: path
-  #         description: User ID
-  #         required: true
-  #         schema:
-  #           type: integer
-  #     responses:
-  #       "200":
-  #         description: Successfully return a list of comics which user subscribed to
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: array
-  #               items:
-  #                 $ref: "#/components/schemas/Comic"
-  #       "404":
-  #         description: User not found
+  /users/{id}/comics:
+    get:
+      description: "Return list of comics which user subscribed to"
+      operationId: GetUserComics
+      tags:
+        - comic
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully return a list of comics which user subscribed to
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comic"
+        "404":
+          description: User not found
   #   post:
   #     operationId: SubscribeComic
   #     description: User subscribe to new comic
@@ -190,21 +190,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Comic"
-    # User:
-    #   type: object
-    #   properties:
-    #     id:
-    #       type: integer
-    #       description: UserID
-    #     name:
-    #       type: string
-    #       description: Comic name
-    #     psid:
-    #       type: string
-    #       description: Page scope ID
-    #     appid:
-    #       type: string
-    #       description: App scope ID
-    #     comics:
-    #       type: integer
-    #       description: Number of comics subscribed
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: UserID
+        name:
+          type: string
+          description: Comic name
+        psid:
+          type: string
+          description: Page scope ID
+        appid:
+          type: string
+          description: App scope ID
+        comics:
+          type: integer
+          description: Number of comics subscribed

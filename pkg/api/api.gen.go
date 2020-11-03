@@ -51,6 +51,9 @@ type ServerInterface interface {
 
 	// (GET /comics/{id})
 	GetComic(ctx echo.Context, id int) error
+
+	// (GET /users/{id}/comics)
+	GetUserComics(ctx echo.Context, id string) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -83,6 +86,22 @@ func (w *ServerInterfaceWrapper) GetComic(ctx echo.Context) error {
 	return err
 }
 
+// GetUserComics converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUserComics(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetUserComics(ctx, id)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -107,22 +126,24 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 
 	router.GET("/comics", wrapper.Comics)
 	router.GET("/comics/:id", wrapper.GetComic)
+	router.GET("/users/:id/comics", wrapper.GetUserComics)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6RUTW/TQBD9K6sBiYupXdpD5VtVBIrUQ0S5oR6267G9lb27zI4LUeT/jmYdJ5A4fIjb",
-	"eOfzvTfjLRjfB+/QcYRyC9G02Otk3vneGjEC+YDEFtOzaXV4O1AndoXRkA1svYMS7lodGEmJMwPeBIQS",
-	"IpN1DYwZ2GohRXqo1ftDvHWMDZIkdJox8pmkN1FNfmWmtkstne7xXNPkW8gJulnIWesGFXtFqCtlEjML",
-	"ucu0pHaLpIz7F//0jIalRgpfLw5xbwVuKkcYg3dREBzJI+5kWcY+Ga8JayjhVX6QOt/pnE8iH+bQRHqT",
-	"BiP8OljCCsovc9HHURzW1f50ttv1StWelBR0tt6ILPzkWUBb7nBHRHLdrleQwQtSnHIvLwoZwQd0Olgo",
-	"4eqiuLgSaJrbBCE/wGpwYSU+IQ/kVCcE+VrtolNJ0hKzqmYl5HlmLxV8VxQTcY7Rpdo6hM6alJc/R2kw",
-	"H8a/8ZpUPOV2zI6mfxiMwRjroes2iiYo+hhMWhbdxL0eIkc2M5NvbTX+iZ4pVD3piJXybrq7Xyn6iHy3",
-	"2+6gSffISNLyN4dr5VuUgvng5NT3CwQl04DZTwQeX/r4+J+K/MWCn5L+wQ9ud8rqm+VWwIwZXBfXZ044",
-	"qspjVM6zwu828hlJxgwi0stMW/olQMscYpnnnTe6a33k8qa4KXIdbP5yCcej3UuU+iw/t4dUCsbH8UcA",
-	"AAD//4k2VZmqBQAA",
+	"H4sIAAAAAAAC/7xVy27bOhD9FYL3At2okdJkEWgXpGhhIAujaVeFFzQ1khhIJDscOTUM/XsxlGW3tpSm",
+	"D3Q35rzPmSPvpHatdxYsBZnvZNA1tCqad641mg2PzgOSgfisa+Vfd9iwXUDQaDwZZ2Uu72rlCVCwM5G0",
+	"9SBzGQiNrWSfSFNMpHAPsXh7jDeWoALkhEYRBJpJehXE4Bd6aDvV0qoW5ppG30SOV9VEzlJVIMgJBFUI",
+	"HZGZyJ2GJbabBKU/vLj1I2jiGjF8OTnEveF1YzmE4J0NvMEJPeyOliFoo/E/Qilz+V96pDrd85wOJB/n",
+	"UIhqGwdD+NIZhELmn8eiq54dxpbufLbb5UKUDgUXtKbcMi20dsRLG2pgD0R03S4XMpEbwDDkXl5kPILz",
+	"YJU3MpdXF9nFFa+mqI4rpMe1Kpg4iQ9AHVrRMECuFPvoWBIVxyyKkQl+HtGLBd9k2QCcJbCxtvK+MTrm",
+	"pY+BG4zC+DVcI4vn2PbJyfQPndYQQtk1zVbgsIo6XSYei6rCgQ+mIxmRSXem6H8GzxAq1ipAIZwddPcj",
+	"RO+B7vbX7RWqFgiQWz4jXMO/mSk5Co6lfjggmRN2kHwH4KnS+9UfMvKCAz8H/Z3r7F7K4slQzcv0ibzO",
+	"rmckHEThIAjrSMBXE2ieki4ADoz81t2Kp9roWnAVEbo1x6+hEOSm2PoUAA93/SxlHPkixopZyg7frdU/",
+	"09Df0s88qHOkR7yY7ZIvZZrsPpEBcDMCHr//sibyIU/TxmnV1C5QfpPdZKnyJt1cytPh7zlKfOR/sodY",
+	"Svar/lsAAAD//738UhiXBwAA",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

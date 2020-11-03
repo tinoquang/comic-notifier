@@ -6,7 +6,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
@@ -35,7 +34,7 @@ func CheckLoginStatus(next echo.HandlerFunc) echo.HandlerFunc {
 			return []byte(jwtKey), nil
 		})
 		if err != nil {
-			util.Danger(err)
+			// util.Danger(err)
 			return echo.ErrUnauthorized
 		}
 

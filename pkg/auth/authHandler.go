@@ -13,18 +13,20 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/mdw"
+	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // Handler main authenticate handler
 type Handler struct {
-	cfg *conf.Config
+	cfg   *conf.Config
+	store *store.Stores
 }
 
 // RegisterHandler create new auth route
-func RegisterHandler(g *echo.Group, cfg *conf.Config) {
+func RegisterHandler(g *echo.Group, cfg *conf.Config, store *store.Stores) {
 
-	h := Handler{cfg: cfg}
+	h := Handler{cfg: cfg, store: store}
 
 	g.GET("/auth", h.auth)
 	g.GET("/status", h.loggedIn, mdw.CheckLoginStatus)
@@ -100,7 +102,20 @@ func (h *Handler) auth(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	jwtCookie, err := h.generateJWT(userAppID)
+	user, err := util.GetUserInfoByID(h.cfg, "appid", userAppID)
+	if err != nil {
+		logging.Danger(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	jwtCookie, err := h.generateJWT(user.PSID)
+	if err != nil {
+		logging.Danger(err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	// Save user info to DB to get later
+	err = h.store.User.Create(c.Request().Context(), user)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -115,8 +130,8 @@ func (h *Handler) auth(c echo.Context) error {
 	c.SetCookie(cookie)
 
 	cookie = &http.Cookie{
-		Name:    "uaid",
-		Value:   userAppID,
+		Name:    "upid",
+		Value:   user.PSID,
 		Expires: time.Now().AddDate(0, 1, 0),
 	}
 	c.SetCookie(cookie)
@@ -124,14 +139,14 @@ func (h *Handler) auth(c echo.Context) error {
 	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:%s", h.cfg.Host, h.cfg.LocalPort))
 }
 
-func (h *Handler) generateJWT(userAppID string) (string, error) {
+func (h *Handler) generateJWT(userPSID string) (string, error) {
 
 	// Create JWT and send back
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	// Set claims
 	claims := token.Claims.(jwt.MapClaims)
-	claims["id"] = userAppID
+	claims["id"] = userPSID
 	claims["exp"] = time.Now().Add(time.Hour * 8).Unix()
 
 	// Generate encoded token and send it as response.

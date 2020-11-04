@@ -53,6 +53,32 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 
 /* ===================== User ============================ */
 
+// Users (GET /user)
+func (a *API) Users(ctx echo.Context) error {
+
+	return nil
+}
+
+// GetUser (GET /user/{id})
+func (a *API) GetUser(ctx echo.Context, id string) error {
+
+	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "psid", id)
+	if err != nil {
+		logging.Danger(err)
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	user := api.User{
+		Psid:       &u.PSID,
+		Appid:      &u.AppID,
+		Name:       &u.Name,
+		ProfilePic: &u.ProfilePic,
+		Comics:     nil,
+	}
+
+	return ctx.JSON(http.StatusOK, &user)
+}
+
 // GetUserComics (GET users/{id}/comics)
 func (a *API) GetUserComics(ctx echo.Context, id string) error {
 

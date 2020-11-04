@@ -82,12 +82,22 @@ func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err 
 
 	user.Name = ConvertJSONToString(info["name"])
 
-	json.Unmarshal(info["ids_for_apps"], &info)
+	if field == "psid" {
+		json.Unmarshal(info["ids_for_apps"], &info)
+	} else {
+		json.Unmarshal(info["ids_for_pages"], &info)
+	}
+
 	json.Unmarshal(info["picture"], &picture)
 	json.Unmarshal(picture["data"], &picture)
 	json.Unmarshal(info["data"], &appInfo)
 
-	user.AppID = ConvertJSONToString(appInfo[0]["id"])
+	if field == "psid" {
+		user.AppID = ConvertJSONToString(appInfo[0]["id"])
+
+	} else {
+		user.PSID = ConvertJSONToString(appInfo[0]["id"])
+	}
 	user.ProfilePic = ConvertJSONToString(picture["url"])
 	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
 

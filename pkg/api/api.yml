@@ -7,43 +7,43 @@ servers:
   - url: https://localhost:8080/api/v1
     description: Local Test Server
 paths:
-  # /users:
-  #   get:
-  #     description: "Return list of users"
-  #     operationId: Users
-  #     tags:
-  #       - user
-  #     responses:
-  #       "200":
-  #         description: Successfully return a list of users
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: array
-  #               items:
-  #                 $ref: "#/components/schemas/Comic"
-  # /users/{id}:
-  #   get:
-  #     description: "Return list of users"
-  #     operationId: GetUser
-  #     tags:
-  #       - user
-  #     parameters:
-  #       - name: id
-  #         in: path
-  #         description: Comic ID
-  #         require: true
-  #         schema:
-  #           type: integer
-  #     responses:
-  #       "200":
-  #         description: Successfully return a list of users
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: array
-  #               items:
-  #                 $ref: "#/components/schemas/Comic"
+  /users:
+    get:
+      description: "Return list of users"
+      operationId: Users
+      tags:
+        - user
+      responses:
+        "200":
+          description: Successfully return a list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+  /users/{id}:
+    get:
+      description: "Return list of users"
+      operationId: GetUser
+      tags:
+        - user
+      parameters:
+        - name: id
+          in: path
+          description: Comic ID
+          require: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully return a list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
   /users/{id}/comics:
     get:
       description: "Return list of comics which user subscribed to"
@@ -193,9 +193,6 @@ components:
     User:
       type: object
       properties:
-        id:
-          type: integer
-          description: UserID
         name:
           type: string
           description: Comic name
@@ -205,6 +202,9 @@ components:
         appid:
           type: string
           description: App scope ID
+        profile_pic:
+          type: string
+          description: User avatar link
         comics:
           type: integer
           description: Number of comics subscribed

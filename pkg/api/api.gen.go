@@ -43,6 +43,25 @@ type ComicPage struct {
 	Comics []Comic `json:"comics"`
 }
 
+// User defines model for User.
+type User struct {
+
+	// App scope ID
+	Appid *string `json:"appid,omitempty"`
+
+	// Number of comics subscribed
+	Comics *int `json:"comics,omitempty"`
+
+	// Comic name
+	Name *string `json:"name,omitempty"`
+
+	// User avatar link
+	ProfilePic *string `json:"profile_pic,omitempty"`
+
+	// Page scope ID
+	Psid *string `json:"psid,omitempty"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -51,6 +70,12 @@ type ServerInterface interface {
 
 	// (GET /comics/{id})
 	GetComic(ctx echo.Context, id int) error
+
+	// (GET /users)
+	Users(ctx echo.Context) error
+
+	// (GET /users/{id})
+	GetUser(ctx echo.Context, id string) error
 
 	// (GET /users/{id}/comics)
 	GetUserComics(ctx echo.Context, id string) error
@@ -83,6 +108,31 @@ func (w *ServerInterfaceWrapper) GetComic(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.GetComic(ctx, id)
+	return err
+}
+
+// Users converts echo context to params.
+func (w *ServerInterfaceWrapper) Users(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.Users(ctx)
+	return err
+}
+
+// GetUser converts echo context to params.
+func (w *ServerInterfaceWrapper) GetUser(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.GetUser(ctx, id)
 	return err
 }
 
@@ -126,6 +176,8 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 
 	router.GET("/comics", wrapper.Comics)
 	router.GET("/comics/:id", wrapper.GetComic)
+	router.GET("/users", wrapper.Users)
+	router.GET("/users/:id", wrapper.GetUser)
 	router.GET("/users/:id/comics", wrapper.GetUserComics)
 
 }
@@ -133,17 +185,19 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xVy27bOhD9FYL3At2okdJkEWgXpGhhIAujaVeFFzQ1khhIJDscOTUM/XsxlGW3tpSm",
-	"D3Q35rzPmSPvpHatdxYsBZnvZNA1tCqad641mg2PzgOSgfisa+Vfd9iwXUDQaDwZZ2Uu72rlCVCwM5G0",
-	"9SBzGQiNrWSfSFNMpHAPsXh7jDeWoALkhEYRBJpJehXE4Bd6aDvV0qoW5ppG30SOV9VEzlJVIMgJBFUI",
-	"HZGZyJ2GJbabBKU/vLj1I2jiGjF8OTnEveF1YzmE4J0NvMEJPeyOliFoo/E/Qilz+V96pDrd85wOJB/n",
-	"UIhqGwdD+NIZhELmn8eiq54dxpbufLbb5UKUDgUXtKbcMi20dsRLG2pgD0R03S4XMpEbwDDkXl5kPILz",
-	"YJU3MpdXF9nFFa+mqI4rpMe1Kpg4iQ9AHVrRMECuFPvoWBIVxyyKkQl+HtGLBd9k2QCcJbCxtvK+MTrm",
-	"pY+BG4zC+DVcI4vn2PbJyfQPndYQQtk1zVbgsIo6XSYei6rCgQ+mIxmRSXem6H8GzxAq1ipAIZwddPcj",
-	"RO+B7vbX7RWqFgiQWz4jXMO/mSk5Co6lfjggmRN2kHwH4KnS+9UfMvKCAz8H/Z3r7F7K4slQzcv0ibzO",
-	"rmckHEThIAjrSMBXE2ieki4ADoz81t2Kp9roWnAVEbo1x6+hEOSm2PoUAA93/SxlHPkixopZyg7frdU/",
-	"09Df0s88qHOkR7yY7ZIvZZrsPpEBcDMCHr//sibyIU/TxmnV1C5QfpPdZKnyJt1cytPh7zlKfOR/sodY",
-	"Svar/lsAAAD//738UhiXBwAA",
+	"H4sIAAAAAAAC/9xWXWvbMBT9K0Ib7MWr07UPxW+lYyVQRljXpxGGIl/H6mxJk67TheL/Pq7sfMtd1lIY",
+	"e1Mk3a9zjk78yKWprdGg0fPskXtZQi3C8srUStLCOmPBoYKwLUth3zeuonUOXjplURnNM35VCovgGB0m",
+	"HJcWeMY9OqXnvE24yiMhVIONP27uK40wB0cBlUDwOBD0zrPunMmubKykFjUMFQ1nkRgr5pGYiZgDQ8Mc",
+	"iJzJgEwkNg5LKBcFpV3vmNk9SKQc4fok2sSNonFDOgfeGu1pgj166DisFEIdFm8dFDzjb9IN1WnPc9qR",
+	"vOlDOCeWoTEHPxvlIOfZt1XSaZvwOw/uUBTC2hi9l9YyL42FHYo3eG2a3Y373NQzcMwU3bSe+WZG5zPI",
+	"o0p5Fs/OFKqC77YT+W4oTcnEQqBwrFL6RzSBj40chDI88yHjtKV0YSLoTcasMI7RHFoVS1I6zgxSVoUV",
+	"9COGo8vJmCd8Ac53sacnI+rRWNDCKp7xs5PRyRmpRWAZEE834M8h8sq+ADZOs4o0tyaCh5RO0J1xvsKY",
+	"tleCDAk/jEadFjWCxl4glZIhLr33VGDlNX8n1fAwDuXaJnvd3zZSgvdFU1VL5rpRxP4wgQ0x92uJ8ylt",
+	"9cikjypv/wRPr8+Z8JAzozvOdyG6BrzqDcMKJ2pAcFTyCS9U9JuY4ittk3uu3yTP0DWQbAG4/yTa6QsZ",
+	"OcIzDkH/ZBrduyN7UFjSMG3Cz0fnA4/Ts9yAZ9ogg1/K4zAljQ+gHafV7vI+D3f97usrNXjki0XaTbEN",
+	"CO1s43GUQp8G5RowdPv62lw74PS/o+BZVsoeSiXLUGLr742hGeJobbVPMhX+uY4hKv9HmBr6AnmWpQ+D",
+	"OuRDAS8yoILMK+4/bcI9uMUK8PCVx0tE67M0rYwUVWk8Zheji1EqrEoXp3y/+Ru6xb7S9+ptSMXbafs7",
+	"AAD//zCvPxx9CwAA",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

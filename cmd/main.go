@@ -46,7 +46,7 @@ func main() {
 	}, mdw.CheckLoginStatus)
 
 	// Authentication JWT
-	auth.RegisterHandler(e.Group(""), cfg)
+	auth.RegisterHandler(e.Group(""), cfg, s)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":" + cfg.Port))

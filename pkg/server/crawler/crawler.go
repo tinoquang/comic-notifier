@@ -49,14 +49,9 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 		return
 	}()
 
-	html, err := getPageSource(comic.URL)
+	doc, err := getPageSource(comic.URL)
 	if err != nil {
 		return errors.Wrapf(err, "Can't retrieve page's HTML")
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
-	if err != nil {
-		return errors.Wrapf(err, "Can't create goquery document object")
 	}
 
 	err = crawler[comic.Page](ctx, doc, comic)
@@ -165,7 +160,6 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
 	var chapURL, chapName, chapDate string
-	var html []byte
 	var max time.Time
 	var chapDoc *goquery.Document
 
@@ -205,13 +199,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comi
 	})
 
 	// Check if chapter is full uploaded (to avoid spolier chap)
-	html, err = getPageSource(chapURL)
-	if err != nil {
-		logging.Danger()
-		return
-	}
-
-	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
+	chapDoc, err = getPageSource(chapURL)
 	if err != nil {
 		logging.Danger()
 		return
@@ -270,39 +258,44 @@ func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 	return
 }
 
-func getPageSource(pageURL string) (body []byte, err error) {
+func getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
-	resp, err := http.Get(pageURL)
+	c := http.Client{
+		Timeout: 10 * time.Second,
+	}
 
+	resp, err := c.Get(pageURL)
 	if err != nil {
-		logging.Danger(err)
 		return
 	}
 
-	// do this now so it won't be forgotten
 	defer resp.Body.Close()
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logging.Danger()
+		return
+	}
+
+	doc, err = goquery.NewDocumentFromReader(bytes.NewReader(body))
+	if err != nil {
+		logging.Danger()
+		return
+	}
+
 	return
 }
 
 func detectSpolier(chapURL string, attr1, attr2 string) error {
-	var chapDoc *goquery.Document
 
 	// Check if chapter is full upload (detect spolier chap)
-	html, err := getPageSource(chapURL)
+	doc, err := getPageSource(chapURL)
 	if err != nil {
 		logging.Danger()
 		return err
 	}
 
-	chapDoc, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
-	if err != nil {
-		logging.Danger()
-		return err
-	}
-
-	if chapSelections := chapDoc.Find(attr1).Find(attr2); chapSelections.Size() < 3 {
+	if chapSelections := doc.Find(attr1).Find(attr2); chapSelections.Size() < 3 {
 		logging.Danger()
 		return errors.New("No new chapter, just some spoilers :)")
 

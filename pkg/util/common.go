@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -27,7 +28,11 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	}
 	reqURL.RawQuery = q.Encode()
 
-	resp, err := http.Get(reqURL.String())
+	c := http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := c.Get(reqURL.String())
 	if err != nil {
 		return
 	}

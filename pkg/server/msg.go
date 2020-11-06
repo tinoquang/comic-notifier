@@ -67,7 +67,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			sendTextBack(senderID, "You haven't subscribe this comic yet!")
+			sendTextBack(senderID, "This comic is not subscribed yet!")
 			return
 		}
 		return
@@ -83,7 +83,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "Please try again later")
+		sendTextBack(senderID, "This comic is not subscribed yet!")
 		return
 	}
 

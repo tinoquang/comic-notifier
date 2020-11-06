@@ -8,6 +8,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
@@ -136,4 +137,34 @@ func (a *API) SubscribeComic(ctx echo.Context, id string) error {
 	}
 
 	return ctx.JSON(http.StatusOK, &comic)
+}
+
+// UnsubscribeComic (DELETE /users/{user_id}/comics/{id})
+func (a *API) UnsubscribeComic(ctx echo.Context, userID string, comicID int) error {
+
+	// Validate if user has subscribed to this comic, if not then this request is invalid
+	c, err := a.store.Comic.CheckComicSubscribe(ctx.Request().Context(), userID, comicID)
+	if err != nil {
+		logging.Danger(err)
+		return ctx.NoContent(http.StatusBadRequest)
+	}
+
+	err = a.store.Subscriber.Delete(ctx.Request().Context(), userID, comicID)
+	if err != nil {
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	s, err := a.store.Subscriber.ListByComicID(ctx.Request().Context(), comicID)
+	if err != nil {
+		logging.Danger(err)
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	// Check if no user subscribe to this comic --> remove this comic from DB
+	if len(s) == 0 {
+		img.DeleteImg(string(c.ImgurID))
+		a.store.Comic.Delete(ctx.Request().Context(), comicID)
+	}
+
+	return ctx.NoContent(http.StatusOK)
 }

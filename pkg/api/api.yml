@@ -100,30 +100,30 @@ paths:
           description: User unauthorized
         "500":
           description: Internal error
-  # /users/{user_id}/comics/{id}:
-  #   delete:
-  #     description: Unsubscribe comic
-  #     operationId: UnsubscribeComic
-  #     tags:
-  #       - comic
-  #     parameters:
-  #       - name: user_id
-  #         in: path
-  #         description: User ID
-  #         required: true
-  #         schema:
-  #           type: integer
-  #       - name: id
-  #         in: path
-  #         description: Comic ID
-  #         required: true
-  #         schema:
-  #           type: integer
-  #     responses:
-  #       "200":
-  #         description: Unsubscribe comic responses
-  #       "404":
-  #         description: Comic not found
+  /users/{user_id}/comics/{id}:
+    delete:
+      description: Unsubscribe comic
+      operationId: UnsubscribeComic
+      tags:
+        - comic
+      parameters:
+        - name: user_id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Comic ID
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Unsubscribe comic responses
+        "404":
+          description: Comic not found
   /comics:
     get:
       # summary: "Get list of comics"

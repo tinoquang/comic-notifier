@@ -20,13 +20,16 @@ import (
 type Comic struct {
 
 	// Chapter url
-	ChapUrl *string `json:"chap-url,omitempty"`
+	ChapURL *string `json:"chapURL,omitempty"`
 
 	// Comic ID
 	Id *int `json:"id,omitempty"`
 
+	// URL to comic's avatar
+	ImgURL *string `json:"imgURL,omitempty"`
+
 	// Comic's latest chapter
-	Latest *string `json:"latest,omitempty"`
+	LatestChap *string `json:"latestChap,omitempty"`
 
 	// Comic name
 	Name *string `json:"name,omitempty"`
@@ -79,6 +82,9 @@ type ServerInterface interface {
 
 	// (GET /users/{id}/comics)
 	GetUserComics(ctx echo.Context, id string) error
+
+	// (POST /users/{id}/comics)
+	SubscribeComic(ctx echo.Context, id string) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -152,6 +158,22 @@ func (w *ServerInterfaceWrapper) GetUserComics(ctx echo.Context) error {
 	return err
 }
 
+// SubscribeComic converts echo context to params.
+func (w *ServerInterfaceWrapper) SubscribeComic(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.SubscribeComic(ctx, id)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -179,25 +201,28 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 	router.GET("/users", wrapper.Users)
 	router.GET("/users/:id", wrapper.GetUser)
 	router.GET("/users/:id/comics", wrapper.GetUserComics)
+	router.POST("/users/:id/comics", wrapper.SubscribeComic)
 
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xWXWvbMBT9K0Ib7MWr07UPxW+lYyVQRljXpxGGIl/H6mxJk67TheL/Pq7sfMtd1lIY",
-	"e1Mk3a9zjk78yKWprdGg0fPskXtZQi3C8srUStLCOmPBoYKwLUth3zeuonUOXjplURnNM35VCovgGB0m",
-	"HJcWeMY9OqXnvE24yiMhVIONP27uK40wB0cBlUDwOBD0zrPunMmubKykFjUMFQ1nkRgr5pGYiZgDQ8Mc",
-	"iJzJgEwkNg5LKBcFpV3vmNk9SKQc4fok2sSNonFDOgfeGu1pgj166DisFEIdFm8dFDzjb9IN1WnPc9qR",
-	"vOlDOCeWoTEHPxvlIOfZt1XSaZvwOw/uUBTC2hi9l9YyL42FHYo3eG2a3Y373NQzcMwU3bSe+WZG5zPI",
-	"o0p5Fs/OFKqC77YT+W4oTcnEQqBwrFL6RzSBj40chDI88yHjtKV0YSLoTcasMI7RHFoVS1I6zgxSVoUV",
-	"9COGo8vJmCd8Ac53sacnI+rRWNDCKp7xs5PRyRmpRWAZEE834M8h8sq+ADZOs4o0tyaCh5RO0J1xvsKY",
-	"tleCDAk/jEadFjWCxl4glZIhLr33VGDlNX8n1fAwDuXaJnvd3zZSgvdFU1VL5rpRxP4wgQ0x92uJ8ylt",
-	"9cikjypv/wRPr8+Z8JAzozvOdyG6BrzqDcMKJ2pAcFTyCS9U9JuY4ittk3uu3yTP0DWQbAG4/yTa6QsZ",
-	"OcIzDkH/ZBrduyN7UFjSMG3Cz0fnA4/Ts9yAZ9ogg1/K4zAljQ+gHafV7vI+D3f97usrNXjki0XaTbEN",
-	"CO1s43GUQp8G5RowdPv62lw74PS/o+BZVsoeSiXLUGLr742hGeJobbVPMhX+uY4hKv9HmBr6AnmWpQ+D",
-	"OuRDAS8yoILMK+4/bcI9uMUK8PCVx0tE67M0rYwUVWk8Zheji1EqrEoXp3y/+Ru6xb7S9+ptSMXbafs7",
-	"AAD//zCvPxx9CwAA",
+	"H4sIAAAAAAAC/9xXTW/jNhD9KwRbYC925GwW6Fa3bYouAgRFkDSnwihoaSxxK5FcziiJG+i/F0PJcixT",
+	"qZs0aNEbPeJ8vfc4pB9lZmtnDRhCmT5KzEqoVVie21pnvHDeOvCkIZizUrnb60te5oCZ1460NTKV56Vy",
+	"BF40vpIzSRsHMpVIXptCtjOp84gLpxAXP+72a0NQgA8OdRHNc3t9KciKjH3foVB3ipSPZawUARKXNZH5",
+	"HYpuj8i62mNRjKphqvLwLeLjVBHxuVIFcOUeVN6VH/Nl+CbSRZFtB4tdfYGMOEbYfhUt4lJzuyGcB3TW",
+	"IHcwopg/h5UmqMPiWw9rmcpvkp1ckl4rSSeUXR3Ke7UJhXn42mgPuUx/3QZdtjN5i+APhaWci2nkk3MC",
+	"M+tgTyc7vHbF7vv93NQr8MKuu25RYLPi7yvIo3J7Ec/ernUFv7nuoIx0iuB7dYpKm9+jATDWchDKdM+H",
+	"jLNJm7WNoHd1IdbWC+7D6PWGlU4rSxxVUwV9i+HTp6sLOZN34LHzPT1ZcI3WgVFOy1SenSxOzlgtisqA",
+	"eLIDvwA6zH4N1HgjKtbcQIQMIb3iPRf5FmM2bwUZAr5fLDotGgJDvUAqnQW/5Atygu28+ntSDQfjUK7t",
+	"bFT9TZNlgLhuqmojfNeKGjcT2FAFDhKXSzb1yCSPOm//Cp5enyuFkAtrOs73IfoMdN4PDKe8qoHAc8pn",
+	"Bqrm38yU3GqbR/BwJmVKvoHZEwDHR6JdvpKRI2bGIeg/2cb001Hcayq5mXYmPyw+TBxOFLkFFMaSgAeN",
+	"NE1JgwG047TabR7zcNtb316pYUa+WqRdF08BYctTPI5S6POgfAYK1b69NocJuPzfUfCiUSruS52VIcWT",
+	"602QneJoGLXPMhVurmOIyv8jTE29QF400qdBnZpDAS8eQGseXtH5M5POIk24Dln4dWjgfngc7nN4s912",
+	"1FXwj5P4tQGkH2y+GfFH8ECJq5QeMQcPqnbhhVESOUyTZAVgihMDlJBvNmDm5JUp59ZU2kBCVs+pVKaY",
+	"Z8rNa0vzWptyjvh+fnb23feLyEPogN9uxoTXVvtv3F57+toTj1A9q0FEpxNKaIxqqLRe/wH5a+TGNgR/",
+	"t5VG+FMx8FDZTFWlRUo/Lj4uEuV0cncqx71c8i7xC/89ugmhZLts/wwAAP//LnKCCjAOAAA=",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
@@ -34,13 +35,15 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	for i := range comics {
 		c := comics[i]
+		imgURL := c.ImgurLink.Value()
 		comicPage.Comics = append(comicPage.Comics, api.Comic{
-			Id:      &c.ID,
-			Page:    &c.Page,
-			Name:    &c.Name,
-			Url:     &c.URL,
-			Latest:  &c.LatestChap,
-			ChapUrl: &c.ChapURL,
+			Id:         &c.ID,
+			Page:       &c.Page,
+			Name:       &c.Name,
+			Url:        &c.URL,
+			LatestChap: &c.LatestChap,
+			ImgURL:     &imgURL,
+			ChapURL:    &c.ChapURL,
 		})
 	}
 	return ctx.JSON(http.StatusOK, &comicPage)
@@ -80,10 +83,10 @@ func (a *API) GetUser(ctx echo.Context, id string) error {
 }
 
 // GetUserComics (GET users/{id}/comics)
-func (a *API) GetUserComics(ctx echo.Context, id string) error {
+func (a *API) GetUserComics(ctx echo.Context, psid string) error {
 
 	comicPage := api.ComicPage{}
-	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), id)
+	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), psid)
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
@@ -91,14 +94,46 @@ func (a *API) GetUserComics(ctx echo.Context, id string) error {
 
 	for i := range comics {
 		c := comics[i]
+		imgURL := c.ImgurLink.Value()
 		comicPage.Comics = append(comicPage.Comics, api.Comic{
-			Id:      &c.ID,
-			Page:    &c.Page,
-			Name:    &c.Name,
-			Url:     &c.URL,
-			Latest:  &c.LatestChap,
-			ChapUrl: &c.ChapURL,
+			Id:         &c.ID,
+			Page:       &c.Page,
+			Name:       &c.Name,
+			Url:        &c.URL,
+			LatestChap: &c.LatestChap,
+			ImgURL:     &imgURL,
+			ChapURL:    &c.ChapURL,
 		})
 	}
 	return ctx.JSON(http.StatusOK, &comicPage)
+}
+
+// SubscribeComic (POST /users/{id}/comics)
+func (a *API) SubscribeComic(ctx echo.Context, id string) error {
+
+	comicURL := ctx.FormValue("comic")
+	if comicURL == "" {
+		return ctx.NoContent(http.StatusBadRequest)
+	}
+
+	c, err := a.store.SubscribeComic(ctx.Request().Context(), "psid", id, comicURL)
+	if err != nil {
+		if strings.Contains(err.Error(), "check your URL") {
+			return ctx.NoContent(http.StatusBadRequest)
+		}
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	imgURL := c.ImgurLink.Value()
+	comic := api.Comic{
+		Id:         &c.ID,
+		Page:       &c.Page,
+		Name:       &c.Name,
+		Url:        &c.URL,
+		LatestChap: &c.LatestChap,
+		ImgURL:     &imgURL,
+		ChapURL:    &c.ChapURL,
+	}
+
+	return ctx.JSON(http.StatusOK, &comic)
 }

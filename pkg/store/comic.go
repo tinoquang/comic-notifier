@@ -118,7 +118,7 @@ func (c *comicDB) List(ctx context.Context) ([]model.Comic, error) {
 
 // ListByPSID used to list all comics of specific user
 func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, error) {
-	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE subscribers.user_psid=$1"
+	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE subscribers.user_psid=$1 ORDER BY comics.id DESC"
 
 	comics, err := c.getBySQL(ctx, query, psid)
 	if err != nil {

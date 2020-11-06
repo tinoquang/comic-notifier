@@ -68,34 +68,38 @@ paths:
                   $ref: "#/components/schemas/Comic"
         "404":
           description: User not found
-  #   post:
-  #     operationId: SubscribeComic
-  #     description: User subscribe to new comic
-  #     tags:
-  #       - comic
-  #     parameters:
-  #       - name: id
-  #         in: path
-  #         description: User ID
-  #         required: true
-  #         schema:
-  #           type: integer
-  #     requestBody:
-  #       description: "Comic link"
-  #       content:
-  #         text/plain:
-  #           schema:
-  #             type: string
-  #             example: https://beeng.net/truyen-tranh-online/toi-thang-cap-mot-minh-ss2-33790
-  #     responses:
-  #       "200":
-  #         description: Successfully subscribed to a comic
-  #         content:
-  #           application/json:
-  #             schema:
-  #               $ref: "#/components/schemas/Comic"
-  #       "404":
-  #         description: User not found
+    post:
+      operationId: SubscribeComic
+      description: User subscribe to new comic
+      tags:
+        - comic
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: "Comic link"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: https://beeng.net/truyen-tranh-online/toi-thang-cap-mot-minh-ss2-33790
+      responses:
+        "200":
+          description: Successfully subscribed to a comic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comic"
+        "404":
+          description: User not found
+        "401":
+          description: User unauthorized
+        "500":
+          description: Internal error
   # /users/{user_id}/comics/{id}:
   #   delete:
   #     description: Unsubscribe comic
@@ -175,10 +179,13 @@ components:
         url:
           type: string
           description: Comic url
-        latest:
+        latestChap:
           type: string
           description: Comic's latest chapter
-        chap-url:
+        imgURL:
+          type: string
+          description: URL to comic's avatar
+        chapURL:
           type: string
           description: Chapter url
     ComicPage:

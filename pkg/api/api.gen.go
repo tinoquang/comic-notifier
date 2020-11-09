@@ -65,6 +65,28 @@ type User struct {
 	Psid *string `json:"psid,omitempty"`
 }
 
+// Limit defines model for limit.
+type Limit int64
+
+// Offset defines model for offset.
+type Offset int64
+
+// Q defines model for q.
+type Q string
+
+// GetUserComicsParams defines parameters for GetUserComics.
+type GetUserComicsParams struct {
+
+	// Used to query by name in a list operation.
+	Q *Q `json:"q,omitempty"`
+
+	// Used to request the next page in a list operation.
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Used to specify the maximum number of records which are returned in the next page.
+	Limit *Limit `json:"limit,omitempty"`
+}
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -81,7 +103,7 @@ type ServerInterface interface {
 	GetUser(ctx echo.Context, id string) error
 
 	// (GET /users/{id}/comics)
-	GetUserComics(ctx echo.Context, id string) error
+	GetUserComics(ctx echo.Context, id string, params GetUserComicsParams) error
 
 	// (POST /users/{id}/comics)
 	SubscribeComic(ctx echo.Context, id string) error
@@ -156,8 +178,31 @@ func (w *ServerInterfaceWrapper) GetUserComics(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetUserComicsParams
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "q", ctx.QueryParams(), &params.Q)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter q: %s", err))
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", ctx.QueryParams(), &params.Offset)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetUserComics(ctx, id)
+	err = w.Handler.GetUserComics(ctx, id, params)
 	return err
 }
 
@@ -236,23 +281,25 @@ func RegisterHandlers(router EchoRouter, si ServerInterface) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xXUW/bNhD+KwQ3oC9y5DQd1vmty7DCQDAEyfw0GAUtnSV2EsmSpyReoP8+HCVLtkw5",
-	"rrNiw57CUDze3fd9/Eg/80SXRitQ6Pjsmbskh1L44bUuZUIDY7UBixL8dJILs7i7oWEKLrHSoNSKz/h1",
-	"LgyCZZUteMRxY4DPuEMrVcbriMs0EEIp2PyXfr1UCBlYH1BmwTyLuxuGmiUU+8Yx8SBQ2FDGQiA4pLJG",
-	"Mr9xrFnDkqb20C5KlDBWuf8WiDEiC8TcigyocgsibcoPxRJ8I+mCyNbdjF59hgRpD7/8NljEjaR2/XYW",
-	"nNHKUQcDiumzH0mE0g++t7DmM/5d3MslbrUSN0Lp6xDWio0vzMKXSlpI+eyP7abLOuILB/ZQWMKYkEY+",
-	"GMNcog3s6aTHqy92P+63qlyBZXrddOuYq1b0fQVpUG5n8Wz1WhbwyTQHZaBTB7ZVJyuk+jO4gQu17IUy",
-	"3vMh4zQl1VoH0Luds7W2jPpQcr0hpeNKI+0qsYC2Rf/pw+2cR/wBrGtiLy+mVKM2oISRfMavLqYXV6QW",
-	"gblHPO7BzwAPs98BVlaxgjTXEcH9llbQmnm6xZimt4L0G76dThstKgSFrUAKmfi4+LOjBFu/+jqp+oNx",
-	"KNc6GlR/XyUJOLeuimLDbNOKGDbj2RCZ6yTOlzTVIhM/y7R+CZ5WnyvhIGVaNZzvQ/QR8Lo1DCOsKAHB",
-	"Usojhirpf2KKb7VNFtydST5DW0G0A+DwSNTLVzJygmccgv6rrlTrjuxRYk7N1BF/N303cjgdSzU4pjQy",
-	"eJIOxympnAftNK02i4c8LNrZb69U75GvFmnTxS4gNLOLx0kKPQ7KR0Bf7bfXZueAy/8dBWdZKXvMZZL7",
-	"FDvXG0M9xlFntUeZ8jfXKUSl/xGmxl4gZ1n6OKhjPuTxIgNak3kF/SfiRjscCe2y0OtQwWP3ONzn8H67",
-	"7KSr4B8n8UsFDn/W6WbAH8ITxqYQcsAcPInS+BdGjmjcLI5XACq7UIAx2moDaoJWqHyiVSEVxKjlBHOh",
-	"skkizKTUOCmlyifOvZ1cXf340zTwEDrgt/EY/9qq/43ba09fe+JhomXVi+hyRAmVEhXm2sq/ID1ZbhH/",
-	"oeltf9lcIVglCgbWanv8Voyf6c+n3oe6ayGFAjDwMF6oXrVhue6seL1g2/K+SrXR+TdQev7z6AWYWB9z",
-	"9Fnzgp/QnAP7sIXS/2rsDlqhE1Hk2uHs/fT9NBZGxg+XfCjWG1rFfqffv/d+K14v678DAAD//z4hc0IR",
-	"EAAA",
+	"H4sIAAAAAAAC/9xYb2/bthP+KgR/P6Bv5Mhp0q3Tuy7DigDBECTLq8IoaOlksZNIhjwl8Qx99+EoWfIf",
+	"ynGTrgX2KjJ1x3t49/C5U1Y81ZXRChQ6nqy4EVZUgGD9r1JWEukhA5daaVBqxRN+5yBjqJkzkMp8ybAA",
+	"VoknWdUVU3U1B8t0ziyk2maOPRYyLZiwwCxgbRVkTCrvo+AJmRELOOERl7TzfQ12ySOuRAU86eJH3KUF",
+	"VKIFkou6RJ68m0Y817YSyBMuFf50ziOOSwPtT1iA5U0TcZ3nDg6cwcJ9DQ638RBAwUrpkGkDVpDPGMYu",
+	"QBDkkRjvx+H5YGy+ZBTta2DdhxHxAYFDK9WCN4SgtfQ1v9CVTD0VLAVBCX45LYS5u7naR3pRCINgWW3L",
+	"/b0jLrOAC4Vgl78FshFxWS2Cce5urighKfm+cUw8CBQ2FLEUCA4J1kjkN461NixtsYd2adMYRu7fBXyI",
+	"Ovs+10QozzSRtfBDvpS+kXDBzDb9ip5/gRRpD29+HQRxRaTxwZkFZ7RydIKdEtNr/yQRKv/wfws5T/j/",
+	"4kEl4o4rcUuUAYewViw9MLpT0kLGk0/rTWdNRJy2+8QSxoQ48sEY5lJtYIsnQ74GsNt+f/T601owV8/p",
+	"/RyyIN1eVGerc1nCZ9NelL2bazt2slKqv4IbuNCRPVHGz7xfcVqSKteB7F1fslxbRudQJNFpIXCuSaZQ",
+	"YgndEf2rD9eXPOIPYF3re3oyJYzagBJG8oSfnUxPzogtAguf8XhI/iKkrTde5zuhWheC+y1b0brM1jmm",
+	"5TUh/YZvp9OWiwpBYUeQUqbeL/7iKMBqQ9mOp6q/GPt0baId9Ld1moJzeV2Wy65l9arbH8ZXQyxcT3E+",
+	"o6UuM/FKZs1z6en4ORck9Vq1Nd9O0UfAi04wNhvzpwOC6nsBVWpoBTLjm3cSbQ2bvWGvIc1eWZIjRGM/",
+	"67/rWnXyyB4lFnSaJuLn0/OR2+lYpsExpZHBk3Q4XpPadePMMWRtjXcLcdet/vtU9SL5apa2p9hMCK1s",
+	"5uMoih5OykdAj/Y7kLPXwNl/rgYvEtNuqKZdNhocQz1WpF5sD5bK965vVKkonOMhfnzPjzDqxusjLNuP",
+	"he/DkLHZ50XNZLyYYwLo60TKl5NqBoUv4kY7HHHto9BcquCxH0u3uXO7NjuqCX1L8sxaY3D4q86WO/VD",
+	"eMLYlELuVA6eRGX8bFMgGpfE8RxALU4UYIy2XoKaoBWqmGhVSgUxajnBQqjFJBVmUmmcVFIVE+feTs7O",
+	"fv5lGv5UCombn/OaH9E2t/i1RR4muqp6Ep2OMKFWosZCW/k3ZEfTLeLv2rNtm10qBKtEycBabQ+343hF",
+	"fz4P+tf3owxKwMBIfqcG1obpumHxesJ28L5W8n7AXPZMmtjgc3CeekZP/H8JwD6sU+m/V/1FS+K41Kko",
+	"C+0weT99P42FkfHDKd/l6hVZsT/pw/vW78SbWfNPAAAA///gyFXVgRIAAA==",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/keegancsmith/sqlf"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
@@ -156,4 +157,40 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 	})
 
 	return comic, err
+}
+
+// LimitOffset specifies SQL LIMIT and OFFSET counts. A pointer to it is typically embedded in other options
+// structures that need to perform SQL queries with LIMIT and OFFSET.
+type LimitOffset struct {
+	Limit  int // SQL LIMIT count
+	Offset int // SQL OFFSET count
+}
+
+// SQL returns the SQL query fragment ("LIMIT %d OFFSET %d") for use in SQL queries.
+func (o *LimitOffset) SQL() *sqlf.Query {
+	if o == nil {
+		return &sqlf.Query{}
+	}
+
+	if o.Limit == 0 {
+		return sqlf.Sprintf("LIMIT ALL OFFSET %d", o.Offset)
+	}
+
+	return sqlf.Sprintf("LIMIT %d OFFSET %d", o.Limit, o.Offset)
+}
+
+// NameLikeOptions used to query by name using like
+type NameLikeOptions struct {
+	// Query specifies a search query for organizations.
+	Query string
+}
+
+// ListNameLikeSQL used to search by name if query is set
+func ListNameLikeSQL(opt *NameLikeOptions) (conds []*sqlf.Query) {
+	conds = []*sqlf.Query{sqlf.Sprintf("TRUE")}
+	if opt.Query != "" {
+		query := "%" + opt.Query + "%"
+		conds = append(conds, sqlf.Sprintf("name ILIKE %s", query))
+	}
+	return conds
 }

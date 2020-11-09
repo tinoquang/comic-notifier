@@ -26,9 +26,11 @@ func NewAPI(c *conf.Config, s *store.Stores) *API {
 // Comics (GET /comics)
 func (a *API) Comics(ctx echo.Context) error {
 
+	// _, offset, limit := listArgs(params.Q, params.Limit, params.Offset)
+	opt := store.NewComicsListOptions("", 0, 0)
 	comicPage := api.ComicPage{}
 
-	comics, err := a.store.Comic.List(ctx.Request().Context())
+	comics, err := a.store.Comic.List(ctx.Request().Context(), opt)
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
@@ -84,10 +86,13 @@ func (a *API) GetUser(ctx echo.Context, id string) error {
 }
 
 // GetUserComics (GET users/{id}/comics)
-func (a *API) GetUserComics(ctx echo.Context, psid string) error {
+func (a *API) GetUserComics(ctx echo.Context, psid string, params api.GetUserComicsParams) error {
+
+	_, limit, offset := listArgs(params.Q, params.Limit, params.Offset)
+	opt := store.NewComicsListOptions("", limit, offset)
 
 	comicPage := api.ComicPage{}
-	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), psid)
+	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, psid)
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)

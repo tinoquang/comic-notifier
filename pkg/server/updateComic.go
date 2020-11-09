@@ -17,17 +17,17 @@ var (
 	wg sync.WaitGroup
 )
 
-func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
+func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		logging.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
-		err := updateComic(ctx, store, &comic)
+		err := updateComic(ctx, s, &comic)
 
 		if err == nil {
 			logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
-			notifyToUsers(ctx, store, &comic)
+			notifyToUsers(ctx, s, &comic)
 		} else {
 			if strings.Contains(err.Error(), "No new chapter") {
 				logging.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
@@ -41,7 +41,7 @@ func worker(store *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comi
 }
 
 // UpdateThread read comic database and update each comic to each latest chap
-func updateComicThread(store *store.Stores, workerNum, timeout int) {
+func updateComicThread(s *store.Stores, workerNum, timeout int) {
 
 	logging.Info("Start update new chapter routine ...")
 
@@ -49,13 +49,14 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 	comicPool := make(chan model.Comic, workerNum)
 
 	for i := 0; i < workerNum; i++ {
-		go worker(store, &wg, comicPool)
+		go worker(s, &wg, comicPool)
 	}
 	// Start infinite loop
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 		// Get all comics in DB
-		comics, err := store.Comic.List(ctx)
+		opt := store.NewComicsListOptions("", 0, 0)
+		comics, err := s.Comic.List(ctx, opt)
 		if err != nil {
 			logging.Info("Get list of comic fails, sleep sometimes...")
 			time.Sleep(time.Duration(timeout) * time.Minute)
@@ -79,7 +80,7 @@ func updateComicThread(store *store.Stores, workerNum, timeout int) {
 }
 
 // UpdateComic use when new chapter realease
-func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (err error) {
+func updateComic(ctx context.Context, s *store.Stores, comic *model.Comic) (err error) {
 
 	err = crawler.GetComicInfo(ctx, comic)
 	if err != nil {
@@ -87,20 +88,20 @@ func updateComic(ctx context.Context, store *store.Stores, comic *model.Comic) (
 	}
 
 	img.UpdateImage(string(comic.ImgurID), comic)
-	err = store.Comic.Update(ctx, comic)
+	err = s.Comic.Update(ctx, comic)
 	return
 }
 
-func notifyToUsers(ctx context.Context, store *store.Stores, comic *model.Comic) {
+func notifyToUsers(ctx context.Context, s *store.Stores, comic *model.Comic) {
 
-	subscribers, err := store.Subscriber.ListByComicID(ctx, comic.ID)
+	subscribers, err := s.Subscriber.ListByComicID(ctx, comic.ID)
 	if err != nil {
 		logging.Danger(err)
 		return
 	}
 
-	for _, s := range subscribers {
-		logging.Info("Notify ", comic.Name, " to user ID", s.PSID)
-		sendMsgTagsReply(s.PSID, comic)
+	for _, sub := range subscribers {
+		logging.Info("Notify ", comic.Name, " to user ID", sub.PSID)
+		sendMsgTagsReply(sub.PSID, comic)
 	}
 }

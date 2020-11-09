@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/keegancsmith/sqlf"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
@@ -19,8 +20,22 @@ type ComicInterface interface {
 	Create(ctx context.Context, comic *model.Comic) error
 	Update(ctx context.Context, comic *model.Comic) error
 	Delete(ctx context.Context, id int) error
-	List(ctx context.Context) ([]model.Comic, error)
-	ListByPSID(ctx context.Context, psid string) ([]model.Comic, error)
+	List(ctx context.Context, opt *ComicsListOptions) ([]model.Comic, error)
+	ListByPSID(ctx context.Context, opt *ComicsListOptions, psid string) ([]model.Comic, error)
+}
+
+// ComicsListOptions specifies the options for listing projects.
+type ComicsListOptions struct {
+	*NameLikeOptions
+	*LimitOffset
+}
+
+// NewComicsListOptions create a new opts
+func NewComicsListOptions(query string, limit int, offset int) *ComicsListOptions {
+	return &ComicsListOptions{
+		NameLikeOptions: &NameLikeOptions{query},
+		LimitOffset:     &LimitOffset{Limit: limit, Offset: offset},
+	}
 }
 
 type comicDB struct {
@@ -111,16 +126,32 @@ func (c *comicDB) Delete(ctx context.Context, id int) error {
 	return err
 }
 
-func (c *comicDB) List(ctx context.Context) ([]model.Comic, error) {
+func (c *comicDB) List(ctx context.Context, opt *ComicsListOptions) ([]model.Comic, error) {
 
-	return c.getBySQL(ctx, "")
+	if opt == nil {
+		opt = &ComicsListOptions{}
+	}
+
+	conds := ListNameLikeSQL(opt.NameLikeOptions)
+
+	q := sqlf.Sprintf("WHERE %s ORDER BY id DESC %s", sqlf.Join(conds, "AND"), opt.LimitOffset.SQL())
+
+	return c.getBySQL(ctx, q.Query(sqlf.PostgresBindVar), q.Args()...)
 }
 
 // ListByPSID used to list all comics of specific user
-func (c *comicDB) ListByPSID(ctx context.Context, psid string) ([]model.Comic, error) {
-	query := "LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE subscribers.user_psid=$1 ORDER BY comics.id DESC"
+func (c *comicDB) ListByPSID(ctx context.Context, opt *ComicsListOptions, psid string) ([]model.Comic, error) {
 
-	comics, err := c.getBySQL(ctx, query, psid)
+	if opt == nil {
+		opt = &ComicsListOptions{}
+	}
+
+	conds := ListNameLikeSQL(opt.NameLikeOptions)
+	conds = append(conds, sqlf.Sprintf("subscribers.user_psid = %s", psid))
+
+	q := sqlf.Sprintf("LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE %s ORDER BY comics.id DESC %s", sqlf.Join(conds, "AND"), opt.LimitOffset.SQL())
+
+	comics, err := c.getBySQL(ctx, q.Query(sqlf.PostgresBindVar), q.Args()...)
 	if err != nil {
 		logging.Danger(err)
 		return nil, err

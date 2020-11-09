@@ -4,7 +4,7 @@ info:
   title: "Cominify API"
   description: API for Cominify chatbot
 servers:
-  - url: https://localhost:8080/api/v1
+  - url: http://localhost:8080/api/v1
     description: Local Test Server
 paths:
   /users:
@@ -32,7 +32,7 @@ paths:
         - name: id
           in: path
           description: Comic ID
-          require: true
+          required: true
           schema:
             type: string
       responses:
@@ -57,6 +57,9 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: "#/components/parameters/q"
+        - $ref: "#/components/parameters/offset"
+        - $ref: "#/components/parameters/limit"
       responses:
         "200":
           description: Successfully return a list of comics which user subscribed to
@@ -150,7 +153,7 @@ paths:
         - name: id
           in: path
           description: Comic ID
-          require: true
+          required: true
           schema:
             type: integer
       responses:
@@ -163,6 +166,30 @@ paths:
         "404":
           description: Comics does not exists
 components:
+  parameters:
+    q:
+      name: q
+      in: query
+      description: Used to query by name in a list operation.
+      schema:
+        type: string
+        default: ""
+    offset:
+      name: offset
+      in: query
+      description: Used to request the next page in a list operation.
+      schema:
+        type: integer
+        format: int64
+        default: 0
+    limit:
+      name: limit
+      in: query
+      description: Used to specify the maximum number of records which are returned in the next page.
+      schema:
+        type: integer
+        format: int64
+        default: 50
   schemas:
     Comic:
       type: object

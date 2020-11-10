@@ -132,7 +132,7 @@ func (c *comicDB) List(ctx context.Context, opt *ComicsListOptions) ([]model.Com
 		opt = &ComicsListOptions{}
 	}
 
-	conds := ListNameLikeSQL(opt.NameLikeOptions)
+	conds := ListComicNameLikeSQL(opt.NameLikeOptions)
 
 	q := sqlf.Sprintf("WHERE %s ORDER BY id DESC %s", sqlf.Join(conds, "AND"), opt.LimitOffset.SQL())
 
@@ -146,7 +146,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, opt *ComicsListOptions, psid s
 		opt = &ComicsListOptions{}
 	}
 
-	conds := ListNameLikeSQL(opt.NameLikeOptions)
+	conds := ListComicNameLikeSQL(opt.NameLikeOptions)
 	conds = append(conds, sqlf.Sprintf("subscribers.user_psid = %s", psid))
 
 	q := sqlf.Sprintf("LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE %s ORDER BY comics.id DESC %s", sqlf.Join(conds, "AND"), opt.LimitOffset.SQL())

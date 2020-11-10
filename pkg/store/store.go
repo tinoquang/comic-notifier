@@ -185,12 +185,12 @@ type NameLikeOptions struct {
 	Query string
 }
 
-// ListNameLikeSQL used to search by name if query is set
-func ListNameLikeSQL(opt *NameLikeOptions) (conds []*sqlf.Query) {
+// ListComicNameLikeSQL used to search by name if query is set
+func ListComicNameLikeSQL(opt *NameLikeOptions) (conds []*sqlf.Query) {
 	conds = []*sqlf.Query{sqlf.Sprintf("TRUE")}
 	if opt.Query != "" {
-		query := "%" + opt.Query + "%"
-		conds = append(conds, sqlf.Sprintf("name ILIKE %s", query))
+		query := "%" + strings.Replace(opt.Query, " ", "%", -1) + "%"
+		conds = append(conds, sqlf.Sprintf("comics.name ILIKE %s", query))
 	}
 	return conds
 }

@@ -88,14 +88,14 @@ func (a *API) GetUser(ctx echo.Context, id string) error {
 // GetUserComics (GET users/{id}/comics)
 func (a *API) GetUserComics(ctx echo.Context, psid string, params api.GetUserComicsParams) error {
 
-	_, limit, offset := listArgs(params.Q, params.Limit, params.Offset)
-	opt := store.NewComicsListOptions("", limit, offset)
+	q, limit, offset := listArgs(params.Q, params.Limit, params.Offset)
+	opt := store.NewComicsListOptions(q, limit, offset)
 
 	comicPage := api.ComicPage{}
 	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, psid)
 	if err != nil {
 		logging.Danger(err)
-		return ctx.NoContent(http.StatusInternalServerError)
+		return ctx.NoContent(http.StatusNotFound)
 	}
 
 	for i := range comics {

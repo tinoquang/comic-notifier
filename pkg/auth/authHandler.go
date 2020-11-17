@@ -136,7 +136,7 @@ func (h *Handler) auth(c echo.Context) error {
 	}
 	c.SetCookie(cookie)
 
-	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:%s", h.cfg.Host, h.cfg.LocalPort))
+	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:%s", h.cfg.LocalHost, h.cfg.LocalPort))
 }
 
 func (h *Handler) generateJWT(userPSID string) (string, error) {

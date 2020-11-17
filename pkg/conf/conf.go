@@ -45,8 +45,6 @@ type Imgur struct {
 type Config struct {
 	Port        string
 	Host        string
-	LocalPort   string
-	LocalHost   string
 	PageSupport *model.PageList
 	Webhook     WebhookCfg
 	FBSecret    FacebookSecret
@@ -90,8 +88,6 @@ func New(path string) *Config {
 		JWT:        getEnv("JWT_SECRET", ""),
 		Port:       getEnv("PORT", ""),
 		Host:       getEnv("HOST", ""),
-		LocalPort:  getEnv("LOCAL_PORT", ""),
-		LocalHost:  getEnv("LOCALHOST", ""),
 		CtxTimeout: getEnvAsInt("CTX_TIMEOUT", 15),
 	}
 }

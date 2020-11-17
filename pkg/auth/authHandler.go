@@ -78,9 +78,14 @@ func (h *Handler) auth(c echo.Context) error {
 	/* Exchange token using given code */
 	queries := map[string]string{
 		"client_id":     h.cfg.FBSecret.AppID,
-		"redirect_uri":  fmt.Sprintf("%s:%s/auth", h.cfg.Host, h.cfg.Port),
 		"client_secret": h.cfg.FBSecret.AppSecret,
 		"code":          code,
+	}
+
+	if h.cfg.Host == "http://localhost" {
+		queries["redirect_uri"] = fmt.Sprintf("%s:%s/auth", h.cfg.Host, h.cfg.Port)
+	} else {
+		queries["redirect_uri"] = fmt.Sprintf("%s/auth", h.cfg.Host)
 	}
 
 	respBody, err := util.MakeGetRequest(h.cfg.Webhook.GraphEndpoint+"/oauth/access_token", queries)
@@ -136,7 +141,11 @@ func (h *Handler) auth(c echo.Context) error {
 	}
 	c.SetCookie(cookie)
 
-	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:%s", h.cfg.LocalHost, h.cfg.LocalPort))
+	if h.cfg.Host == "http://localhost" {
+		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000", h.cfg.Host))
+	}
+
+	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s", h.cfg.Host))
 }
 
 func (h *Handler) generateJWT(userPSID string) (string, error) {

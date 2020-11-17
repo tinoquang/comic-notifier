@@ -41,9 +41,12 @@ func main() {
 
 	/* Routing */
 	e.Static("/static", "ui/static")
+	e.Static("/assets", "ui/assets")
+
 	e.GET("/", func(c echo.Context) error {
 		return c.File("ui/index.html")
-	}, mdw.CheckLoginStatus)
+	})
+	// }, mdw.CheckLoginStatus)
 
 	// Authentication JWT
 	auth.RegisterHandler(e.Group(""), cfg, s)

@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
@@ -67,7 +68,9 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 		return nil, err
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
 	req, err := http.NewRequest("POST", url, payload)
 
 	if err != nil {

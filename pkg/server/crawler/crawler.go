@@ -16,18 +16,16 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
-type comicCrawler func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
-
-var crawler map[string]comicCrawler
+var crawlerMap map[string]func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
 
 // New create new crawler
 func New(cfg *conf.Config) {
 
-	crawler = make(map[string]comicCrawler)
-	crawler["beeng.net"] = crawlBeeng
-	crawler["mangak.info"] = crawlMangaK
-	crawler["truyenqq.com"] = crawlTruyenqq
-	crawler["blogtruyen.vn"] = crawlBlogTruyen
+	crawlerMap = make(map[string]func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error))
+	crawlerMap["beeng.net"] = crawlBeeng
+	crawlerMap["mangak.info"] = crawlMangaK
+	crawlerMap["truyenqq.com"] = crawlTruyenqq
+	crawlerMap["blogtruyen.vn"] = crawlBlogTruyen
 
 }
 
@@ -54,7 +52,7 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 		return errors.Wrapf(err, "Can't retrieve page's HTML")
 	}
 
-	err = crawler[comic.Page](ctx, doc, comic)
+	err = crawlerMap[comic.Page](ctx, doc, comic)
 	return errors.Wrapf(err, "Can't get latest chap from %s", comic.Page)
 }
 

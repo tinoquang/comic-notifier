@@ -94,6 +94,11 @@ func (a *API) GetUserComics(ctx echo.Context, psid string, params api.GetUserCom
 	comicPage := api.ComicPage{}
 	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, psid)
 	if err != nil {
+		// Return empty list if not found comic
+		if strings.Contains(err.Error(), "not found") {
+			comicPage.Comics = []api.Comic{}
+			return ctx.JSON(http.StatusOK, &comicPage)
+		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusNotFound)
 	}

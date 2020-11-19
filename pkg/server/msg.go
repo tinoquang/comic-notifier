@@ -33,6 +33,11 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	sendActionBack(senderID, "typing_on")
 	defer sendActionBack(senderID, "typing_off")
 
+	if text[0] == '/' {
+		responseCommand(ctx, senderID, text)
+		return
+	}
+
 	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
 	if err != nil {
 		logging.Danger(err)
@@ -40,9 +45,15 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
-			sendTextBack(senderID, "Please try again later") // handle later: get time delay and send back to user
+			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé !") // handle later: get time delay and send back to user
+		} else if strings.Contains(err.Error(), "not supported") {
+			sendTextBack(senderID, "Cú pháp chưa chính xác")
+			responseCommand(ctx, senderID, "/page")
+		} else if strings.Contains(err.Error(), "Please check your URL") {
+			sendTextBack(senderID, "Cú pháp chưa chính xác")
+			responseCommand(ctx, senderID, "/help")
 		} else {
-			sendTextBack(senderID, "Please try again later")
+			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé !")
 		}
 		return
 	}
@@ -60,6 +71,11 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	sendActionBack(senderID, "mark_seen")
 	sendActionBack(senderID, "typing_on")
 	defer sendActionBack(senderID, "typing_off")
+
+	if strings.Contains(payload, "get-started") {
+		reponseGetStarted(ctx, senderID, payload)
+		return
+	}
 
 	comicID, _ := strconv.Atoi(payload)
 
@@ -111,4 +127,36 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 func (m *MSG) subscribeComic(ctx context.Context, field, id, comicURL string) (*model.Comic, error) {
 
 	return m.store.SubscribeComic(ctx, field, id, comicURL)
+}
+
+func responseCommand(ctx context.Context, senderID, text string) {
+
+	if text == "/list" {
+		sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
+		sendTextBack(senderID, "https://comicnotifier.herokuapp.com")
+	} else if text == "/page" {
+		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang: beeng.net, blogtruyen.vn")
+	} else if text == "/tutor" {
+		sendTextBack(senderID, "Xem hướng dẫn tại đây:")
+		sendTextBack(senderID, "https://comicnotifier.herokuapp.com/tutorial")
+	} else {
+		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
+- /list:  xem các truyện đã đăng kí
+- /page:  các trang web hiện tại BOT hỗ trợ
+- /tutor: xem tutorial
+- /help:  lại các lệnh hỗ trợ`)
+	}
+	return
+}
+
+func reponseGetStarted(ctx context.Context, senderID, payload string) {
+
+	sendTextBack(senderID, "Welcome to Cominify!")
+	sendTextBack(senderID, "Tôi là chatbot giúp theo dõi truyện tranh và thông báo mỗi khi truyện có chapter mới")
+	sendTextBack(senderID, `Các lệnh tối hỗ trợ:
+- /list:  xem các truyện đã đăng kí
+- /page:  các trang web hiện tại BOT hỗ trợ
+- /tutor: xem tutorial
+- /help:  lại các lệnh hỗ trợ`)
+	return
 }

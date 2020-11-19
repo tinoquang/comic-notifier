@@ -21,12 +21,17 @@ start:
 	./${BINARY}
 .PHONY: start
 
+local:
+	docker-compose up --build
+.PHONY: local
+
 gen: 
 	go generate -x ${GEN}
 .PHONY: gen
 
 clean:
 	rm -f ${BINARY}
+	docker-compose down -v
 .PHONY: clean
 
 re-test: 

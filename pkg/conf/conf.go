@@ -119,14 +119,16 @@ func getEnvAsInt(name string, defaultVal int) int {
 func getDBSecret() string {
 	DBConfig, err := url.Parse(getEnv("DATABASE_URL", ""))
 
+	sslMode := getEnv("SSLMODE", "require")
+
 	if err != nil {
 		panic(err)
 	}
 
 	password, _ := DBConfig.User.Password()
 
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
-		DBConfig.Hostname(), DBConfig.Port(), DBConfig.User.Username(), password, strings.Trim(DBConfig.Path, "/"))
+	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		DBConfig.Hostname(), DBConfig.Port(), DBConfig.User.Username(), password, strings.Trim(DBConfig.Path, "/"), sslMode)
 	return psqlInfo
 }
 

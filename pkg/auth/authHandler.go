@@ -83,7 +83,7 @@ func (h *Handler) auth(c echo.Context) error {
 	}
 
 	if h.cfg.Host == "http://localhost" {
-		queries["redirect_uri"] = fmt.Sprintf("%s:%s/auth", h.cfg.Host, h.cfg.Port)
+		queries["redirect_uri"] = fmt.Sprintf("%s:8080/auth", h.cfg.Host)
 	} else {
 		queries["redirect_uri"] = fmt.Sprintf("%s/auth", h.cfg.Host)
 	}

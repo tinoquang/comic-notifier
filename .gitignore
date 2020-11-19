@@ -1,5 +1,5 @@
 .env
 .vscode
 notifier
-*.sql
+*session.sql
 /.bin

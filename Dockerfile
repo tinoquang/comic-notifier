@@ -12,4 +12,4 @@ RUN go mod download
 
 COPY . .
 
-CMD ["make"]
+# CMD ["make"]

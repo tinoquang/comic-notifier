@@ -8,7 +8,11 @@ GEN=./pkg/api/
 run: build start
 .PHONY: run
 
+re-build: clean run
+.PHONY: re-build
+
 build: ${APP}
+.PHONY: build
 
 ${APP}:
 	go build -v -o ${BINARY} ${MAIN}

@@ -40,7 +40,6 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
 	if err != nil {
-		logging.Danger(err)
 		if strings.Contains(err.Error(), "Already") {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {
@@ -142,9 +141,9 @@ func responseCommand(ctx context.Context, senderID, text string) {
 	} else {
 		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí
-- /page:  các trang web hiện tại BOT hỗ trợ
-- /tutor: xem tutorial
-- /help:  lại các lệnh hỗ trợ`)
+- /page:  xem các trang web hiện tại BOT hỗ trợ
+- /tutor: xem hướng dẫn
+- /help:  xem lại các lệnh hỗ trợ`)
 	}
 	return
 }
@@ -155,8 +154,8 @@ func reponseGetStarted(ctx context.Context, senderID, payload string) {
 	sendTextBack(senderID, "Tôi là chatbot giúp theo dõi truyện tranh và thông báo mỗi khi truyện có chapter mới")
 	sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí
-- /page:  các trang web hiện tại BOT hỗ trợ
-- /tutor: xem tutorial
-- /help:  lại các lệnh hỗ trợ`)
+- /page:  xem các trang web hiện tại BOT hỗ trợ
+- /tutor: xem hướng dẫn
+- /help:  xem lại các lệnh hỗ trợ`)
 	return
 }

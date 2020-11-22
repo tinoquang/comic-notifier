@@ -10,9 +10,9 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/mdw"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -29,7 +29,11 @@ func RegisterHandler(g *echo.Group, cfg *conf.Config, store *store.Stores) {
 	h := Handler{cfg: cfg, store: store}
 
 	g.GET("/auth", h.auth)
-	g.GET("/status", h.loggedIn, mdw.CheckLoginStatus)
+	g.GET("/status", h.loggedIn, middleware.JWTWithConfig(middleware.JWTConfig{
+		SigningKey:  []byte(cfg.JWT.SecretKey),
+		Claims:      &jwt.StandardClaims{},
+		TokenLookup: "cookie:_session",
+	}))
 	g.GET("/login", h.login)
 	g.GET("/logout", h.logout)
 
@@ -150,16 +154,17 @@ func (h *Handler) auth(c echo.Context) error {
 
 func (h *Handler) generateJWT(userPSID string) (string, error) {
 
+	claims := &jwt.StandardClaims{
+		Issuer:    h.cfg.JWT.Issuer,
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: time.Now().AddDate(0, 1, 0).Unix(),
+		Audience:  h.cfg.JWT.Audience,
+	}
 	// Create JWT and send back
-	token := jwt.New(jwt.SigningMethodHS256)
-
-	// Set claims
-	claims := token.Claims.(jwt.MapClaims)
-	claims["id"] = userPSID
-	claims["exp"] = time.Now().Add(time.Hour * 8).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString([]byte(h.cfg.JWT))
+	t, err := token.SignedString([]byte(h.cfg.JWT.SecretKey))
 	if err != nil {
 		return "", err
 	}

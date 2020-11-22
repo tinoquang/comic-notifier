@@ -41,6 +41,13 @@ type Imgur struct {
 	ClientID     string
 }
 
+// JWT config info
+type JWT struct {
+	Issuer    string
+	Audience  string
+	SecretKey string
+}
+
 // Config main struct for get config from env
 type Config struct {
 	Port        string
@@ -51,7 +58,7 @@ type Config struct {
 	DBInfo      string
 	WrkDat      WorkerData
 	Imgur       Imgur
-	JWT         string
+	JWT         JWT
 	CtxTimeout  int
 }
 
@@ -85,7 +92,11 @@ func New(path string) *Config {
 			RefreshToken: getEnv("IMGUR_REFRESH_TOKEN", ""),
 			ClientID:     getEnv("IMGUR_CLIENT_ID", ""),
 		},
-		JWT:        getEnv("JWT_SECRET", ""),
+		JWT: JWT{
+			SecretKey: getEnv("JWT_SECRET", ""),
+			Issuer:    getEnv("ISSUER", ""),
+			Audience:  getEnv("AUDIENCE", ""),
+		},
 		Port:       getEnv("PORT", ""),
 		Host:       getEnv("HOST", ""),
 		CtxTimeout: getEnvAsInt("CTX_TIMEOUT", 15),

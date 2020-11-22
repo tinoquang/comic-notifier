@@ -38,5 +38,6 @@ create table subscribers
 (
     "id" serial,
     "user_psid" VARCHAR(64) references users(psid) on DELETE CASCADE on UPDATE CASCADE,
-    "comic_id" INT references comics(id) on DELETE CASCADE on UPDATE CASCADE
+    "comic_id" INT references comics(id) on DELETE CASCADE on UPDATE CASCADE,
+    "created_at" timestamp with time zone DEFAULT now()
 );

@@ -149,7 +149,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, opt *ComicsListOptions, psid s
 	conds := ListComicNameLikeSQL(opt.NameLikeOptions)
 	conds = append(conds, sqlf.Sprintf("subscribers.user_psid = %s", psid))
 
-	q := sqlf.Sprintf("LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE %s ORDER BY comics.id DESC %s", sqlf.Join(conds, "AND"), opt.LimitOffset.SQL())
+	q := sqlf.Sprintf("LEFT JOIN subscribers ON comics.id=subscribers.comic_id WHERE %s ORDER BY subscribers.created_at DESC %s", sqlf.Join(conds, "AND"), opt.LimitOffset.SQL())
 
 	comics, err := c.getBySQL(ctx, q.Query(sqlf.PostgresBindVar), q.Args()...)
 	if err != nil {

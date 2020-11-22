@@ -8,7 +8,6 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
@@ -170,11 +169,12 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userID string, comicID int) err
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
+	logging.Info(s, c)
 	// Check if no user subscribe to this comic --> remove this comic from DB
-	if len(s) == 0 {
-		img.DeleteImg(string(c.ImgurID))
-		a.store.Comic.Delete(ctx.Request().Context(), comicID)
-	}
+	// if len(s) == 0 {
+	// 	img.DeleteImg(string(c.ImgurID))
+	// 	a.store.Comic.Delete(ctx.Request().Context(), comicID)
+	// }
 
 	return ctx.NoContent(http.StatusOK)
 }

@@ -159,6 +159,7 @@ func (h *Handler) generateJWT(userPSID string) (string, error) {
 		IssuedAt:  time.Now().Unix(),
 		ExpiresAt: time.Now().AddDate(0, 1, 0).Unix(),
 		Audience:  h.cfg.JWT.Audience,
+		Id:        userPSID,
 	}
 	// Create JWT and send back
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

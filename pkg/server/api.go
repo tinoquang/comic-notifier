@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
@@ -113,9 +114,13 @@ func (a *API) Users(ctx echo.Context) error {
 }
 
 // GetUser (GET /user/{id})
-func (a *API) GetUser(ctx echo.Context, id string) error {
+func (a *API) GetUser(ctx echo.Context, userPSID string) error {
 
-	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "psid", id)
+	if !userHasAccess(ctx, userPSID) {
+		return ctx.NoContent(http.StatusForbidden)
+	}
+
+	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "psid", userPSID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
@@ -136,13 +141,17 @@ func (a *API) GetUser(ctx echo.Context, id string) error {
 }
 
 // GetUserComics (GET users/{id}/comics)
-func (a *API) GetUserComics(ctx echo.Context, psid string, params api.GetUserComicsParams) error {
+func (a *API) GetUserComics(ctx echo.Context, userPSID string, params api.GetUserComicsParams) error {
+
+	if !userHasAccess(ctx, userPSID) {
+		return ctx.NoContent(http.StatusForbidden)
+	}
 
 	q, limit, offset := listArgs(params.Q, params.Limit, params.Offset)
 	opt := store.NewComicsListOptions(q, limit, offset)
 
 	comicPage := api.ComicPage{}
-	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, psid)
+	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, userPSID)
 	if err != nil {
 		// Return empty list if not found comic
 		if strings.Contains(err.Error(), "not found") {
@@ -170,14 +179,18 @@ func (a *API) GetUserComics(ctx echo.Context, psid string, params api.GetUserCom
 }
 
 // SubscribeComic (POST /users/{id}/comics)
-func (a *API) SubscribeComic(ctx echo.Context, id string) error {
+func (a *API) SubscribeComic(ctx echo.Context, userPSID string) error {
+
+	if !userHasAccess(ctx, userPSID) {
+		return ctx.NoContent(http.StatusForbidden)
+	}
 
 	comicURL := ctx.FormValue("comic")
 	if comicURL == "" {
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	c, err := a.store.SubscribeComic(ctx.Request().Context(), "psid", id, comicURL)
+	c, err := a.store.SubscribeComic(ctx.Request().Context(), "psid", userPSID, comicURL)
 	if err != nil {
 		if strings.Contains(err.Error(), "check your URL") {
 			return ctx.NoContent(http.StatusBadRequest)
@@ -200,16 +213,20 @@ func (a *API) SubscribeComic(ctx echo.Context, id string) error {
 }
 
 // UnsubscribeComic (DELETE /users/{user_id}/comics/{id})
-func (a *API) UnsubscribeComic(ctx echo.Context, userID string, comicID int) error {
+func (a *API) UnsubscribeComic(ctx echo.Context, userPSID string, comicID int) error {
+
+	if !userHasAccess(ctx, userPSID) {
+		return ctx.NoContent(http.StatusForbidden)
+	}
 
 	// Validate if user has subscribed to this comic, if not then this request is invalid
-	c, err := a.store.Comic.CheckComicSubscribe(ctx.Request().Context(), userID, comicID)
+	c, err := a.store.Comic.CheckComicSubscribe(ctx.Request().Context(), userPSID, comicID)
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	err = a.store.Subscriber.Delete(ctx.Request().Context(), userID, comicID)
+	err = a.store.Subscriber.Delete(ctx.Request().Context(), userPSID, comicID)
 	if err != nil {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
@@ -227,4 +244,15 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userID string, comicID int) err
 	}
 
 	return ctx.NoContent(http.StatusOK)
+}
+
+func userHasAccess(ctx echo.Context, psid string) bool {
+	user := ctx.Get("user").(*jwt.Token)
+	claims := user.Claims.(*jwt.StandardClaims)
+
+	if claims.Id != psid {
+		return false
+	}
+
+	return true
 }

@@ -221,6 +221,52 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comi
 // Implement later
 func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
+	// var max float64 = 0
+	// var chapURL, chapName string
+
+	// comic.Name = doc.Find(".entry-title").Text()
+	// comic.DateFormat = "02-01-2006" // DD-MM-YYYY
+	// comic.ImageURL, _ = doc.Find(".info_image tooltip").Find("img[src]").Attr("src")
+
+	// // Query latest chap
+	// selections := doc.Find(".listChapters").Find(".list").Find("li")
+	// if selections.Nodes == nil {
+	// 	return errors.New("URL is not a comic page")
+	// }
+
+	// // Find latest chap
+	// selections.Each(func(index int, item *goquery.Selection) {
+
+	// 	text := strings.Fields(strings.Replace(item.Find(".titleComic").Text(), ":", "", -1))
+	// 	if len(text) >= 2 && (text[0] == "Chương" || text[0] == "Chapter") {
+	// 		chapNum, err := strconv.ParseFloat(text[1], 64)
+	// 		if err != nil {
+	// 			logging.Danger(err)
+	// 		}
+
+	// 		if max < chapNum {
+	// 			max = chapNum
+	// 			chapName = strings.Join(text, " ")
+	// 			chapURL, _ = item.Find("a[href]").Attr("href")
+	// 		}
+	// 	}
+	// })
+
+	// if chapURL == comic.ChapURL {
+	// 	return errors.New("No new chapter")
+	// }
+
+	// if comic.ChapURL != "" {
+	// 	err = detectSpolier(chapURL, ".comicDetail2#lightgallery2", "img")
+	// 	if err != nil {
+	// 		return
+	// 	}
+	// }
+
+	// comic.LatestChap = chapName
+	// comic.ChapURL = chapURL
+	// return
+
 	// chap.ComicName = doc.Find(".entry-title").Text()
 	// chap.ImageURL, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
 	// chap.DateFormat = "02-01-2006"

@@ -8,6 +8,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
@@ -31,6 +32,9 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	comics, err := a.store.Comic.List(ctx.Request().Context(), opt)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.JSON(http.StatusOK, &comicPage)
+		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
@@ -53,7 +57,27 @@ func (a *API) Comics(ctx echo.Context) error {
 
 // GetComic (GET /comics/{id})
 func (a *API) GetComic(ctx echo.Context, id int) error {
-	return nil
+
+	c, err := a.store.Comic.Get(ctx.Request().Context(), id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.String(http.StatusNotFound, "404 - Not found")
+		}
+		logging.Danger(err)
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	imgURL := c.ImgurLink.Value()
+	comic := api.Comic{
+		Id:         &c.ID,
+		Page:       &c.Page,
+		Name:       &c.Name,
+		Url:        &c.URL,
+		LatestChap: &c.LatestChap,
+		ImgURL:     &imgURL,
+		ChapURL:    &c.ChapURL,
+	}
+	return ctx.JSON(http.StatusOK, &comic)
 }
 
 /* ===================== User ============================ */
@@ -61,7 +85,31 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 // Users (GET /user)
 func (a *API) Users(ctx echo.Context) error {
 
-	return nil
+	userPage := []api.User{}
+
+	users, err := a.store.User.List(ctx.Request().Context())
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.JSON(http.StatusOK, &userPage)
+		}
+
+		logging.Danger(err)
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
+
+	for i := range users {
+		u := users[i]
+
+		userPage = append(userPage, api.User{
+			Psid:       &u.PSID,
+			Appid:      &u.AppID,
+			Name:       &u.Name,
+			ProfilePic: &u.ProfilePic,
+			Comics:     nil,
+		})
+
+	}
+	return ctx.JSON(http.StatusOK, &userPage)
 }
 
 // GetUser (GET /user/{id})
@@ -69,6 +117,9 @@ func (a *API) GetUser(ctx echo.Context, id string) error {
 
 	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "psid", id)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return ctx.String(http.StatusNotFound, "404 - Not found")
+		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
@@ -169,12 +220,11 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userID string, comicID int) err
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	logging.Info(s, c)
 	// Check if no user subscribe to this comic --> remove this comic from DB
-	// if len(s) == 0 {
-	// 	img.DeleteImg(string(c.ImgurID))
-	// 	a.store.Comic.Delete(ctx.Request().Context(), comicID)
-	// }
+	if len(s) == 0 {
+		img.DeleteImg(string(c.ImgurID))
+		a.store.Comic.Delete(ctx.Request().Context(), comicID)
+	}
 
 	return ctx.NoContent(http.StatusOK)
 }

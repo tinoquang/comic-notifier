@@ -40,19 +40,19 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
 	if err != nil {
-		if strings.Contains(err.Error(), "Already") {
+		if err == store.ErrAlreadySubscribed {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
-			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé !") // handle later: get time delay and send back to user
-		} else if strings.Contains(err.Error(), "not supported") {
+			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)") // handle later: get time delay and send back to user
+		} else if err == store.ErrPageNotSupported {
 			sendTextBack(senderID, "Cú pháp chưa chính xác")
 			responseCommand(ctx, senderID, "/page")
-		} else if strings.Contains(err.Error(), "Please check your URL") {
+		} else if err == store.ErrInvalidURL {
 			sendTextBack(senderID, "Cú pháp chưa chính xác")
 			responseCommand(ctx, senderID, "/help")
 		} else {
-			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé !")
+			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)")
 		}
 		return
 	}
@@ -81,7 +81,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
 
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if err == store.ErrNotFound {
 			sendTextBack(senderID, "This comic is not subscribed yet!")
 			return
 		}

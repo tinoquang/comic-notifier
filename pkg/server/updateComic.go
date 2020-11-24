@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -21,7 +22,7 @@ func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		logging.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
+		// logging.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
 		err := updateComic(ctx, s, &comic)
 
@@ -30,7 +31,7 @@ func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 			notifyToUsers(ctx, s, &comic)
 		} else {
 			if strings.Contains(err.Error(), "No new chapter") {
-				logging.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
+				// logging.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
 			} else {
 				logging.Danger(err)
 			}
@@ -42,8 +43,6 @@ func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 
 // UpdateThread read comic database and update each comic to each latest chap
 func updateComicThread(s *store.Stores, workerNum, timeout int) {
-
-	logging.Info("Start update new chapter routine ...")
 
 	// Create and jobs
 	comicPool := make(chan model.Comic, workerNum)
@@ -62,6 +61,8 @@ func updateComicThread(s *store.Stores, workerNum, timeout int) {
 			time.Sleep(time.Duration(timeout) * time.Minute)
 			continue
 		}
+
+		logging.Info(fmt.Sprintf("Update %d comic(s) ...", len(comics)))
 
 		// Query successful, for each comic put into job channel for worker to do the update stuffs
 		for _, comic := range comics {

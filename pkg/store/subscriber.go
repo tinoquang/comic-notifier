@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -38,7 +37,7 @@ func (s *subscriberDB) Get(ctx context.Context, psid string, comicID int) (*mode
 	}
 
 	if len(subscribers) == 0 {
-		return &model.Subscriber{}, errors.New("Subscriber not found")
+		return &model.Subscriber{}, ErrNotFound
 	}
 
 	return &subscribers[0], nil

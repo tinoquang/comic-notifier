@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/keegancsmith/sqlf"
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -57,7 +56,7 @@ func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {
 	}
 
 	if len(comics) == 0 {
-		return &model.Comic{}, errors.New("Comic not found")
+		return &model.Comic{}, ErrNotFound
 	}
 
 	return &comics[0], nil
@@ -72,7 +71,7 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 	}
 
 	if len(comics) == 0 {
-		return &model.Comic{}, errors.New("Comic not found")
+		return &model.Comic{}, ErrNotFound
 	}
 
 	return &comics[0], nil
@@ -90,7 +89,7 @@ func (c *comicDB) CheckComicSubscribe(ctx context.Context, psid string, comicID 
 	}
 
 	if len(comics) == 0 {
-		return &model.Comic{}, errors.New("Comic not found")
+		return &model.Comic{}, ErrNotFound
 	}
 
 	return &comics[0], nil
@@ -158,7 +157,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, opt *ComicsListOptions, psid s
 	}
 
 	if len(comics) == 0 {
-		return []model.Comic{}, errors.New("Comic not found")
+		return []model.Comic{}, ErrNotFound
 	}
 
 	return comics, nil

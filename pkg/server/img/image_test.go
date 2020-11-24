@@ -1,7 +1,6 @@
 package img
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -112,7 +111,7 @@ func TestUpdateSameImage(t *testing.T) {
 	}
 
 	err = UpdateImage(img.ID, c)
-	if err == nil || !strings.Contains(err.Error(), "Cover-image is up-to-date") {
+	if err == nil || err != ErrUpToDate {
 		t.Error("fail update same image success")
 	}
 

@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
@@ -33,7 +32,7 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	comics, err := a.store.Comic.List(ctx.Request().Context(), opt)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if err == store.ErrNotFound {
 			return ctx.JSON(http.StatusOK, &comicPage)
 		}
 		logging.Danger(err)
@@ -61,7 +60,7 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 
 	c, err := a.store.Comic.Get(ctx.Request().Context(), id)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if err == store.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -90,7 +89,7 @@ func (a *API) Users(ctx echo.Context) error {
 
 	users, err := a.store.User.List(ctx.Request().Context())
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if err == store.ErrNotFound {
 			return ctx.JSON(http.StatusOK, &userPage)
 		}
 
@@ -122,7 +121,7 @@ func (a *API) GetUser(ctx echo.Context, userPSID string) error {
 
 	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "psid", userPSID)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if err == store.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -154,7 +153,7 @@ func (a *API) GetUserComics(ctx echo.Context, userPSID string, params api.GetUse
 	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, userPSID)
 	if err != nil {
 		// Return empty list if not found comic
-		if strings.Contains(err.Error(), "not found") {
+		if err == store.ErrNotFound {
 			comicPage.Comics = []api.Comic{}
 			return ctx.JSON(http.StatusOK, &comicPage)
 		}
@@ -192,7 +191,7 @@ func (a *API) SubscribeComic(ctx echo.Context, userPSID string) error {
 
 	c, err := a.store.SubscribeComic(ctx.Request().Context(), "psid", userPSID, comicURL)
 	if err != nil {
-		if strings.Contains(err.Error(), "check your URL") {
+		if err == store.ErrInvalidURL {
 			return ctx.NoContent(http.StatusBadRequest)
 		}
 		return ctx.NoContent(http.StatusInternalServerError)

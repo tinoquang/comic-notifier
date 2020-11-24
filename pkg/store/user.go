@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
@@ -37,7 +36,7 @@ func (u *userDB) GetByFBID(ctx context.Context, field, id string) (*model.User, 
 	}
 
 	if len(users) == 0 {
-		return &model.User{}, errors.New(fmt.Sprintf("User not found, %s:%s", field, id))
+		return &model.User{}, ErrNotFound
 	}
 
 	return &users[0], nil

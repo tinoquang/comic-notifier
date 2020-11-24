@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -69,7 +68,7 @@ func (p *pageDB) GetByName(ctx context.Context, name string) (*model.Page, error
 
 	if len(pages) == 0 {
 		logging.Danger()
-		return nil, errors.New(fmt.Sprintf("Page %s not found", name))
+		return nil, ErrNotFound
 	}
 
 	return &pages[0], nil

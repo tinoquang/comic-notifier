@@ -21,6 +21,10 @@ var (
 	clientID     string
 )
 
+var (
+	ErrUpToDate = errors.Errorf("Image is up-to-date")
+)
+
 type imgError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
@@ -117,7 +121,7 @@ func UpdateImage(imageID string, comic *model.Comic) (err error) {
 
 	img.Description = strings.Replace(img.Description, " . ", ".", -1)
 	if strings.Compare(img.Description, comic.ImageURL) == 0 {
-		return errors.Errorf("%s %s : Cover-image is up-to-date\n", comic.Page, comic.Name)
+		return ErrUpToDate
 	}
 
 	img, err = UploadImagetoImgur(img.Title, comic.ImageURL)

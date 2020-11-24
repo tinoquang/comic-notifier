@@ -17,6 +17,14 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
+var (
+	ErrNotFound          = errors.Errorf("Not found")
+	ErrInvalidURL        = errors.Errorf("Comic URL is invalid")
+	ErrPageNotSupported  = errors.Errorf("Page is not supported yet")
+	ErrComicUpToDate     = errors.Errorf("Comic is up-to-date, no new chapter")
+	ErrAlreadySubscribed = errors.Errorf("Already subscribed")
+)
+
 // Stores contain all store interfaces
 type Stores struct {
 	db         *sql.DB
@@ -48,13 +56,13 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
-		return nil, errors.New("Please check your URL")
+		return nil, ErrInvalidURL
 	}
 
 	// Check page support, if not send back "Page is not supported"
 	_, err = s.Page.GetByName(ctx, parsedURL.Hostname())
 	if err != nil {
-		return nil, errors.New("Page not supported")
+		return nil, ErrPageNotSupported
 	}
 
 	err = db.WithTransaction(ctx, s.db, func(tx db.Transaction) (inErr error) {
@@ -122,7 +130,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 
 		subscriber, inErr := s.Subscriber.Get(ctx, user.PSID, comic.ID)
 		if inErr != nil {
-			if !strings.Contains(inErr.Error(), "not found") {
+			if err != ErrNotFound {
 				logging.Danger(inErr)
 				return
 			}
@@ -134,7 +142,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 				return
 			}
 		} else {
-			return errors.New("Already subscribed")
+			return ErrAlreadySubscribed
 		}
 
 		if newComic != 0 {

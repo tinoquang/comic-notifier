@@ -138,19 +138,31 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 		}
 
 		if newComic != 0 {
-			image, e := img.UploadImagetoImgur(comic.Page+" "+comic.Name, comic.ImageURL)
-			if e != nil {
-				logging.Danger(e)
-				return e
+			if comic.Page != "truyendep.com" {
+				image, e := img.UploadImagetoImgur(comic.Page+" "+comic.Name, comic.ImageURL)
+				if e != nil {
+					logging.Danger(e)
+					return e
+				}
+				comic.ImgurID = model.NullString(image.ID)
+				comic.ImgurLink = model.NullString(image.Link)
+				query := "UPDATE comics SET imgur_id=$2, imgur_link=$3 WHERE id=$1 RETURNING id, imgur_id, imgur_link"
+				inErr = tx.QueryRowContext(ctx, query, comic.ID, image.ID, image.Link).Scan(&comic.ID, &comic.ImgurID, &comic.ImgurLink)
+				if inErr != nil {
+					logging.Danger(inErr)
+					img.DeleteImg(image.ID)
+					return
+				}
+			} else {
+				comic.ImgurLink = model.NullString(comic.ImageURL)
+				query := "UPDATE comics SET imgur_id=$2, imgur_link=$3 WHERE id=$1 RETURNING id, imgur_id, imgur_link"
+				inErr = tx.QueryRowContext(ctx, query, comic.ID, "", comic.ImageURL).Scan(&comic.ID, &comic.ImgurID, &comic.ImgurLink)
+				if inErr != nil {
+					logging.Danger(inErr)
+					return
+				}
 			}
-			comic.ImgurID = model.NullString(image.ID)
-			comic.ImgurLink = model.NullString(image.Link)
-			query := "UPDATE comics SET imgur_id=$2, imgur_link=$3 WHERE id=$1 RETURNING id, imgur_id, imgur_link"
-			inErr = tx.QueryRowContext(ctx, query, comic.ID, image.ID, image.Link).Scan(&comic.ID, &comic.ImgurID, &comic.ImgurLink)
-			if inErr != nil {
-				img.DeleteImg(image.ID)
-				return
-			}
+
 		}
 
 		return

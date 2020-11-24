@@ -52,6 +52,12 @@ func SetEnvVar(cfg *conf.Config) {
 // UploadImagetoImgur add image to Imgur gallery and return link to new image
 func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 
+	if imageURL == "" {
+		return nil, errors.Errorf("Can't upload image to imgur: URL is empty")
+	}
+
+	logging.Info(imageURL)
+
 	response := &imageResponse{}
 	url := apiEndpoint + "image"
 

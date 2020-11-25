@@ -19,9 +19,9 @@ var (
 
 func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 
+	// Get comic from updateComicThread, which run only when updateComicThread push comic into comicPool
 	for comic := range comicPool {
-		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-		// logging.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		err := updateComic(ctx, s, &comic)
 		if err == nil {
@@ -31,22 +31,27 @@ func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 			logging.Danger(err)
 		}
 
+		cancel() // Call context cancel here to avoid context leak
 		wg.Done()
 	}
+
+	// Never reach here
 }
 
 // UpdateThread read comic database and update each comic to each latest chap
 func updateComicThread(s *store.Stores, workerNum, timeout int) {
 
-	// Create and jobs
 	comicPool := make(chan model.Comic, workerNum)
 
+	// Create workers
 	for i := 0; i < workerNum; i++ {
 		go worker(s, &wg, comicPool)
 	}
-	// Start infinite loop
+
+	// Start update routine, every 30min
 	for {
-		ctx, _ := context.WithTimeout(context.Background(), 7*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+
 		// Get all comics in DB
 		opt := store.NewComicsListOptions("", 0, 0)
 		comics, err := s.Comic.List(ctx, opt)
@@ -64,13 +69,15 @@ func updateComicThread(s *store.Stores, workerNum, timeout int) {
 			wg.Add(1)
 		}
 
-		// Wait util all comics is updated, then sleep 30min and start checking again
+		cancel() // Call context cancel here to avoid context leak
+
 		wg.Wait()
-		logging.Info("All comics is up-to-date")
+		logging.Info("All comics is updated")
 
 		time.Sleep(time.Duration(timeout) * time.Minute)
 	}
 
+	// Never reach here
 }
 
 // UpdateComic use when new chapter realease
@@ -90,12 +97,11 @@ func notifyToUsers(ctx context.Context, s *store.Stores, comic *model.Comic) {
 
 	subscribers, err := s.Subscriber.ListByComicID(ctx, comic.ID)
 	if err != nil {
-		logging.Danger(err)
+		logging.Danger("Can't send notification for comic %s, err: %s", comic.Name, err.Error())
 		return
 	}
 
 	for _, sub := range subscribers {
-		logging.Info("Notify ", comic.Name, " to user ID", sub.PSID)
 		sendMsgTagsReply(sub.PSID, comic)
 	}
 }

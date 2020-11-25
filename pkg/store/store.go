@@ -18,12 +18,11 @@ import (
 )
 
 var (
-	ErrNotFound         = errors.Errorf("Not found")
-	ErrInvalidURL       = errors.Errorf("Comic URL is invalid")
-	ErrPageNotSupported = errors.Errorf("Page is not supported yet")
-	ErrComicUpToDate    = errors.Errorf("Comic is up-to-date, no new chapter")
-
-	ErrAlreadySubscribed = errors.Errorf("Already subscribed")
+	ErrNotFound          = errors.New("Not found")
+	ErrInvalidURL        = errors.New("Comic URL is invalid")
+	ErrPageNotSupported  = errors.New("Page is not supported yet")
+	ErrComicUpToDate     = errors.New("Comic is up-to-date, no new chapter")
+	ErrAlreadySubscribed = errors.New("Already subscribed")
 )
 
 // Stores contain all store interfaces
@@ -131,7 +130,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 
 		subscriber, inErr := s.Subscriber.Get(ctx, user.PSID, comic.ID)
 		if inErr != nil {
-			if err != ErrNotFound {
+			if inErr != ErrNotFound {
 				logging.Danger(inErr)
 				return
 			}

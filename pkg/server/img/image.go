@@ -60,8 +60,6 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 		return nil, errors.Errorf("Can't upload image to imgur: URL is empty")
 	}
 
-	logging.Info(imageURL)
-
 	response := &imageResponse{}
 	url := apiEndpoint + "image"
 

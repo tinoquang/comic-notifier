@@ -94,7 +94,6 @@ func sendActionBack(senderid, action string) {
 		Recipient: &User{ID: senderid},
 		Action:    action,
 	}
-	// logging.Info("Send action " + action + " to user")
 
 	callSendAPI(res)
 }

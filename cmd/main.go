@@ -16,6 +16,7 @@ import (
 func main() {
 
 	e := echo.New()
+	e.Pre(middleware.RemoveTrailingSlash())
 
 	// Get environment variable
 	cfg := conf.New("")

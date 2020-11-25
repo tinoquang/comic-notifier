@@ -135,6 +135,7 @@ func (h *Handler) auth(c echo.Context) error {
 		Value:    jwtCookie,
 		Expires:  time.Now().AddDate(0, 0, 1),
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
 	c.SetCookie(cookie)
 

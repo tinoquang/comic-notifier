@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	ErrNotFound          = errors.Errorf("Not found")
-	ErrInvalidURL        = errors.Errorf("Comic URL is invalid")
-	ErrPageNotSupported  = errors.Errorf("Page is not supported yet")
-	ErrComicUpToDate     = errors.Errorf("Comic is up-to-date, no new chapter")
+	ErrNotFound         = errors.Errorf("Not found")
+	ErrInvalidURL       = errors.Errorf("Comic URL is invalid")
+	ErrPageNotSupported = errors.Errorf("Page is not supported yet")
+	ErrComicUpToDate    = errors.Errorf("Comic is up-to-date, no new chapter")
+
 	ErrAlreadySubscribed = errors.Errorf("Already subscribed")
 )
 
@@ -60,10 +61,10 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 	}
 
 	// Check page support, if not send back "Page is not supported"
-	_, err = s.Page.GetByName(ctx, parsedURL.Hostname())
-	if err != nil {
-		return nil, ErrPageNotSupported
-	}
+	// _, err = s.Page.GetByName(ctx, parsedURL.Hostname())
+	// if err != nil {
+	// 	return nil, ErrPageNotSupported
+	// }
 
 	err = db.WithTransaction(ctx, s.db, func(tx db.Transaction) (inErr error) {
 

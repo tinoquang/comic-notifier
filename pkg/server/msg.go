@@ -9,6 +9,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
@@ -45,7 +46,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
 			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)") // handle later: get time delay and send back to user
-		} else if err == store.ErrPageNotSupported {
+		} else if err == crawler.ErrPageNotSupported {
 			sendTextBack(senderID, "Cú pháp chưa chính xác")
 			responseCommand(ctx, senderID, "/page")
 		} else if err == store.ErrInvalidURL {

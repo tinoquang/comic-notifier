@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -21,22 +20,17 @@ var (
 func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 
 	for comic := range comicPool {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		// logging.Info("Comic", comic.ID, "-", comic.Name, "starting update...")
 
 		err := updateComic(ctx, s, &comic)
-
 		if err == nil {
 			logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
 			notifyToUsers(ctx, s, &comic)
-		} else {
-			if strings.Contains(err.Error(), "No new chapter") {
-				// logging.Info("Comic", comic.ID, "-", comic.Name, "is up-to-date")
-			} else {
-				logging.Danger(err)
-			}
+		} else if err != crawler.ErrComicUpToDate {
+			logging.Danger(err)
 		}
-		cancel()
+
 		wg.Done()
 	}
 }
@@ -52,7 +46,7 @@ func updateComicThread(s *store.Stores, workerNum, timeout int) {
 	}
 	// Start infinite loop
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 7*time.Second)
 		// Get all comics in DB
 		opt := store.NewComicsListOptions("", 0, 0)
 		comics, err := s.Comic.List(ctx, opt)
@@ -74,7 +68,6 @@ func updateComicThread(s *store.Stores, workerNum, timeout int) {
 		wg.Wait()
 		logging.Info("All comics is up-to-date")
 
-		cancel()
 		time.Sleep(time.Duration(timeout) * time.Minute)
 	}
 

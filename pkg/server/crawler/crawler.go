@@ -3,6 +3,7 @@ package crawler
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -14,6 +15,12 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+)
+
+var (
+	ErrComicUpToDate    = errors.Errorf("Comic is up-to-date, no new chapter")
+	ErrPageNotSupported = errors.Errorf("Page is not supported yet")
+	ErrInvalidURL       = errors.Errorf("URL is not a comic page")
 )
 
 var crawlerMap map[string]func(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error)
@@ -53,10 +60,11 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 	}
 
 	if _, ok := crawlerMap[comic.Page]; !ok {
-		return errors.Errorf("Page is not support with crawlerMap: %s", comic.Page)
+		logging.Danger(fmt.Sprintf("%s is not supported", comic.Page))
+		return ErrPageNotSupported
 	}
 	err = crawlerMap[comic.Page](ctx, doc, comic)
-	return errors.Wrapf(err, "Can't get latest chap from %s", comic.Page)
+	return err
 }
 
 func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
@@ -71,7 +79,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	// Query latest chap
 	selections := doc.Find(".listChapters").Find(".list").Find("li")
 	if selections.Nodes == nil {
-		return errors.New("URL is not a comic page")
+		return ErrInvalidURL
 	}
 
 	// Find latest chap
@@ -93,7 +101,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	})
 
 	if chapURL == comic.ChapURL {
-		return errors.New("No new chapter")
+		return ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {
@@ -122,7 +130,7 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	// Query latest chap
 	selections := doc.Find(".list-wrap#list-chapters").Find("p")
 	if selections.Nodes == nil {
-		return errors.New("URL is not a comic page")
+		return ErrInvalidURL
 	}
 
 	// Find latest chap
@@ -141,7 +149,7 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 
 	chapURL = "https://blogtruyen.vn" + chapURL
 	if comic.ChapURL == chapURL {
-		return errors.New("No new chapter")
+		return ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {
@@ -189,7 +197,7 @@ func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 	})
 
 	if chapURL == comic.ChapURL {
-		return errors.New("No new chapter")
+		return ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {
@@ -260,7 +268,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *model.Comi
 	}
 
 	if comic.ChapURL == chapURL {
-		return errors.New("No new chapter")
+		return ErrComicUpToDate
 	}
 
 	comic.LatestChap = chapName

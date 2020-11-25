@@ -191,6 +191,7 @@ func (a *API) SubscribeComic(ctx echo.Context, userPSID string) error {
 
 	c, err := a.store.SubscribeComic(ctx.Request().Context(), "psid", userPSID, comicURL)
 	if err != nil {
+		logging.Danger(err)
 		if err == store.ErrInvalidURL {
 			return ctx.NoContent(http.StatusBadRequest)
 		}

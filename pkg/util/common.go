@@ -51,8 +51,8 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	return
 }
 
-// GetUserInfoByID get user AppID using PSID or vice-versa
-func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err error) {
+// GetUserInfoFromFB get user AppID using PSID or vice-versa
+func GetUserInfoFromFB(cfg *conf.Config, field, id string) (user *model.User, err error) {
 
 	user = &model.User{}
 
@@ -97,12 +97,14 @@ func GetUserInfoByID(cfg *conf.Config, field, id string) (user *model.User, err 
 	json.Unmarshal(picture["data"], &picture)
 	json.Unmarshal(info["data"], &appInfo)
 
-	if field == "psid" {
-		user.AppID = ConvertJSONToString(appInfo[0]["id"])
-
-	} else {
-		user.PSID = ConvertJSONToString(appInfo[0]["id"])
+	if len(appInfo) != 0 {
+		if field == "psid" {
+			user.AppID = ConvertJSONToString(appInfo[0]["id"])
+		} else {
+			user.PSID = ConvertJSONToString(appInfo[0]["id"])
+		}
 	}
+
 	user.ProfilePic = ConvertJSONToString(picture["url"])
 	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
 

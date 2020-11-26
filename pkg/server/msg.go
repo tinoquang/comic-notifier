@@ -39,7 +39,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		return
 	}
 
-	comic, err := m.subscribeComic(ctx, "psid", senderID, text)
+	comic, err := m.subscribeComic(ctx, senderID, text)
 	if err != nil {
 		if err == store.ErrAlreadySubscribed {
 			sendTextBack(senderID, "Already subscribed")
@@ -124,9 +124,9 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 }
 
 // Update comic helper
-func (m *MSG) subscribeComic(ctx context.Context, field, id, comicURL string) (*model.Comic, error) {
+func (m *MSG) subscribeComic(ctx context.Context, id, comicURL string) (*model.Comic, error) {
 
-	return m.store.SubscribeComic(ctx, field, id, comicURL)
+	return m.store.SubscribeComic(ctx, id, comicURL)
 }
 
 func responseCommand(ctx context.Context, senderID, text string) {

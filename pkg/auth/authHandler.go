@@ -111,24 +111,24 @@ func (h *Handler) auth(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	user, err := util.GetUserInfoByID(h.cfg, "appid", userAppID)
+	user, err := util.GetUserInfoFromFB(h.cfg, "appid", userAppID)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	jwtCookie, err := h.generateJWT(user.PSID)
+	jwtCookie, err := h.generateJWT(user.AppID)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	// Save user info to DB to get later
-	err = h.store.User.Create(c.Request().Context(), user)
-	if err != nil {
-		logging.Danger(err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
+	// err = h.store.User.Create(c.Request().Context(), user)
+	// if err != nil {
+	// 	logging.Danger(err)
+	// 	return c.NoContent(http.StatusInternalServerError)
+	// }
 
 	cookie := &http.Cookie{
 		Name:     "_session",
@@ -141,7 +141,7 @@ func (h *Handler) auth(c echo.Context) error {
 
 	cookie = &http.Cookie{
 		Name:    "upid",
-		Value:   user.PSID,
+		Value:   user.AppID,
 		Expires: time.Now().AddDate(0, 1, 0),
 	}
 	c.SetCookie(cookie)
@@ -153,14 +153,14 @@ func (h *Handler) auth(c echo.Context) error {
 	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s", h.cfg.Host))
 }
 
-func (h *Handler) generateJWT(userPSID string) (string, error) {
+func (h *Handler) generateJWT(userAppID string) (string, error) {
 
 	claims := &jwt.StandardClaims{
 		Issuer:    h.cfg.JWT.Issuer,
 		IssuedAt:  time.Now().Unix(),
 		ExpiresAt: time.Now().AddDate(0, 1, 0).Unix(),
 		Audience:  h.cfg.JWT.Audience,
-		Id:        userPSID,
+		Id:        userAppID,
 	}
 	// Create JWT and send back
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

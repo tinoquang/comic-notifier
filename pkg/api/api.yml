@@ -53,7 +53,7 @@ paths:
       parameters:
         - name: id
           in: path
-          description: User ID
+          description: User App ID, different with User Page Scope ID
           required: true
           schema:
             type: string
@@ -79,7 +79,7 @@ paths:
       parameters:
         - name: id
           in: path
-          description: User ID
+          description: User App ID, different with User Page Scope ID
           required: true
           schema:
             type: string
@@ -112,7 +112,7 @@ paths:
       parameters:
         - name: user_id
           in: path
-          description: User ID
+          description: User App ID, different with User Page Scope ID
           required: true
           schema:
             type: string

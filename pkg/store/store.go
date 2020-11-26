@@ -48,7 +48,7 @@ func New(db *sql.DB, cfg *conf.Config) *Stores {
 }
 
 // SubscribeComic subscribe and return comic info to user
-func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string) (*model.Comic, error) {
+func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*model.Comic, error) {
 
 	var err error
 	var comic *model.Comic
@@ -106,7 +106,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 		// If not, add user to database, return "Subscribed to ..."
 		// else return "Already subscribed"
 		user := &model.User{}
-		inErr = tx.QueryRowContext(ctx, "SELECT * from users WHERE "+field+"=$1", id).Scan(&user.Name, &user.PSID, &user.AppID, &user.ProfilePic)
+		inErr = tx.QueryRowContext(ctx, "SELECT * from users WHERE psid=$1", userPSID).Scan(&user.Name, &user.PSID, &user.AppID, &user.ProfilePic)
 		if inErr != nil {
 
 			if inErr != sql.ErrNoRows {
@@ -114,7 +114,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, field, id, comicURL string)
 				return inErr
 			}
 
-			user, inErr = util.GetUserInfoByID(s.cfg, field, id)
+			user, inErr = util.GetUserInfoFromFB(s.cfg, "psid", userPSID)
 			if inErr != nil {
 				logging.Danger(inErr)
 				return inErr

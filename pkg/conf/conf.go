@@ -94,8 +94,8 @@ func New(path string) *Config {
 		},
 		JWT: JWT{
 			SecretKey: getEnv("JWT_SECRET", ""),
-			Issuer:    getEnv("ISSUER", ""),
-			Audience:  getEnv("AUDIENCE", ""),
+			Issuer:    getEnv("JWT_ISSUER", ""),
+			Audience:  getEnv("JWT_AUDIENCE", ""),
 		},
 		Port:       getEnv("PORT", ""),
 		Host:       getEnv("HOST", ""),

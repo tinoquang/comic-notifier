@@ -45,6 +45,7 @@ func main() {
 	/* Routing */
 	e.Static("/static", "ui/static")
 	e.Static("/assets", "ui/assets")
+	e.Static("/favicon.ico", "ui/favicon.ico")
 
 	e.GET("/", func(c echo.Context) error {
 		return c.File("ui/index.html")

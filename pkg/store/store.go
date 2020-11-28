@@ -210,7 +210,7 @@ func ListComicNameLikeSQL(opt *NameLikeOptions) (conds []*sqlf.Query) {
 	conds = []*sqlf.Query{sqlf.Sprintf("TRUE")}
 	if opt.Query != "" {
 		query := "%" + strings.Replace(opt.Query, " ", "%", -1) + "%"
-		conds = append(conds, sqlf.Sprintf("comics.name ILIKE %s", query))
+		conds = append(conds, sqlf.Sprintf("comics.name ILIKE %s or unaccent(comics.name) ILIKE %s", query, query))
 	}
 	return conds
 }

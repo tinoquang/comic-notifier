@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -69,11 +68,11 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 
 func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
-	var max float64 = 0
-	var chapURL, chapName string
+	var chapURL, chapName, chapDate string
+	var max time.Time
 
 	comic.Name = doc.Find(".detail").Find("h4").Text()
-	comic.DateFormat = "02/01/2006"
+	comic.DateFormat = "02-01-2006 15:04"
 	comic.ImageURL, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
 
 	// Query latest chap
@@ -85,18 +84,20 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 	// Find latest chap
 	selections.Each(func(index int, item *goquery.Selection) {
 
-		text := strings.Fields(strings.Replace(item.Find(".titleComic").Text(), ":", "", -1))
-		if len(text) >= 2 && (text[0] == "Chương" || text[0] == "Chapter") {
-			chapNum, err := strconv.ParseFloat(text[1], 64)
-			if err != nil {
-				logging.Danger(err)
-			}
+		rawDate := strings.Split((item.Find(".name").Find("span:nth-child(2)").Text()), "-")
+		date := fmt.Sprintf("%s-%s-%s", strings.TrimSpace(rawDate[0]), rawDate[1], strings.TrimSpace(rawDate[2]))
 
-			if max < chapNum {
-				max = chapNum
-				chapName = strings.Join(text, " ")
-				chapURL, _ = item.Find("a[href]").Attr("href")
-			}
+		t, err := time.Parse("02-01-2006 15:04", date)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if t.Sub(max) > 0 {
+			max = t
+
+			text := strings.Fields(strings.Replace(item.Find(".titleComic").Text(), ":", "", -1))
+			chapName = strings.Join(text, " ")
+			chapURL, _ = item.Find("a[href]").Attr("href")
+			chapDate = date
 		}
 	})
 
@@ -113,6 +114,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
+	comic.Date = chapDate
 	return
 }
 
@@ -137,7 +139,7 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 	selections.Each(func(index int, item *goquery.Selection) {
 
 		date := item.Find(".publishedDate").Text()
-		t, _ := time.Parse("02/01/2006 15:04", date)
+		t, _ := time.Parse(comic.DateFormat, date)
 
 		if t.Sub(max) > 0 {
 			max = t
@@ -186,9 +188,8 @@ func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic)
 	selections.Each(func(index int, item *goquery.Selection) {
 
 		date := strings.TrimSpace(item.Find("span:nth-child(2)").Text())
-		// url, _ = item.Find("a[href]").Attr("href")
-		// fmt.Println(url)
-		t, _ := time.Parse("02-01-2006", date)
+		t, _ := time.Parse(comic.DateFormat, date)
+
 		if t.Sub(max).Seconds() > 0.0 {
 			max = t
 			chapName = item.Find("span:nth-child(1)").Text()

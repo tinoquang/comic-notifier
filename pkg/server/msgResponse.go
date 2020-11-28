@@ -113,15 +113,15 @@ func sendNormalReply(senderid string, comic *model.Comic) {
 							Title:    comic.Name + "\n" + comic.LatestChap,
 							ImageURL: string(comic.ImgurLink),
 							Subtitle: comic.Page,
-							DefaultAction: &Action{
-								Type: "web_url",
-								URL:  comic.ChapURL,
-							},
+							// DefaultAction: &Action{
+							// 	Type: "web_url",
+							// 	URL:  comic.ChapURL,
+							// },
 							Buttons: []Button{
 								{
 									Type:  "web_url",
 									URL:   comic.ChapURL,
-									Title: "Read Now",
+									Title: "Read",
 								},
 								{
 									Type:    "postback",

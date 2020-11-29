@@ -18,7 +18,7 @@ type (
 
 func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpoiler) (err error) {
 
-	var chapURL, chapName string
+	var chapURL string
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
@@ -34,7 +34,7 @@ func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpo
 		return ErrInvalidURL
 	}
 
-	chapName = strings.TrimSpace(firstItem.Find(".titleComic").Text())
+	comic.LatestChap = strings.TrimSpace(firstItem.Find(".titleComic").Text())
 	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
@@ -48,7 +48,6 @@ func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpo
 		}
 	}
 
-	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	return
 }
@@ -58,7 +57,7 @@ func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpo
 // blogtruyen crawler
 func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector detectSpoiler) (err error) {
 
-	var chapURL, chapName string
+	var chapURL string
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
@@ -75,8 +74,8 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 		return ErrInvalidURL
 	}
 
+	comic.LatestChap = firstItem.Find(".title").Find("a[href]").Text()
 	chapURL, _ = firstItem.Find(".title").Find("a[href]").Attr("href")
-	chapName = firstItem.Find(".title").Find("a[href]").Text()
 
 	chapURL = "https://blogtruyen.vn" + chapURL
 	if comic.ChapURL == chapURL {
@@ -90,7 +89,6 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 		}
 	}
 
-	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	return
 }
@@ -100,7 +98,7 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 // mangaK crawler
 func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSpoiler) (err error) {
 
-	var chapURL, chapName string
+	var chapURL string
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
@@ -116,7 +114,7 @@ func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSp
 		return errors.New("URL is not a comic page")
 	}
 
-	chapName = firstItem.Find("span:nth-child(1)").Text()
+	comic.LatestChap = firstItem.Find("span:nth-child(1)").Text()
 	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
@@ -130,10 +128,45 @@ func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSp
 		}
 	}
 
-	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
 	return
 
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
+
+func (t truyentranhtuan) crawl(ctx context.Context, comic *model.Comic, detector detectSpoiler) (err error) {
+
+	var chapURL string
+
+	doc, err := getPageSource(comic.URL)
+	if err != nil {
+		return ErrInvalidURL
+	}
+
+	comic.Name = doc.Find("#infor-box").Find("h1").Text()
+	comic.ImageURL, _ = doc.Find(".manga-cover").Find("img[src]").Attr("src")
+
+	// Find latest chap
+	firstItem := doc.Find("#manga-chapter").Find(".chapter-name").First()
+	if firstItem.Nodes == nil {
+		return errors.New("URL is not a comic page")
+	}
+
+	comic.LatestChap = firstItem.Find("a[href]").Text()
+	chapURL, _ = firstItem.Find("a[href]").Attr("href")
+
+	if chapURL == comic.ChapURL {
+		return ErrComicUpToDate
+	}
+
+	// if comic.ChapURL != "" {
+	// 	err = detector.detect(chapURL, ".vung_doc", "img")
+	// 	if err != nil {
+	// 		return
+	// 	}
+	// }
+
+	comic.ChapURL = chapURL
+	return
+}

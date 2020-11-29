@@ -100,33 +100,21 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *model.Comic) 
 /* Comic page crawler function */
 func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
-	var chapURL, chapName, chapDate string
-	var max time.Time
+	var chapURL, chapName string
 
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.DateFormat = "02/01/2006 15:04"
 	comic.ImageURL, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
 
-	// Query latest chap
-	selections := doc.Find(".list-wrap#list-chapters").Find("p")
-	if selections.Nodes == nil {
+	// Find latest chap
+	firstItem := doc.Find(".list-wrap#list-chapters").Find("p:nth-child(1)")
+	if firstItem.Nodes == nil {
 		return ErrInvalidURL
 	}
 
-	// Find latest chap
-	selections.Each(func(index int, item *goquery.Selection) {
-
-		date := item.Find(".publishedDate").Text()
-		t, _ := time.Parse(comic.DateFormat, date)
-
-		if t.Sub(max) > 0 {
-			max = t
-			chapURL, _ = item.Find(".title").Find("a[href]").Attr("href")
-			chapName = item.Find(".title").Find("a[href]").Text()
-			chapDate = date
-		}
-	})
+	chapURL, _ = firstItem.Find(".title").Find("a[href]").Attr("href")
+	chapName = firstItem.Find(".title").Find("a[href]").Text()
 
 	chapURL = "https://blogtruyen.vn" + chapURL
 	if comic.ChapURL == chapURL {
@@ -142,39 +130,25 @@ func crawlBlogTruyen(ctx context.Context, doc *goquery.Document, comic *model.Co
 
 	comic.LatestChap = chapName
 	comic.ChapURL = chapURL
-	comic.Date = chapDate
 	return
 }
 
 // Implement later
 func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *model.Comic) (err error) {
 
-	max := time.Time{}
-
 	var chapURL, chapName string
 
 	comic.Name = doc.Find(".entry-title").Text()
-	comic.DateFormat = "02-01-2006" // DD-MM-YYYY
 	comic.ImageURL, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
 
-	// Query latest chap
-	selections := doc.Find(".chapter-list").Find(".row")
-	if selections.Nodes == nil {
+	// Find latest chap
+	firstItem := doc.Find(".chapter-list").Find(".row:nth-child(1)")
+	if firstItem.Nodes == nil {
 		return errors.New("URL is not a comic page")
 	}
 
-	// Find latest chap
-	selections.Each(func(index int, item *goquery.Selection) {
-
-		date := strings.TrimSpace(item.Find("span:nth-child(2)").Text())
-		t, _ := time.Parse(comic.DateFormat, date)
-
-		if t.Sub(max).Seconds() > 0.0 {
-			max = t
-			chapName = item.Find("span:nth-child(1)").Text()
-			chapURL, _ = item.Find("a[href]").Attr("href")
-		}
-	})
+	chapName = firstItem.Find("span:nth-child(1)").Text()
+	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
 		return ErrComicUpToDate

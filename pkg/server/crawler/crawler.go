@@ -30,6 +30,7 @@ func New() {
 	crawlerMap["blogtruyen.vn"] = blogtruyen{}
 	crawlerMap["truyendep.com"] = mangaK{}
 	crawlerMap["truyentranhtuan.com"] = truyentranhtuan{}
+	crawlerMap["truyentranh.net"] = truyentranhnet{}
 }
 
 // GetComicInfo return link of latest chapter of a page

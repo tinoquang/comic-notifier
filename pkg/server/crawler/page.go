@@ -14,6 +14,7 @@ type (
 	blogtruyen      struct{}
 	mangaK          struct{}
 	truyentranhtuan struct{}
+	truyentranhnet  struct{}
 )
 
 func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpoiler) (err error) {
@@ -166,6 +167,43 @@ func (t truyentranhtuan) crawl(ctx context.Context, comic *model.Comic, detector
 	// 		return
 	// 	}
 	// }
+
+	comic.ChapURL = chapURL
+	return
+}
+
+func (t truyentranhnet) crawl(ctx context.Context, comic *model.Comic, detector detectSpoiler) (err error) {
+
+	var chapURL string
+
+	url := comic.URL + "?order=desc"
+	doc, err := getPageSource(url)
+	if err != nil {
+		return ErrInvalidURL
+	}
+
+	comic.Name = doc.Find(".detail-manga-title").Find("h1").Text()
+	comic.ImageURL, _ = doc.Find(".detail-img").Find("img[src]").Attr("src")
+
+	// Find latest chap
+	firstItem := doc.Find(".chapter-list").Find(".chapter-select").First()
+	if firstItem.Nodes == nil {
+		return errors.New("URL is not a comic page")
+	}
+
+	comic.LatestChap = firstItem.Find("a[href]").Text()
+	chapURL, _ = firstItem.Find("a[href]").Attr("href")
+
+	if chapURL == comic.ChapURL {
+		return ErrComicUpToDate
+	}
+
+	if comic.ChapURL != "" {
+		err = detector.detect(chapURL, ".manga-reading-box", "img")
+		if err != nil {
+			return
+		}
+	}
 
 	comic.ChapURL = chapURL
 	return

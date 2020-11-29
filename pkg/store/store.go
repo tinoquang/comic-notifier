@@ -57,12 +57,6 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 		return nil, ErrInvalidURL
 	}
 
-	// Check page support, if not send back "Page is not supported"
-	// _, err = s.Page.GetByName(ctx, parsedURL.Hostname())
-	// if err != nil {
-	// 	return nil, ErrPageNotSupported
-	// }
-
 	err = db.WithTransaction(ctx, s.db, func(tx db.Transaction) (inErr error) {
 
 		comic = &model.Comic{

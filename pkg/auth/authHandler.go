@@ -117,19 +117,20 @@ func (h *Handler) auth(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	// Save user info to DB to get later
+	if user.PSID != "" {
+		err = h.store.User.Create(c.Request().Context(), user)
+		if err != nil {
+			logging.Danger(err)
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
 	jwtCookie, err := h.generateJWT(user.AppID)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-
-	// Save user info to DB to get later
-	// err = h.store.User.Create(c.Request().Context(), user)
-	// if err != nil {
-	// 	logging.Danger(err)
-	// 	return c.NoContent(http.StatusInternalServerError)
-	// }
-
 	cookie := &http.Cookie{
 		Name:     "_session",
 		Value:    jwtCookie,

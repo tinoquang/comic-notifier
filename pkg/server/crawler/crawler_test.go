@@ -7,7 +7,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
-func TestCrawlBeeng(t *testing.T) {
+func TestCrawlbeeng(t *testing.T) {
 
 	cfg := conf.New("../../../")
 	comic = &model.Comic{}

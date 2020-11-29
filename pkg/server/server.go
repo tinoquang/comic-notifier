@@ -34,6 +34,7 @@ func New(cfg *conf.Config, store *store.Stores) *Server {
 
 	crawler.New()
 	img.SetEnvVar(cfg)
+
 	// Start update-comic thread
 	go updateComicThread(store, cfg.WrkDat.WorkerNum, cfg.WrkDat.Timeout)
 	return s

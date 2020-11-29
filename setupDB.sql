@@ -3,12 +3,7 @@ drop table if exists users;
 drop table if exists images;
 drop table if exists comics;
 drop table if exists pages;
-create table pages
-(
-    "id" serial,
-    "name" VARCHAR(64),
-    PRIMARY KEY (name)
-);
+
 
 create table comics
 (

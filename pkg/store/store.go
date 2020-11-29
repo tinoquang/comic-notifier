@@ -30,7 +30,6 @@ type Stores struct {
 	db         *sql.DB
 	cfg        *conf.Config
 	Comic      ComicInterface
-	Page       PageInterface
 	User       UserInterface
 	Subscriber SubscriberInterface
 }
@@ -41,7 +40,6 @@ func New(db *sql.DB, cfg *conf.Config) *Stores {
 		db:         db,
 		cfg:        cfg,
 		Comic:      NewComicStore(db, cfg),
-		Page:       NewPageStore(db, cfg),
 		User:       NewUserStore(db, cfg),
 		Subscriber: NewSubscriberStore(db, cfg),
 	}

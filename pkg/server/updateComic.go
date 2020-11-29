@@ -55,24 +55,25 @@ func updateComicThread(s *store.Stores, workerNum, timeout int) {
 		// Get all comics in DB
 		opt := store.NewComicsListOptions("", 0, 0)
 		comics, err := s.Comic.List(ctx, opt)
+		cancel() // Call context cancel here to avoid context leak
+
 		if err != nil {
 			logging.Info("Get list of comic fails, sleep sometimes...")
 			time.Sleep(time.Duration(timeout) * time.Minute)
 			continue
 		}
 
-		logging.Info(fmt.Sprintf("Update %d comic(s) ...", len(comics)))
+		if len(comics) != 0 {
+			logging.Info(fmt.Sprintf("Update %d comic(s) ...", len(comics)))
 
-		// Query successful, for each comic put into job channel for worker to do the update stuffs
-		for _, comic := range comics {
-			comicPool <- comic
-			wg.Add(1)
+			// Query successful, for each comic put into job channel for worker to do the update stuffs
+			for _, comic := range comics {
+				comicPool <- comic
+				wg.Add(1)
+			}
+			wg.Wait()
+			logging.Info("All comics is updated")
 		}
-
-		cancel() // Call context cancel here to avoid context leak
-
-		wg.Wait()
-		logging.Info("All comics is updated")
 
 		time.Sleep(time.Duration(timeout) * time.Minute)
 	}

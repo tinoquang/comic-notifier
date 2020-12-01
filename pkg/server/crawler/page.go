@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
@@ -105,6 +106,7 @@ func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSp
 	if err != nil {
 		return ErrInvalidURL
 	}
+	logging.Info(doc.Html())
 
 	comic.Name = doc.Find(".entry-title").Text()
 	comic.ImageURL, _ = doc.Find(".info_image").Find("img[src]").Attr("src")

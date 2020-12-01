@@ -28,7 +28,7 @@ func New() {
 	crawlerMap = make(map[string]Crawler)
 	crawlerMap["beeng.net"] = beeng{}
 	crawlerMap["blogtruyen.vn"] = blogtruyen{}
-	crawlerMap["truyendep.com"] = mangaK{}
+	// crawlerMap["truyendep.com"] = mangaK{}
 	crawlerMap["truyentranhtuan.com"] = truyentranhtuan{}
 	crawlerMap["truyentranh.net"] = truyentranhnet{}
 }

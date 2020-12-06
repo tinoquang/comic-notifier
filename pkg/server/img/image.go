@@ -77,10 +77,10 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 	}
 
 	client := &http.Client{
-		Timeout: 20 * time.Second,
+		Timeout: 10 * time.Second,
 	}
-	req, err := http.NewRequest("POST", url, payload)
 
+	req, err := http.NewRequest("POST", url, payload)
 	if err != nil {
 		logging.Danger(err)
 		return nil, err
@@ -88,6 +88,7 @@ func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
 
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+
 	res, err := client.Do(req)
 	if err != nil {
 		logging.Danger(err)
@@ -141,7 +142,9 @@ func GetImageFromImgur(imageID string) (*Img, error) {
 	response := &imageResponse{}
 	url := apiEndpoint + "image/" + imageID
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
@@ -172,7 +175,9 @@ func DeleteImg(imageID string) error {
 
 	url := apiEndpoint + "image/" + imageID
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
 	req, err := http.NewRequest("DELETE", url, nil)
 
 	if err != nil {

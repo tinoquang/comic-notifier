@@ -35,13 +35,12 @@ type Stores struct {
 }
 
 // New create new stores
-func New(db *sql.DB, cfg *conf.Config) *Stores {
+func New(db *sql.DB) *Stores {
 	return &Stores{
 		db:         db,
-		cfg:        cfg,
-		Comic:      NewComicStore(db, cfg),
-		User:       NewUserStore(db, cfg),
-		Subscriber: NewSubscriberStore(db, cfg),
+		Comic:      NewComicStore(db),
+		User:       NewUserStore(db),
+		Subscriber: NewSubscriberStore(db),
 	}
 }
 

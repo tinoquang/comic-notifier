@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/pkg/errors"
-	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 )
@@ -19,12 +18,11 @@ type UserInterface interface {
 
 type userDB struct {
 	dbconn *sql.DB
-	cfg    *conf.Config
 }
 
 // NewUserStore return user interfaces
-func NewUserStore(dbconn *sql.DB, cfg *conf.Config) UserInterface {
-	return &userDB{dbconn: dbconn, cfg: cfg}
+func NewUserStore(dbconn *sql.DB) UserInterface {
+	return &userDB{dbconn: dbconn}
 }
 
 // field is either psid or appid

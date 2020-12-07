@@ -7,6 +7,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/auth"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	_ "github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
 	"github.com/tinoquang/comic-notifier/pkg/server"
@@ -18,25 +19,25 @@ func main() {
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
 
-	// Get environment variable
-	cfg := conf.New("")
+	// Init global config
+	conf.Init("")
 
 	// Connect to DB
-	dbconn := db.New(cfg)
+	dbconn := db.New()
 
 	// Init DB handler
-	s := store.New(dbconn, cfg)
+	s := store.New(dbconn)
 
 	// Init main business logic server
-	svr := server.New(cfg, s)
+	svr := server.New(s)
 
 	// Facebook webhook
-	msg.RegisterHandler(e.Group("/webhook"), cfg, svr.Msg)
+	msg.RegisterHandler(e.Group("/webhook"), svr.Msg)
 
 	// API handler register
 	apiGroup := e.Group("/api/v1")
 	apiGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-		SigningKey:  []byte(cfg.JWT.SecretKey),
+		SigningKey:  []byte(conf.Cfg.JWT.SecretKey),
 		Claims:      &jwt.StandardClaims{},
 		TokenLookup: "cookie:_session",
 	}))
@@ -52,9 +53,9 @@ func main() {
 	})
 
 	// Authentication JWT
-	auth.RegisterHandler(e.Group(""), cfg, s)
+	auth.RegisterHandler(e.Group(""), s)
 
 	// Start the server
-	e.Logger.Fatal(e.Start(":" + cfg.Port))
+	e.Logger.Fatal(e.Start(":" + conf.Cfg.Port))
 
 }

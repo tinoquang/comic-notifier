@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/keegancsmith/sqlf"
-	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -39,12 +38,11 @@ func NewComicsListOptions(query string, limit int, offset int) *ComicsListOption
 
 type comicDB struct {
 	dbconn *sql.DB
-	cfg    *conf.Config
 }
 
 // NewComicStore return comic interfaces
-func NewComicStore(dbconn *sql.DB, cfg *conf.Config) ComicInterface {
-	return &comicDB{dbconn: dbconn, cfg: cfg}
+func NewComicStore(dbconn *sql.DB) ComicInterface {
+	return &comicDB{dbconn: dbconn}
 }
 
 func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {

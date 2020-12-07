@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -20,12 +19,11 @@ type SubscriberInterface interface {
 
 type subscriberDB struct {
 	dbconn *sql.DB
-	cfg    *conf.Config
 }
 
 // NewSubscriberStore return subscriber interfaces
-func NewSubscriberStore(dbconn *sql.DB, cfg *conf.Config) SubscriberInterface {
-	return &subscriberDB{dbconn: dbconn, cfg: cfg}
+func NewSubscriberStore(dbconn *sql.DB) SubscriberInterface {
+	return &subscriberDB{dbconn: dbconn}
 }
 
 func (s *subscriberDB) Get(ctx context.Context, psid string, comicID int) (*model.Subscriber, error) {

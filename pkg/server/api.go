@@ -6,7 +6,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
-	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
@@ -14,13 +13,12 @@ import (
 
 // API -> server handler for api endpoint
 type API struct {
-	cfg   *conf.Config
 	store *store.Stores
 }
 
 // NewAPI return new api interface
-func NewAPI(c *conf.Config, s *store.Stores) *API {
-	return &API{cfg: c, store: s}
+func NewAPI(s *store.Stores) *API {
+	return &API{store: s}
 }
 
 // Comics (GET /comics)

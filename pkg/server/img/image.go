@@ -46,11 +46,11 @@ type imageResponse struct {
 }
 
 // SetEnvVar set environment var for interacting with Imgur API
-func SetEnvVar(cfg *conf.Config) {
-	apiEndpoint = cfg.Imgur.Endpoint
-	accessToken = cfg.Imgur.AccessToken
-	refreshToken = cfg.Imgur.RefreshToken
-	clientID = cfg.Imgur.ClientID
+func SetEnvVar() {
+	apiEndpoint = conf.Cfg.Imgur.Endpoint
+	accessToken = conf.Cfg.Imgur.AccessToken
+	refreshToken = conf.Cfg.Imgur.RefreshToken
+	clientID = conf.Cfg.Imgur.ClientID
 }
 
 // UploadImagetoImgur add image to Imgur gallery and return link to new image

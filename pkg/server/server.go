@@ -20,22 +20,22 @@ var (
 )
 
 // New  create new server
-func New(cfg *conf.Config, store *store.Stores) *Server {
+func New(store *store.Stores) *Server {
 
 	// Get env config
-	messengerEndpoint = cfg.Webhook.GraphEndpoint + "/me/messages"
-	webhookToken = cfg.Webhook.WebhookToken
-	pageToken = cfg.FBSecret.PakeToken
+	messengerEndpoint = conf.Cfg.Webhook.GraphEndpoint + "/me/messages"
+	webhookToken = conf.Cfg.Webhook.WebhookToken
+	pageToken = conf.Cfg.FBSecret.PakeToken
 
 	s := &Server{
-		API: NewAPI(cfg, store),
-		Msg: NewMSG(cfg, store),
+		API: NewAPI(store),
+		Msg: NewMSG(store),
 	}
 
 	crawler.New()
-	img.SetEnvVar(cfg)
+	img.SetEnvVar()
 
 	// Start update-comic thread
-	go updateComicThread(store, cfg.WrkDat.WorkerNum, cfg.WrkDat.Timeout)
+	go updateComicThread(store, conf.Cfg.WrkDat.WorkerNum, conf.Cfg.WrkDat.Timeout)
 	return s
 }

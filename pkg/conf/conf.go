@@ -11,6 +11,9 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
 
+// Cfg global configuration
+var Cfg *Config
+
 // WebhookCfg for facebook webhook
 type WebhookCfg struct {
 	WebhookToken  string
@@ -59,14 +62,14 @@ type Config struct {
 	CtxTimeout int
 }
 
-// New return new configuration
-func New(path string) *Config {
+// Init return new configuration
+func Init(path string) {
 
 	if err := godotenv.Load(path + ".env"); err != nil {
 		logging.Danger("Can't load env file, err:", err)
 	}
 
-	return &Config{
+	Cfg = &Config{
 		Webhook: WebhookCfg{
 			WebhookToken:  getEnv("FBWEBHOOK_TOKEN", ""),
 			GraphEndpoint: getEnv("FBWEBHOOK_GRAPH_ENDPOINT", ""),

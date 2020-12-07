@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
@@ -16,13 +15,12 @@ import (
 
 // MSG -> server handler for messenger endpoint
 type MSG struct {
-	cfg   *conf.Config
 	store *store.Stores
 }
 
 // NewMSG return new api interface
-func NewMSG(c *conf.Config, s *store.Stores) *MSG {
-	return &MSG{cfg: c, store: s}
+func NewMSG(s *store.Stores) *MSG {
+	return &MSG{store: s}
 }
 
 /* Message handler function */

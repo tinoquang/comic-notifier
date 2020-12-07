@@ -19,18 +19,17 @@ import (
 
 // Handler main authenticate handler
 type Handler struct {
-	cfg   *conf.Config
 	store *store.Stores
 }
 
 // RegisterHandler create new auth route
-func RegisterHandler(g *echo.Group, cfg *conf.Config, store *store.Stores) {
+func RegisterHandler(g *echo.Group, store *store.Stores) {
 
-	h := Handler{cfg: cfg, store: store}
+	h := Handler{store: store}
 
 	g.GET("/auth", h.auth)
 	g.GET("/status", h.loggedIn, middleware.JWTWithConfig(middleware.JWTConfig{
-		SigningKey:  []byte(cfg.JWT.SecretKey),
+		SigningKey:  []byte(conf.Cfg.JWT.SecretKey),
 		Claims:      &jwt.StandardClaims{},
 		TokenLookup: "cookie:_session",
 	}))
@@ -48,8 +47,8 @@ func (h *Handler) login(c echo.Context) error {
 	authURL, _ := url.Parse("https://www.facebook.com/v8.0/dialog/oauth")
 	q := authURL.Query()
 
-	q.Add("client_id", h.cfg.FBSecret.AppID)
-	q.Add("redirect_uri", fmt.Sprintf("%s:%s/auth", h.cfg.Host, h.cfg.Port))
+	q.Add("client_id", conf.Cfg.FBSecret.AppID)
+	q.Add("redirect_uri", fmt.Sprintf("%s:%s/auth", conf.Cfg.Host, conf.Cfg.Port))
 	q.Add("state", "quangmt2")
 
 	authURL.RawQuery = q.Encode()
@@ -81,18 +80,18 @@ func (h *Handler) auth(c echo.Context) error {
 
 	/* Exchange token using given code */
 	queries := map[string]string{
-		"client_id":     h.cfg.FBSecret.AppID,
-		"client_secret": h.cfg.FBSecret.AppSecret,
+		"client_id":     conf.Cfg.FBSecret.AppID,
+		"client_secret": conf.Cfg.FBSecret.AppSecret,
 		"code":          code,
 	}
 
-	if h.cfg.Host == "http://localhost" {
-		queries["redirect_uri"] = fmt.Sprintf("%s:8080/auth", h.cfg.Host)
+	if conf.Cfg.Host == "http://localhost" {
+		queries["redirect_uri"] = fmt.Sprintf("%s:8080/auth", conf.Cfg.Host)
 	} else {
-		queries["redirect_uri"] = fmt.Sprintf("%s/auth", h.cfg.Host)
+		queries["redirect_uri"] = fmt.Sprintf("%s/auth", conf.Cfg.Host)
 	}
 
-	respBody, err := util.MakeGetRequest(h.cfg.Webhook.GraphEndpoint+"/oauth/access_token", queries)
+	respBody, err := util.MakeGetRequest(conf.Cfg.Webhook.GraphEndpoint+"/oauth/access_token", queries)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusBadRequest)
@@ -111,7 +110,7 @@ func (h *Handler) auth(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	user, err := util.GetUserInfoFromFB(h.cfg, "appid", userAppID)
+	user, err := util.GetUserInfoFromFB(conf.Cfg, "appid", userAppID)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -147,27 +146,27 @@ func (h *Handler) auth(c echo.Context) error {
 	}
 	c.SetCookie(cookie)
 
-	if h.cfg.Host == "http://localhost" {
-		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000", h.cfg.Host))
+	if conf.Cfg.Host == "http://localhost" {
+		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000", conf.Cfg.Host))
 	}
 
-	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s", h.cfg.Host))
+	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s", conf.Cfg.Host))
 }
 
 func (h *Handler) generateJWT(userAppID string) (string, error) {
 
 	claims := &jwt.StandardClaims{
-		Issuer:    h.cfg.JWT.Issuer,
+		Issuer:    conf.Cfg.JWT.Issuer,
 		IssuedAt:  time.Now().Unix(),
 		ExpiresAt: time.Now().AddDate(0, 1, 0).Unix(),
-		Audience:  h.cfg.JWT.Audience,
+		Audience:  conf.Cfg.JWT.Audience,
 		Id:        userAppID,
 	}
 	// Create JWT and send back
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString([]byte(h.cfg.JWT.SecretKey))
+	t, err := token.SignedString([]byte(conf.Cfg.JWT.SecretKey))
 	if err != nil {
 		return "", err
 	}
@@ -182,7 +181,7 @@ func (h *Handler) validateToken(token string) (userAppID string, err error) {
 	tokenResponse := map[string]json.RawMessage{}
 	queries := make(map[string]string)
 	queries["input_token"] = token
-	queries["access_token"] = h.cfg.FBSecret.AppToken
+	queries["access_token"] = conf.Cfg.FBSecret.AppToken
 
 	respBody, err := util.MakeGetRequest("https://graph.facebook.com/debug_token", queries)
 	if err != nil {
@@ -197,7 +196,7 @@ func (h *Handler) validateToken(token string) (userAppID string, err error) {
 		return
 	}
 
-	if util.ConvertJSONToString(tokenResponse["app_id"]) != h.cfg.FBSecret.AppID {
+	if util.ConvertJSONToString(tokenResponse["app_id"]) != conf.Cfg.FBSecret.AppID {
 		return "", errors.New("Access token is invalid")
 	}
 

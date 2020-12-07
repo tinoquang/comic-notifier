@@ -3,3 +3,4 @@
 notifier
 *session.sql
 /.bin
+firebase.json

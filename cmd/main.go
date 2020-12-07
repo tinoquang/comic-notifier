@@ -20,7 +20,7 @@ func main() {
 	e.Pre(middleware.RemoveTrailingSlash())
 
 	// Init global config
-	conf.Init("")
+	conf.Init()
 
 	// Connect to DB
 	dbconn := db.New()

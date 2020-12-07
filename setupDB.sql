@@ -1,8 +1,6 @@
 drop table if exists subscribers;
 drop table if exists users;
-drop table if exists images;
 drop table if exists comics;
-drop table if exists pages;
 
 
 create table comics
@@ -12,8 +10,7 @@ create table comics
     "name" VARCHAR(128),
     "url" VARCHAR(256) not null unique,
     "img_url" VARCHAR(128),
-    "imgur_id" VARCHAR(32),
-    "imgur_link" VARCHAR(128),
+    "cloud_img" VARCHAR(256),
     "latest_chap" VARCHAR(128) not null,
     "chap_url" VARCHAR(128) not null,
     "date" VARCHAR(32),

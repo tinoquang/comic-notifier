@@ -3,32 +3,27 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/url"
 	"strings"
 
 	"github.com/keegancsmith/sqlf"
-	"github.com/pkg/errors"
-	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
-	ErrNotFound          = errors.New("Not found")
-	ErrInvalidURL        = errors.New("Comic URL is invalid")
-	ErrPageNotSupported  = errors.New("Page is not supported yet")
-	ErrComicUpToDate     = errors.New("Comic is up-to-date, no new chapter")
 	ErrAlreadySubscribed = errors.New("Already subscribed")
+	ErrNotFound          = errors.New("Not found")
+	ErrInvalidURL        = errors.New("Invalid URL")
 )
 
 // Stores contain all store interfaces
 type Stores struct {
 	db         *sql.DB
-	cfg        *conf.Config
 	Comic      ComicInterface
 	User       UserInterface
 	Subscriber SubscriberInterface
@@ -53,7 +48,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
-		return nil, ErrInvalidURL
+		return nil, crawler.ErrInvalidURL
 	}
 
 	err = db.WithTransaction(ctx, s.db, func(tx db.Transaction) (inErr error) {
@@ -64,7 +59,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 		}
 
 		inErr = tx.QueryRowContext(ctx, "SELECT * from comics WHERE url=$1", comicURL).
-			Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.ImageURL, &comic.ImgurID, &comic.ImgurLink, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
+			Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
 		if inErr != nil {
 
 			if inErr != sql.ErrNoRows {
@@ -82,7 +77,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 			query := `INSERT INTO comics (page, name, url, img_url, latest_chap, chap_url, date, date_format) 
 						VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
 						RETURNING id`
-			inErr = tx.QueryRowContext(ctx, query, comic.Page, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat).
+			inErr = tx.QueryRowContext(ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat).
 				Scan(&comic.ID)
 
 			if inErr != nil {
@@ -105,7 +100,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 				return inErr
 			}
 
-			user, inErr = util.GetUserInfoFromFB(s.cfg, "psid", userPSID)
+			inErr = user.GetInfoFromFB("psid", userPSID)
 			if inErr != nil {
 				logging.Danger(inErr)
 				return inErr
@@ -137,29 +132,18 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 		}
 
 		if newComic != 0 {
-			if comic.Page != "truyendep.com" {
-				image, e := img.UploadImagetoImgur(comic.Page+" "+comic.Name, comic.ImageURL)
-				if e != nil {
-					logging.Danger(e)
-					return e
-				}
-				comic.ImgurID = model.NullString(image.ID)
-				comic.ImgurLink = model.NullString(image.Link)
-				query := "UPDATE comics SET imgur_id=$2, imgur_link=$3 WHERE id=$1 RETURNING id, imgur_id, imgur_link"
-				inErr = tx.QueryRowContext(ctx, query, comic.ID, image.ID, image.Link).Scan(&comic.ID, &comic.ImgurID, &comic.ImgurLink)
-				if inErr != nil {
-					logging.Danger(inErr)
-					img.DeleteImg(image.ID)
-					return
-				}
-			} else {
-				comic.ImgurLink = model.NullString(comic.ImageURL)
-				query := "UPDATE comics SET imgur_id=$2, imgur_link=$3 WHERE id=$1 RETURNING id, imgur_id, imgur_link"
-				inErr = tx.QueryRowContext(ctx, query, comic.ID, "", comic.ImageURL).Scan(&comic.ID, &comic.ImgurID, &comic.ImgurLink)
-				if inErr != nil {
-					logging.Danger(inErr)
-					return
-				}
+			e := comic.UpdateCloudImg()
+			if e != nil {
+				logging.Danger(e)
+				return e
+			}
+
+			query := "UPDATE comics SET cloud_img=$2 WHERE id=$1 RETURNING id, cloud_img"
+			inErr = tx.QueryRowContext(ctx, query, comic.ID, comic.CloudImg).Scan(&comic.ID, &comic.CloudImg)
+			if inErr != nil {
+				logging.Danger(inErr)
+				img.DeleteFirebaseImg(comic.Page, comic.Name)
+				return
 			}
 
 		}

@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"google.golang.org/api/option"
 )
 
 // Cfg global configuration
@@ -34,12 +38,11 @@ type WorkerData struct {
 	Timeout   int
 }
 
-// Imgur token info
-type Imgur struct {
-	Endpoint     string
-	AccessToken  string
-	RefreshToken string
-	ClientID     string
+// FirebaseBucket info
+type FirebaseBucket struct {
+	Name   string
+	URL    string
+	Option option.ClientOption
 }
 
 // JWT config info
@@ -51,21 +54,28 @@ type JWT struct {
 
 // Config main struct for get config from env
 type Config struct {
-	Port       string
-	Host       string
-	Webhook    WebhookCfg
-	FBSecret   FacebookSecret
-	DBInfo     string
-	WrkDat     WorkerData
-	Imgur      Imgur
-	JWT        JWT
-	CtxTimeout int
+	Port           string
+	Host           string
+	Webhook        WebhookCfg
+	FBSecret       FacebookSecret
+	DBInfo         string
+	WrkDat         WorkerData
+	FirebaseBucket FirebaseBucket
+	JWT            JWT
+	CtxTimeout     int
+}
+
+func rootDir() string {
+	_, b, _, _ := runtime.Caller(0)
+	d := path.Join(path.Dir(b), "../")
+	return filepath.Dir(d)
 }
 
 // Init return new configuration
-func Init(path string) {
+func Init() {
 
-	if err := godotenv.Load(path + ".env"); err != nil {
+	envPath := rootDir() + "/env/"
+	if err := godotenv.Load(envPath + ".env"); err != nil {
 		logging.Danger("Can't load env file, err:", err)
 	}
 
@@ -85,11 +95,10 @@ func Init(path string) {
 			WorkerNum: getEnvAsInt("WORKER_NUM", 10),
 			Timeout:   getEnvAsInt("WORKER_TIMEOUT", 30),
 		},
-		Imgur: Imgur{
-			Endpoint:     getEnv("IMGUR_ENDPOINT", ""),
-			AccessToken:  getEnv("IMGUR_ACCESS_TOKEN", ""),
-			RefreshToken: getEnv("IMGUR_REFRESH_TOKEN", ""),
-			ClientID:     getEnv("IMGUR_CLIENT_ID", ""),
+		FirebaseBucket: FirebaseBucket{
+			Name:   getEnv("BUCKET_NAME", ""),
+			URL:    "https://storage.googleapis.com/" + getEnv("BUCKET_NAME", ""),
+			Option: option.WithCredentialsFile(envPath + "firebase.json"),
 		},
 		JWT: JWT{
 			SecretKey: getEnv("JWT_SECRET", ""),

@@ -1,17 +1,15 @@
 package util
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
+	"os"
 	"time"
 
-	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/model"
+	scraper "github.com/tinoquang/go-cloudflare-scraper"
 )
 
 // MakeGetRequest send HTTP GET request with mapped queries
@@ -51,62 +49,34 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	return
 }
 
-// GetUserInfoFromFB get user AppID using PSID or vice-versa
-func GetUserInfoFromFB(cfg *conf.Config, field, id string) (user *model.User, err error) {
+// DownloadFile simple function for downloading file bypass cloudfare
+func DownloadFile(url string, fileName string) (err error) {
 
-	user = &model.User{}
-
-	info := map[string]json.RawMessage{}
-	appInfo := []map[string]json.RawMessage{}
-	picture := map[string]json.RawMessage{}
-	queries := map[string]string{}
-
-	switch field {
-	case "psid":
-		user.PSID = id
-		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
-		queries["access_token"] = cfg.FBSecret.PakeToken
-	case "appid":
-		user.AppID = id
-		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
-		queries["access_token"] = cfg.FBSecret.AppToken
-		queries["appsecret_proof"] = cfg.FBSecret.AppSecret
-	default:
-		return nil, fmt.Errorf("Wrong field request, field: %s", field)
+	c, err := scraper.NewClient()
+	if err != nil {
+		return
 	}
-
-	respBody, err := MakeGetRequest(fmt.Sprintf("%s/%s", cfg.Webhook.GraphEndpoint, id), queries)
+	res, err := c.Get(url)
 	if err != nil {
 		return
 	}
 
-	err = json.Unmarshal(respBody, &info)
+	defer res.Body.Close()
 	if err != nil {
 		return
 	}
 
-	user.Name = ConvertJSONToString(info["name"])
-
-	if field == "psid" {
-		json.Unmarshal(info["ids_for_apps"], &info)
-	} else {
-		json.Unmarshal(info["ids_for_pages"], &info)
+	//open a file for writing
+	file, err := os.Create(fileName)
+	if err != nil {
+		return
 	}
+	defer file.Close()
 
-	json.Unmarshal(info["picture"], &picture)
-	json.Unmarshal(picture["data"], &picture)
-	json.Unmarshal(info["data"], &appInfo)
-
-	if len(appInfo) != 0 {
-		if field == "psid" {
-			user.AppID = ConvertJSONToString(appInfo[0]["id"])
-		} else {
-			user.PSID = ConvertJSONToString(appInfo[0]["id"])
-		}
+	// Use io.Copy to just dump the response body to the file. This supports huge files
+	_, err = io.Copy(file, res.Body)
+	if err != nil {
+		return
 	}
-
-	user.ProfilePic = ConvertJSONToString(picture["url"])
-	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
-
-	return user, nil
+	return
 }

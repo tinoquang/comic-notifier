@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -110,7 +111,8 @@ func (h *Handler) auth(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	user, err := util.GetUserInfoFromFB(conf.Cfg, "appid", userAppID)
+	user := &model.User{}
+	err = user.GetInfoFromFB("appid", userAppID)
 	if err != nil {
 		logging.Danger(err)
 		return c.NoContent(http.StatusInternalServerError)

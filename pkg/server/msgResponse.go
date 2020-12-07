@@ -43,7 +43,7 @@ type Payload struct {
 // Element : template elements
 type Element struct {
 	Title         string   `json:"title,omitempty"`
-	ImageURL      string   `json:"image_url,omitempty"`
+	ImgURL        string   `json:"image_url,omitempty"`
 	Subtitle      string   `json:"subtitle,omitempty"`
 	DefaultAction *Action  `json:"default_action,omitempty"`
 	Buttons       []Button `json:"buttons,omitempty"`
@@ -65,10 +65,10 @@ type Button struct {
 
 // QuickReply : button, link,... generate quick-reply request when user click
 type QuickReply struct {
-	Type     string `json:"content_type,omitempty"`
-	Title    string `json:"title,omitempty"`
-	Payload  string `json:"payload,omitempty"`
-	ImageURL string `json:"image_url,omitempty"`
+	Type    string `json:"content_type,omitempty"`
+	Title   string `json:"title,omitempty"`
+	Payload string `json:"payload,omitempty"`
+	ImgURL  string `json:"image_url,omitempty"`
 }
 
 // User contain msg.Sender.ID or msg.Recipient.ID
@@ -111,7 +111,7 @@ func sendNormalReply(senderid string, comic *model.Comic) {
 					Elements: []Element{
 						{
 							Title:    comic.Name + "\n" + comic.LatestChap,
-							ImageURL: string(comic.ImgurLink),
+							ImgURL:   comic.CloudImg,
 							Subtitle: comic.Page,
 							// DefaultAction: &Action{
 							// 	Type: "web_url",
@@ -151,7 +151,7 @@ func sendMsgTagsReply(senderid string, comic *model.Comic) {
 					Elements: []Element{
 						{
 							Title:    comic.Name + "\n" + comic.LatestChap,
-							ImageURL: string(comic.ImgurLink),
+							ImgURL:   comic.CloudImg,
 							Subtitle: comic.Page,
 							DefaultAction: &Action{
 								Type: "web_url",
@@ -192,16 +192,16 @@ func sendQuickReplyChoice(senderid string, c *model.Comic) {
 			Text: "Unsub " + c.Name + "\nAre you sure ?",
 			Options: []QuickReply{
 				{
-					Type:     "text",
-					Title:    "Yes",
-					Payload:  strconv.Itoa(c.ID),
-					ImageURL: "https://www.vhv.rs/dpng/d/356-3568543_check-icon-green-tick-hd-png-download.png",
+					Type:    "text",
+					Title:   "Yes",
+					Payload: strconv.Itoa(c.ID),
+					ImgURL:  "https://www.vhv.rs/dpng/d/356-3568543_check-icon-green-tick-hd-png-download.png",
 				},
 				{
-					Type:     "text",
-					Title:    "No",
-					Payload:  "Not unsub",
-					ImageURL: "https://cdn3.vectorstock.com/i/1000x1000/59/87/red-cross-check-mark-icon-simple-style-vector-8375987.jpg",
+					Type:    "text",
+					Title:   "No",
+					Payload: "Not unsub",
+					ImgURL:  "https://cdn3.vectorstock.com/i/1000x1000/59/87/red-cross-check-mark-icon-simple-style-vector-8375987.jpg",
 				},
 			},
 		},

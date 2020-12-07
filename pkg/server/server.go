@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
@@ -33,7 +35,11 @@ func New(store *store.Stores) *Server {
 	}
 
 	crawler.New()
-	img.SetEnvVar()
+
+	err := img.InitFirebaseBucket()
+	if err != nil {
+		panic(fmt.Sprintf("Can't init firebase bucket, err: %s", err))
+	}
 
 	// Start update-comic thread
 	go updateComicThread(store, conf.Cfg.WrkDat.WorkerNum, conf.Cfg.WrkDat.Timeout)

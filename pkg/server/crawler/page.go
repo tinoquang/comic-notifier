@@ -28,7 +28,7 @@ func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpo
 	}
 
 	comic.Name = doc.Find(".detail").Find("h4").Text()
-	comic.ImageURL, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
+	comic.OriginImgURL, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
 
 	// Find latest chap
 	firstItem := doc.Find(".listChapters").Find(".list").Find("li:nth-child(1)")
@@ -68,7 +68,7 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
-	comic.ImageURL, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
+	comic.OriginImgURL, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
 
 	// Find latest chap
 	firstItem := doc.Find(".list-wrap#list-chapters").Find("p:nth-child(1)")
@@ -109,7 +109,7 @@ func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSp
 	logging.Info(doc.Html())
 
 	comic.Name = doc.Find(".entry-title").Text()
-	comic.ImageURL, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
+	comic.OriginImgURL, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
 
 	// Find latest chap
 	firstItem := doc.Find(".chapter-list").Find(".row:nth-child(1)")
@@ -148,7 +148,7 @@ func (t truyentranhtuan) crawl(ctx context.Context, comic *model.Comic, detector
 	}
 
 	comic.Name = doc.Find("#infor-box").Find("h1").Text()
-	comic.ImageURL, _ = doc.Find(".manga-cover").Find("img[src]").Attr("src")
+	comic.OriginImgURL, _ = doc.Find(".manga-cover").Find("img[src]").Attr("src")
 
 	// Find latest chap
 	firstItem := doc.Find("#manga-chapter").Find(".chapter-name").First()
@@ -185,7 +185,7 @@ func (t truyentranhnet) crawl(ctx context.Context, comic *model.Comic, detector 
 	}
 
 	comic.Name = doc.Find(".detail-manga-title").Find("h1").Text()
-	comic.ImageURL, _ = doc.Find(".detail-img").Find("img[src]").Attr("src")
+	comic.OriginImgURL, _ = doc.Find(".detail-img").Find("img[src]").Attr("src")
 
 	// Find latest chap
 	firstItem := doc.Find(".chapter-list").Find(".chapter-select").First()

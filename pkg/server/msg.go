@@ -45,10 +45,10 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			// Upload image API is busy
 			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)") // handle later: get time delay and send back to user
 		} else if err == crawler.ErrPageNotSupported {
-			sendTextBack(senderID, "Cú pháp chưa chính xác")
+			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ !!!")
 			responseCommand(ctx, senderID, "/page")
 		} else if err == store.ErrInvalidURL {
-			sendTextBack(senderID, "Cú pháp chưa chính xác")
+			sendTextBack(senderID, "Đường dẫn chưa chính xác, hãy xem qua hướng dẫn bằng lệnh /tutor")
 			responseCommand(ctx, senderID, "/help")
 		} else {
 			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)")
@@ -114,7 +114,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	}
 
 	if len(s) == 0 {
-		img.DeleteImg(string(c.ImgurID))
+		img.DeleteFirebaseImg(c.Page, c.Name)
 		m.store.Comic.Delete(ctx, comicID)
 	}
 	sendTextBack(senderID, fmt.Sprintf("Unsub %s\nSuccess!", c.Name))

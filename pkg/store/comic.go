@@ -95,11 +95,11 @@ func (c *comicDB) CheckComicSubscribe(ctx context.Context, psid string, comicID 
 
 func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
-	query := "INSERT INTO comics (page, name, url, imgur_id, imgur_link, latest_chap, chap_url, date, date_format) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
+	query := "INSERT INTO comics (page, name, url, img_url, cloud_img, latest_chap, chap_url, date, date_format) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id"
 
 	err := db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
-			ctx, query, comic.Page, comic.Name, comic.URL, comic.ImageURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
+			ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.CloudImg, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat,
 		).Scan(&comic.ID)
 	})
 	return err
@@ -108,8 +108,8 @@ func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
 
 func (c *comicDB) Update(ctx context.Context, comic *model.Comic) error {
 
-	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, img_url=$4, imgur_id=$5, imgur_link=$6, date=$7 WHERE id=$1"
-	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.ImageURL, comic.ImgurID, comic.ImgurLink, comic.Date)
+	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img=$5, date=$7 WHERE id=$1"
+	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.OriginImgURL, comic.CloudImg, comic.Date)
 	return err
 }
 
@@ -172,7 +172,7 @@ func (c *comicDB) getBySQL(ctx context.Context, query string, args ...interface{
 	defer rows.Close()
 	for rows.Next() {
 		comic := model.Comic{}
-		err := rows.Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.ImageURL, &comic.ImgurID, &comic.ImgurLink, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
+		err := rows.Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
 		if err != nil {
 			logging.Danger(err)
 			return nil, err

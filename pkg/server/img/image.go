@@ -1,195 +1,81 @@
 package img
 
 import (
-	"bytes"
-	"encoding/json"
-	"mime/multipart"
-	"net/http"
-	"strings"
+	"context"
+	"fmt"
+	"os"
 	"time"
 
+	"cloud.google.com/go/storage"
+	firebase "firebase.google.com/go/v4"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
 var (
-	apiEndpoint  string
-	accessToken  string
-	refreshToken string
-	clientID     string
-)
-
-var (
+	bucket      *storage.BucketHandle
 	ErrUpToDate = errors.Errorf("Image is up-to-date")
 )
 
-type imgError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
+// InitFirebaseBucket create firebase bucket
+func InitFirebaseBucket() (err error) {
 
-// Img --> imageResponse content
-type Img struct {
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	Link        string   `json:"link"`
-	Description string   `json:"description"`
-	Error       imgError `json:"error"`
-}
-
-// response when create add new image to Imgur gallery
-type imageResponse struct {
-	Img     *Img `json:"data"`
-	Success bool `json:"success"`
-}
-
-// SetEnvVar set environment var for interacting with Imgur API
-func SetEnvVar() {
-	apiEndpoint = conf.Cfg.Imgur.Endpoint
-	accessToken = conf.Cfg.Imgur.AccessToken
-	refreshToken = conf.Cfg.Imgur.RefreshToken
-	clientID = conf.Cfg.Imgur.ClientID
-}
-
-// UploadImagetoImgur add image to Imgur gallery and return link to new image
-func UploadImagetoImgur(title string, imageURL string) (*Img, error) {
-
-	if imageURL == "" {
-		return nil, errors.Errorf("Can't upload image to imgur: URL is empty")
+	config := &firebase.Config{
+		StorageBucket: conf.Cfg.FirebaseBucket.Name,
 	}
 
-	response := &imageResponse{}
-	url := apiEndpoint + "image"
-
-	payload := &bytes.Buffer{}
-	writer := multipart.NewWriter(payload)
-	writer.WriteField("image", imageURL)
-	writer.WriteField("type", "url")
-	writer.WriteField("title", title)
-	writer.WriteField("description", imageURL)
-
-	err := writer.Close()
+	app, err := firebase.NewApp(context.Background(), config, conf.Cfg.FirebaseBucket.Option)
 	if err != nil {
-		logging.Danger(err)
-		return nil, err
-	}
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest("POST", url, payload)
-	if err != nil {
-		logging.Danger(err)
-		return nil, err
-	}
-
-	req.Header.Add("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	res, err := client.Do(req)
-	if err != nil {
-		logging.Danger(err)
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	decoder := json.NewDecoder(res.Body)
-	err = decoder.Decode(response)
-
-	if response.Success != true {
-		return nil, errors.New(response.Img.Error.Message)
-	}
-	return response.Img, err
-}
-
-// UpdateImage update imgur image
-func UpdateImage(imageID string, comic *model.Comic) (err error) {
-
-	if imageID == "" {
-		return errors.New("Image ID is empty")
-	}
-
-	img, err := GetImageFromImgur(imageID)
-	if err != nil {
-		logging.Danger(err)
 		return
 	}
 
-	img.Description = strings.Replace(img.Description, " . ", ".", -1)
-	if strings.Compare(img.Description, comic.ImageURL) == 0 {
-		return ErrUpToDate
-	}
-
-	img, err = UploadImagetoImgur(img.Title, comic.ImageURL)
+	client, err := app.Storage(context.Background())
 	if err != nil {
-		logging.Danger("Can't upload image to imgur, err :", err)
 		return
 	}
 
-	DeleteImg(imageID)
+	bucket, err = client.DefaultBucket()
+	if err != nil {
+		return
+	}
 
-	comic.ImgurID = model.NullString(img.ID)
-	comic.ImgurLink = model.NullString(img.Link)
-	return
+	return nil
 }
 
-// GetImageFromImgur get img using image ID from Imgur
-func GetImageFromImgur(imageID string) (*Img, error) {
+// UploadToFirebase add image to Imgur gallery and return link to new image
+func UploadToFirebase(prefix, name, imgURL string) (cloudImg string, err error) {
 
-	response := &imageResponse{}
-	url := apiEndpoint + "image/" + imageID
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	req, err := http.NewRequest("GET", url, nil)
-
+	// download img first
+	fileName, err := downloadOriginImg(name, imgURL)
 	if err != nil {
-		logging.Danger(err)
-		return nil, err
+		return "", err
 	}
 
-	req.Header.Add("Authorization", "Client-ID "+clientID)
-	res, err := client.Do(req)
+	// upload image to firebase
+	err = uploadFileToFirebase(bucket, "./"+fileName, fmt.Sprintf("%s/%s", prefix, name)) // ex: prefix = beeng.net, fileName = tay-du.jpg
 	if err != nil {
-		logging.Danger(err)
-		return nil, err
+		return "", err
 	}
-	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
-	err = decoder.Decode(response)
-
-	return response.Img, err
+	// delete img whether upload success or not, to save disk
+	err = os.Remove("./" + fileName)
+	return fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, prefix, fileName), err
 }
 
-// DeleteImg delete img in imgur
-func DeleteImg(imageID string) error {
+// DeleteFirebaseImg delete img in imgur
+func DeleteFirebaseImg(prefix, name string) error {
 
-	if imageID == "" {
-		return errors.New("Image ID is empty")
-	}
+	// ext := filepath.Ext(cloudImg)
+	objectName := fmt.Sprintf("%s/%s", prefix, name) //, ext)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
 
-	url := apiEndpoint + "image/" + imageID
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	req, err := http.NewRequest("DELETE", url, nil)
-
+	err := bucket.Object(objectName).Delete(ctx)
 	if err != nil {
 		logging.Danger(err)
 		return err
 	}
 
-	req.Header.Add("Authorization", "Bearer "+accessToken)
-	_, err = client.Do(req)
-	if err != nil {
-		logging.Danger(err)
-	}
-
-	return err
+	return nil
 }

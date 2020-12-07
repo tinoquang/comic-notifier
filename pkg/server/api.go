@@ -39,14 +39,13 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	for i := range comics {
 		c := comics[i]
-		imgURL := c.ImgurLink.Value()
 		comicPage.Comics = append(comicPage.Comics, api.Comic{
 			Id:         &c.ID,
 			Page:       &c.Page,
 			Name:       &c.Name,
 			Url:        &c.URL,
 			LatestChap: &c.LatestChap,
-			ImgURL:     &imgURL,
+			ImgURL:     &c.CloudImg,
 			ChapURL:    &c.ChapURL,
 		})
 	}
@@ -65,14 +64,13 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	imgURL := c.ImgurLink.Value()
 	comic := api.Comic{
 		Id:         &c.ID,
 		Page:       &c.Page,
 		Name:       &c.Name,
 		Url:        &c.URL,
 		LatestChap: &c.LatestChap,
-		ImgURL:     &imgURL,
+		ImgURL:     &c.CloudImg,
 		ChapURL:    &c.ChapURL,
 	}
 	return ctx.JSON(http.StatusOK, &comic)
@@ -170,14 +168,13 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 	for i := range comics {
 		c := comics[i]
-		imgURL := c.ImgurLink.Value()
 		comicPage.Comics = append(comicPage.Comics, api.Comic{
 			Id:         &c.ID,
 			Page:       &c.Page,
 			Name:       &c.Name,
 			Url:        &c.URL,
 			LatestChap: &c.LatestChap,
-			ImgURL:     &imgURL,
+			ImgURL:     &c.CloudImg,
 			ChapURL:    &c.ChapURL,
 		})
 	}
@@ -213,14 +210,13 @@ func (a *API) SubscribeComic(ctx echo.Context, userAppID string) error {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	imgURL := c.ImgurLink.Value()
 	comic := api.Comic{
 		Id:         &c.ID,
 		Page:       &c.Page,
 		Name:       &c.Name,
 		Url:        &c.URL,
 		LatestChap: &c.LatestChap,
-		ImgURL:     &imgURL,
+		ImgURL:     &c.CloudImg,
 		ChapURL:    &c.ChapURL,
 	}
 
@@ -263,7 +259,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 
 	// Check if no user subscribe to this comic --> remove this comic from DB
 	if len(s) == 0 {
-		img.DeleteImg(string(c.ImgurID))
+		img.DeleteFirebaseImg(c.Page, c.Name)
 		a.store.Comic.Delete(ctx.Request().Context(), comicID)
 	}
 

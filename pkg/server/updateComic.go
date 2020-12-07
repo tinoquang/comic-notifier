@@ -9,6 +9,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
+	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
@@ -83,6 +84,11 @@ func updateComicThread(s *store.Stores, workerNum, timeout int) {
 // UpdateComic use when new chapter realease
 func updateComic(ctx context.Context, s *store.Stores, comic *model.Comic) (err error) {
 
+	// synchronized cloud image
+	if img.GetFirebaseImg(comic.Page, comic.Name) != nil {
+		comic.UpdateCloudImg()
+	}
+
 	oldImgURL := comic.OriginImgURL
 	err = crawler.GetComicInfo(ctx, comic)
 	if err != nil {
@@ -91,7 +97,6 @@ func updateComic(ctx context.Context, s *store.Stores, comic *model.Comic) (err 
 
 	if oldImgURL != comic.OriginImgURL {
 		comic.UpdateCloudImg()
-
 	}
 	err = s.Comic.Update(ctx, comic)
 	return

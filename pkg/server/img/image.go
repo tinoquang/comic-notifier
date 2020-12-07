@@ -66,14 +66,28 @@ func UploadToFirebase(prefix, name, imgURL string) (cloudImg string, err error) 
 // DeleteFirebaseImg delete img in imgur
 func DeleteFirebaseImg(prefix, name string) error {
 
-	// ext := filepath.Ext(cloudImg)
-	objectName := fmt.Sprintf("%s/%s", prefix, name) //, ext)
+	objectName := fmt.Sprintf("%s/%s", prefix, name)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	err := bucket.Object(objectName).Delete(ctx)
 	if err != nil {
 		logging.Danger(err)
+		return err
+	}
+
+	return nil
+}
+
+// GetFirebaseImg verify comic image is exist in cloud
+func GetFirebaseImg(prefix, name string) error {
+
+	objectName := fmt.Sprintf("%s/%s", prefix, name)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+
+	_, err := bucket.Object(objectName).Attrs(ctx)
+	if err != nil {
 		return err
 	}
 

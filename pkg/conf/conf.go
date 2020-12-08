@@ -98,7 +98,7 @@ func Init() {
 		FirebaseBucket: FirebaseBucket{
 			Name:   getEnv("BUCKET_NAME", ""),
 			URL:    "https://storage.googleapis.com/" + getEnv("BUCKET_NAME", ""),
-			Option: option.WithCredentialsFile(envPath + "firebase.json"),
+			Option: option.WithCredentialsFile(getEnv("GOOGLE_APPLICATION_CREDENTIALS", envPath+"google-credentials.json")),
 		},
 		JWT: JWT{
 			SecretKey: getEnv("JWT_SECRET", ""),

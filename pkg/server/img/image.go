@@ -60,7 +60,7 @@ func UploadToFirebase(prefix, name, imgURL string) (cloudImg string, err error) 
 
 	// delete img whether upload success or not, to save disk
 	err = os.Remove("./" + fileName)
-	return fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, prefix, fileName), err
+	return fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, prefix, name), err
 }
 
 // DeleteFirebaseImg delete img in imgur
@@ -88,6 +88,7 @@ func GetFirebaseImg(prefix, name string) error {
 
 	_, err := bucket.Object(objectName).Attrs(ctx)
 	if err != nil {
+		logging.Danger(err)
 		return err
 	}
 

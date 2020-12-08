@@ -6,13 +6,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
-	crawlerMap          map[string]Crawler
-	ErrInvalidURL       = errors.New("Invalid URL")
-	ErrComicUpToDate    = errors.Errorf("Comic is up-to-date, no new chapter")
-	ErrPageNotSupported = errors.Errorf("Page is not supported yet")
+	crawlerMap map[string]Crawler
 )
 
 // Crawler interface
@@ -52,7 +50,7 @@ func GetComicInfo(ctx context.Context, comic *model.Comic) (err error) {
 	}()
 
 	if _, ok := crawlerMap[comic.Page]; !ok {
-		return ErrPageNotSupported
+		return util.ErrPageNotSupported
 	}
 
 	return crawlComic(ctx, comic, crawlerMap[comic.Page])

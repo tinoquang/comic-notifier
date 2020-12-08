@@ -14,8 +14,6 @@ type Comic struct {
 	CloudImg     string `json:"-"`
 	LatestChap   string `json:"latest"`
 	ChapURL      string `json:"chap-url"`
-	Date         string `json:"-"`
-	DateFormat   string `json:"-"`
 }
 
 // UpdateCloudImg fill CloudImg field

@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // beeng crawler
@@ -24,7 +25,7 @@ func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpo
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 
 	comic.Name = doc.Find(".detail").Find("h4").Text()
@@ -33,14 +34,14 @@ func (b beeng) crawl(ctx context.Context, comic *model.Comic, detector detectSpo
 	// Find latest chap
 	firstItem := doc.Find(".listChapters").Find(".list").Find("li:nth-child(1)")
 	if firstItem.Nodes == nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 
 	comic.LatestChap = strings.TrimSpace(firstItem.Find(".titleComic").Text())
 	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
-		return ErrComicUpToDate
+		return util.ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {
@@ -63,7 +64,7 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
@@ -73,7 +74,7 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 	// Find latest chap
 	firstItem := doc.Find(".list-wrap#list-chapters").Find("p:nth-child(1)")
 	if firstItem.Nodes == nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 
 	comic.LatestChap = firstItem.Find(".title").Find("a[href]").Text()
@@ -81,7 +82,7 @@ func (b blogtruyen) crawl(ctx context.Context, comic *model.Comic, detector dete
 
 	chapURL = "https://blogtruyen.vn" + chapURL
 	if comic.ChapURL == chapURL {
-		return ErrComicUpToDate
+		return util.ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {
@@ -104,7 +105,7 @@ func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSp
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 	logging.Info(doc.Html())
 
@@ -121,7 +122,7 @@ func (m mangaK) crawl(ctx context.Context, comic *model.Comic, detector detectSp
 	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
-		return ErrComicUpToDate
+		return util.ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {
@@ -144,7 +145,7 @@ func (t truyentranhtuan) crawl(ctx context.Context, comic *model.Comic, detector
 
 	doc, err := getPageSource(comic.URL)
 	if err != nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 
 	comic.Name = doc.Find("#infor-box").Find("h1").Text()
@@ -160,7 +161,7 @@ func (t truyentranhtuan) crawl(ctx context.Context, comic *model.Comic, detector
 	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
-		return ErrComicUpToDate
+		return util.ErrComicUpToDate
 	}
 
 	// if comic.ChapURL != "" {
@@ -181,7 +182,7 @@ func (t truyentranhnet) crawl(ctx context.Context, comic *model.Comic, detector 
 	url := comic.URL + "?order=desc"
 	doc, err := getPageSource(url)
 	if err != nil {
-		return ErrInvalidURL
+		return util.ErrInvalidURL
 	}
 
 	comic.Name = doc.Find(".detail-manga-title").Find("h1").Text()
@@ -197,7 +198,7 @@ func (t truyentranhnet) crawl(ctx context.Context, comic *model.Comic, detector 
 	chapURL, _ = firstItem.Find("a[href]").Attr("href")
 
 	if chapURL == comic.ChapURL {
-		return ErrComicUpToDate
+		return util.ErrComicUpToDate
 	}
 
 	if comic.ChapURL != "" {

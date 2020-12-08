@@ -11,6 +11,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
@@ -27,7 +28,7 @@ func worker(s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.Comic) {
 		if err == nil {
 			logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
 			notifyToUsers(ctx, s, &comic)
-		} else if err != crawler.ErrComicUpToDate {
+		} else if err != util.ErrComicUpToDate {
 			logging.Danger(err)
 		}
 

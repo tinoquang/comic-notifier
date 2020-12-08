@@ -9,6 +9,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // API -> server handler for api endpoint
@@ -204,7 +205,7 @@ func (a *API) SubscribeComic(ctx echo.Context, userAppID string) error {
 
 	c, err := a.store.SubscribeComic(ctx.Request().Context(), u.PSID, comicURL)
 	if err != nil {
-		if err == store.ErrInvalidURL {
+		if err == util.ErrInvalidURL {
 			return ctx.NoContent(http.StatusBadRequest)
 		}
 		return ctx.NoContent(http.StatusInternalServerError)

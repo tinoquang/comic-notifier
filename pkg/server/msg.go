@@ -8,9 +8,9 @@ import (
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // MSG -> server handler for messenger endpoint
@@ -44,12 +44,12 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
 			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)") // handle later: get time delay and send back to user
-		} else if err == crawler.ErrPageNotSupported {
+		} else if err == util.ErrPageNotSupported {
 			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ !!!")
 			responseCommand(ctx, senderID, "/page")
-		} else if err == store.ErrInvalidURL {
+		} else if err == util.ErrInvalidURL {
 			sendTextBack(senderID, "Đường dẫn chưa chính xác, hãy xem qua hướng dẫn bằng lệnh /tutor")
-			responseCommand(ctx, senderID, "/help")
+			// responseCommand(ctx, senderID, "/help")
 		} else {
 			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)")
 		}
@@ -133,7 +133,7 @@ func responseCommand(ctx context.Context, senderID, text string) {
 		sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
 		sendTextBack(senderID, "https://comicnotifier.herokuapp.com")
 	} else if text == "/page" {
-		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang: beeng.net, blogtruyen.vn")
+		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang: beeng.net, blogtruyen.vn, truyenhtranh.net và truyentranhtuan.com")
 	} else if text == "/tutor" {
 		sendTextBack(senderID, "Xem hướng dẫn tại đây:")
 		sendTextBack(senderID, "https://comicnotifier.herokuapp.com/tutorial")

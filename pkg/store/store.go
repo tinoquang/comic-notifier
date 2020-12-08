@@ -13,12 +13,12 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/server/img"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 var (
 	ErrAlreadySubscribed = errors.New("Already subscribed")
 	ErrNotFound          = errors.New("Not found")
-	ErrInvalidURL        = errors.New("Invalid URL")
 )
 
 // Stores contain all store interfaces
@@ -48,7 +48,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
-		return nil, crawler.ErrInvalidURL
+		return nil, util.ErrInvalidURL
 	}
 
 	err = db.WithTransaction(ctx, s.db, func(tx db.Transaction) (inErr error) {
@@ -59,7 +59,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 		}
 
 		inErr = tx.QueryRowContext(ctx, "SELECT * from comics WHERE url=$1", comicURL).
-			Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL, &comic.Date, &comic.DateFormat)
+			Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL)
 		if inErr != nil {
 
 			if inErr != sql.ErrNoRows {
@@ -70,14 +70,14 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 			// Get all comic infos includes latest chapter
 			inErr = crawler.GetComicInfo(ctx, comic)
 			if inErr != nil {
-				logging.Danger(inErr)
+				// logging.Danger(inErr)
 				return inErr
 			}
 			// Add new comic to DB
-			query := `INSERT INTO comics (page, name, url, img_url, latest_chap, chap_url, date, date_format) 
-						VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+			query := `INSERT INTO comics (page, name, url, img_url, latest_chap, chap_url) 
+						VALUES ($1, $2, $3, $4, $5, $6) 
 						RETURNING id`
-			inErr = tx.QueryRowContext(ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.LatestChap, comic.ChapURL, comic.Date, comic.DateFormat).
+			inErr = tx.QueryRowContext(ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.LatestChap, comic.ChapURL).
 				Scan(&comic.ID)
 
 			if inErr != nil {

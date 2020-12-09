@@ -48,7 +48,7 @@ func main() {
 	e.Static("/assets", "ui/assets")
 	e.Static("/favicon.ico", "ui/favicon.ico")
 
-	e.GET("/", func(c echo.Context) error {
+	e.GET("/*", func(c echo.Context) error {
 		return c.File("ui/index.html")
 	})
 

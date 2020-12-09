@@ -75,9 +75,9 @@ func (h *Handler) auth(c echo.Context) error {
 	code := c.QueryParam("code")
 	state := c.QueryParam("state")
 
-	if state != "quangmt2" {
-		return c.NoContent(http.StatusBadRequest)
-	}
+	// if state != "quangmt2" {
+	// 	return c.NoContent(http.StatusBadRequest)
+	// }
 
 	/* Exchange token using given code */
 	queries := map[string]string{
@@ -149,10 +149,10 @@ func (h *Handler) auth(c echo.Context) error {
 	c.SetCookie(cookie)
 
 	if conf.Cfg.Host == "http://localhost" {
-		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000", conf.Cfg.Host))
+		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:8080%s", conf.Cfg.Host, state))
 	}
 
-	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s", conf.Cfg.Host))
+	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", conf.Cfg.Host, state))
 }
 
 func (h *Handler) generateJWT(userAppID string) (string, error) {

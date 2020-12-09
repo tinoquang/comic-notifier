@@ -7,10 +7,11 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-// SubscriberInterface contains subscriber's interact method
-type SubscriberInterface interface {
+// SubscriberRepo contains subscriber's interact method
+type SubscriberRepo interface {
 	Get(ctx context.Context, psid string, comicID int) (*model.Subscriber, error)
 	Create(ctx context.Context, subscriber *model.Subscriber) error
 	Delete(ctx context.Context, psid string, comicID int) error
@@ -21,8 +22,7 @@ type subscriberDB struct {
 	dbconn *sql.DB
 }
 
-// NewSubscriberStore return subscriber interfaces
-func NewSubscriberStore(dbconn *sql.DB) SubscriberInterface {
+func newSubscriberRepo(dbconn *sql.DB) *subscriberDB {
 	return &subscriberDB{dbconn: dbconn}
 }
 
@@ -35,7 +35,7 @@ func (s *subscriberDB) Get(ctx context.Context, psid string, comicID int) (*mode
 	}
 
 	if len(subscribers) == 0 {
-		return &model.Subscriber{}, ErrNotFound
+		return &model.Subscriber{}, util.ErrNotFound
 	}
 
 	return &subscribers[0], nil

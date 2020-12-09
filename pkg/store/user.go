@@ -7,10 +7,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-// UserInterface contain user's interact method
-type UserInterface interface {
+// UserRepo contain user's interact method
+type UserRepo interface {
 	GetByFBID(ctx context.Context, field, id string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	List(ctx context.Context) ([]model.User, error)
@@ -21,7 +22,7 @@ type userDB struct {
 }
 
 // NewUserStore return user interfaces
-func NewUserStore(dbconn *sql.DB) UserInterface {
+func newUserRepo(dbconn *sql.DB) *userDB {
 	return &userDB{dbconn: dbconn}
 }
 
@@ -34,7 +35,7 @@ func (u *userDB) GetByFBID(ctx context.Context, field, id string) (*model.User, 
 	}
 
 	if len(users) == 0 {
-		return &model.User{}, ErrNotFound
+		return &model.User{}, util.ErrNotFound
 	}
 
 	return &users[0], nil

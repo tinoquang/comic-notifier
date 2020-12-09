@@ -31,7 +31,7 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	comics, err := a.store.Comic.List(ctx.Request().Context(), opt)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.JSON(http.StatusOK, &comicPage)
 		}
 		logging.Danger(err)
@@ -58,7 +58,7 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 
 	c, err := a.store.Comic.Get(ctx.Request().Context(), id)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -86,7 +86,7 @@ func (a *API) Users(ctx echo.Context) error {
 
 	users, err := a.store.User.List(ctx.Request().Context())
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.JSON(http.StatusOK, &userPage)
 		}
 
@@ -118,7 +118,7 @@ func (a *API) GetUser(ctx echo.Context, userAppID string) error {
 
 	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -145,7 +145,7 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -159,7 +159,7 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, u.PSID)
 	if err != nil {
 		// Return empty list if not found comic
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			comicPage.Comics = []api.Comic{}
 			return ctx.JSON(http.StatusOK, &comicPage)
 		}
@@ -191,7 +191,7 @@ func (a *API) SubscribeComic(ctx echo.Context, userAppID string) error {
 
 	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -233,7 +233,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 
 	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)

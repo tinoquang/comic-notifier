@@ -39,7 +39,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	comic, err := m.subscribeComic(ctx, senderID, text)
 	if err != nil {
-		if err == store.ErrAlreadySubscribed {
+		if err == util.ErrAlreadySubscribed {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
@@ -80,7 +80,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
 
 	if err != nil {
-		if err == store.ErrNotFound {
+		if err == util.ErrNotFound {
 			sendTextBack(senderID, "This comic is not subscribed yet!")
 			return
 		}

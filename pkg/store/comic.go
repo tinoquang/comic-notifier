@@ -3,15 +3,17 @@ package store
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/keegancsmith/sqlf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-// ComicInterface contains comic's interact method
-type ComicInterface interface {
+// ComicRepo contains comic's interact method
+type ComicRepo interface {
 	Get(ctx context.Context, id int) (*model.Comic, error)
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
 	CheckComicSubscribe(ctx context.Context, psid string, comicID int) (*model.Comic, error)
@@ -22,10 +24,54 @@ type ComicInterface interface {
 	ListByPSID(ctx context.Context, opt *ComicsListOptions, psid string) ([]model.Comic, error)
 }
 
+type comicDB struct {
+	dbconn *sql.DB
+}
+
+func newComicRepo(dbconn *sql.DB) *comicDB {
+	return &comicDB{dbconn: dbconn}
+}
+
 // ComicsListOptions specifies the options for listing projects.
 type ComicsListOptions struct {
 	*NameLikeOptions
 	*LimitOffset
+}
+
+// LimitOffset specifies SQL LIMIT and OFFSET counts. A pointer to it is typically embedded in other options
+// structures that need to perform SQL queries with LIMIT and OFFSET.
+type LimitOffset struct {
+	Limit  int // SQL LIMIT count
+	Offset int // SQL OFFSET count
+}
+
+// SQL returns the SQL query fragment ("LIMIT %d OFFSET %d") for use in SQL queries.
+func (o *LimitOffset) SQL() *sqlf.Query {
+	if o == nil {
+		return &sqlf.Query{}
+	}
+
+	if o.Limit == 0 {
+		return sqlf.Sprintf("LIMIT ALL OFFSET %d", o.Offset)
+	}
+
+	return sqlf.Sprintf("LIMIT %d OFFSET %d", o.Limit, o.Offset)
+}
+
+// NameLikeOptions used to query by name using like
+type NameLikeOptions struct {
+	// Query specifies a search query for organizations.
+	Query string
+}
+
+// ListComicNameLikeSQL used to search by name if query is set
+func ListComicNameLikeSQL(opt *NameLikeOptions) (conds []*sqlf.Query) {
+	conds = []*sqlf.Query{sqlf.Sprintf("TRUE")}
+	if opt.Query != "" {
+		query := "%" + strings.Replace(opt.Query, " ", "%", -1) + "%"
+		conds = append(conds, sqlf.Sprintf("comics.name ILIKE %s or unaccent(comics.name) ILIKE %s", query, query))
+	}
+	return conds
 }
 
 // NewComicsListOptions create a new opts
@@ -34,15 +80,6 @@ func NewComicsListOptions(query string, limit int, offset int) *ComicsListOption
 		NameLikeOptions: &NameLikeOptions{query},
 		LimitOffset:     &LimitOffset{Limit: limit, Offset: offset},
 	}
-}
-
-type comicDB struct {
-	dbconn *sql.DB
-}
-
-// NewComicStore return comic interfaces
-func NewComicStore(dbconn *sql.DB) ComicInterface {
-	return &comicDB{dbconn: dbconn}
 }
 
 func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {
@@ -54,7 +91,7 @@ func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {
 	}
 
 	if len(comics) == 0 {
-		return &model.Comic{}, ErrNotFound
+		return &model.Comic{}, util.ErrNotFound
 	}
 
 	return &comics[0], nil
@@ -69,7 +106,7 @@ func (c *comicDB) GetByURL(ctx context.Context, URL string) (*model.Comic, error
 	}
 
 	if len(comics) == 0 {
-		return &model.Comic{}, ErrNotFound
+		return &model.Comic{}, util.ErrNotFound
 	}
 
 	return &comics[0], nil
@@ -87,7 +124,7 @@ func (c *comicDB) CheckComicSubscribe(ctx context.Context, psid string, comicID 
 	}
 
 	if len(comics) == 0 {
-		return &model.Comic{}, ErrNotFound
+		return &model.Comic{}, util.ErrNotFound
 	}
 
 	return &comics[0], nil
@@ -155,7 +192,7 @@ func (c *comicDB) ListByPSID(ctx context.Context, opt *ComicsListOptions, psid s
 	}
 
 	if len(comics) == 0 {
-		return []model.Comic{}, ErrNotFound
+		return []model.Comic{}, util.ErrNotFound
 	}
 
 	return comics, nil

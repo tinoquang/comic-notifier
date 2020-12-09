@@ -25,7 +25,7 @@ func main() {
 	// Connect to DB
 	dbconn := db.New()
 
-	// Init DB handler
+	// Init Repository
 	s := store.New(dbconn)
 
 	// Init main business logic server

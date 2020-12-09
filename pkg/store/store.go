@@ -3,11 +3,8 @@ package store
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"net/url"
-	"strings"
 
-	"github.com/keegancsmith/sqlf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -16,26 +13,21 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-var (
-	ErrAlreadySubscribed = errors.New("Already subscribed")
-	ErrNotFound          = errors.New("Not found")
-)
-
 // Stores contain all store interfaces
 type Stores struct {
 	db         *sql.DB
-	Comic      ComicInterface
-	User       UserInterface
-	Subscriber SubscriberInterface
+	Comic      ComicRepo
+	User       UserRepo
+	Subscriber SubscriberRepo
 }
 
 // New create new stores
 func New(db *sql.DB) *Stores {
 	return &Stores{
 		db:         db,
-		Comic:      NewComicStore(db),
-		User:       NewUserStore(db),
-		Subscriber: NewSubscriberStore(db),
+		Comic:      newComicRepo(db),
+		User:       newUserRepo(db),
+		Subscriber: newSubscriberRepo(db),
 	}
 }
 
@@ -44,7 +36,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 
 	var err error
 	var comic *model.Comic
-	newComic := 1
+	newComic := 0
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
@@ -62,6 +54,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 			Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL)
 		if inErr != nil {
 
+			newComic = 1
 			if inErr != sql.ErrNoRows {
 				logging.Danger(inErr)
 				return inErr
@@ -84,8 +77,6 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 				logging.Danger(inErr)
 				return inErr
 			}
-		} else {
-			newComic = 0
 		}
 
 		// Validate users is in user DB or not
@@ -116,7 +107,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 
 		subscriber, inErr := s.Subscriber.Get(ctx, user.PSID, comic.ID)
 		if inErr != nil {
-			if inErr != ErrNotFound {
+			if inErr != util.ErrNotFound {
 				logging.Danger(inErr)
 				return
 			}
@@ -128,10 +119,10 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 				return
 			}
 		} else {
-			return ErrAlreadySubscribed
+			return util.ErrAlreadySubscribed
 		}
 
-		if newComic != 0 {
+		if newComic == 1 {
 			e := comic.UpdateCloudImg()
 			if e != nil {
 				logging.Danger(e)
@@ -152,40 +143,4 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 	})
 
 	return comic, err
-}
-
-// LimitOffset specifies SQL LIMIT and OFFSET counts. A pointer to it is typically embedded in other options
-// structures that need to perform SQL queries with LIMIT and OFFSET.
-type LimitOffset struct {
-	Limit  int // SQL LIMIT count
-	Offset int // SQL OFFSET count
-}
-
-// SQL returns the SQL query fragment ("LIMIT %d OFFSET %d") for use in SQL queries.
-func (o *LimitOffset) SQL() *sqlf.Query {
-	if o == nil {
-		return &sqlf.Query{}
-	}
-
-	if o.Limit == 0 {
-		return sqlf.Sprintf("LIMIT ALL OFFSET %d", o.Offset)
-	}
-
-	return sqlf.Sprintf("LIMIT %d OFFSET %d", o.Limit, o.Offset)
-}
-
-// NameLikeOptions used to query by name using like
-type NameLikeOptions struct {
-	// Query specifies a search query for organizations.
-	Query string
-}
-
-// ListComicNameLikeSQL used to search by name if query is set
-func ListComicNameLikeSQL(opt *NameLikeOptions) (conds []*sqlf.Query) {
-	conds = []*sqlf.Query{sqlf.Sprintf("TRUE")}
-	if opt.Query != "" {
-		query := "%" + strings.Replace(opt.Query, " ", "%", -1) + "%"
-		conds = append(conds, sqlf.Sprintf("comics.name ILIKE %s or unaccent(comics.name) ILIKE %s", query, query))
-	}
-	return conds
 }

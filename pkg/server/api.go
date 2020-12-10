@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -260,8 +259,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 
 	// Check if no user subscribe to this comic --> remove this comic from DB
 	if len(s) == 0 {
-		img.DeleteFirebaseImg(c.Page, c.Name)
-		a.store.Comic.Delete(ctx.Request().Context(), comicID)
+		a.store.Comic.Delete(ctx.Request().Context(), c)
 	}
 
 	return ctx.NoContent(http.StatusOK)

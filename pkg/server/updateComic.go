@@ -9,7 +9,6 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
-	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -86,21 +85,13 @@ func worker(id int, s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.
 // UpdateComic use when new chapter realease
 func updateComic(ctx context.Context, s *store.Stores, comic *model.Comic) (err error) {
 
-	// synchronized cloud image
-	if img.GetFirebaseImg(comic.Page, comic.Name) != nil {
-		comic.UpdateCloudImg()
-	}
-
 	oldImgURL := comic.OriginImgURL
 	err = crawler.GetComicInfo(ctx, comic)
 	if err != nil {
 		return
 	}
 
-	if oldImgURL != comic.OriginImgURL {
-		comic.UpdateCloudImg()
-	}
-	err = s.Comic.Update(ctx, comic)
+	err = s.Comic.Update(ctx, comic, oldImgURL)
 	return
 }
 

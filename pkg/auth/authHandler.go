@@ -149,7 +149,7 @@ func (h *Handler) auth(c echo.Context) error {
 	c.SetCookie(cookie)
 
 	if conf.Cfg.Host == "http://localhost" {
-		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:8080%s", conf.Cfg.Host, state))
+		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000%s", conf.Cfg.Host, state))
 	}
 
 	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", conf.Cfg.Host, state))

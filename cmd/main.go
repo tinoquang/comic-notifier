@@ -24,9 +24,10 @@ func main() {
 
 	// Connect to DB
 	dbconn := db.New()
+	firebaseBucket := db.NewFirebaseConnection()
 
 	// Init Repository
-	s := store.New(dbconn)
+	s := store.New(dbconn, firebaseBucket)
 
 	// Init main business logic server
 	svr := server.New(s)

@@ -9,7 +9,6 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
-	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -22,10 +21,10 @@ type Stores struct {
 }
 
 // New create new stores
-func New(db *sql.DB) *Stores {
+func New(db *sql.DB, firebaseDB *db.FirebaseDB) *Stores {
 	return &Stores{
 		db:         db,
-		Comic:      newComicRepo(db),
+		Comic:      newComicRepo(db, firebaseDB),
 		User:       newUserRepo(db),
 		Subscriber: newSubscriberRepo(db),
 	}
@@ -36,7 +35,6 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 
 	var err error
 	var comic *model.Comic
-	newComic := 0
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
@@ -54,7 +52,6 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 			Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL)
 		if inErr != nil {
 
-			newComic = 1
 			if inErr != sql.ErrNoRows {
 				logging.Danger(inErr)
 				return inErr
@@ -120,23 +117,6 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 			}
 		} else {
 			return util.ErrAlreadySubscribed
-		}
-
-		if newComic == 1 {
-			e := comic.UpdateCloudImg()
-			if e != nil {
-				logging.Danger(e)
-				return e
-			}
-
-			query := "UPDATE comics SET cloud_img=$2 WHERE id=$1 RETURNING id, cloud_img"
-			inErr = tx.QueryRowContext(ctx, query, comic.ID, comic.CloudImg).Scan(&comic.ID, &comic.CloudImg)
-			if inErr != nil {
-				logging.Danger(inErr)
-				img.DeleteFirebaseImg(comic.Page, comic.Name)
-				return
-			}
-
 		}
 
 		return

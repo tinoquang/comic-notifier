@@ -8,7 +8,6 @@ import (
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/server/img"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -114,8 +113,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	}
 
 	if len(s) == 0 {
-		img.DeleteFirebaseImg(c.Page, c.Name)
-		m.store.Comic.Delete(ctx, comicID)
+		m.store.Comic.Delete(ctx, c)
 	}
 	sendTextBack(senderID, fmt.Sprintf("Unsub %s\nSuccess!", c.Name))
 

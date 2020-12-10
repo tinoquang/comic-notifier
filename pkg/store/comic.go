@@ -3,9 +3,13 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/keegancsmith/sqlf"
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
@@ -18,19 +22,22 @@ type ComicRepo interface {
 	GetByURL(ctx context.Context, URL string) (*model.Comic, error)
 	CheckComicSubscribe(ctx context.Context, psid string, comicID int) (*model.Comic, error)
 	Create(ctx context.Context, comic *model.Comic) error
-	Update(ctx context.Context, comic *model.Comic) error
-	Delete(ctx context.Context, id int) error
+	Update(ctx context.Context, comic *model.Comic, oldImgURL string) (err error)
+	Delete(ctx context.Context, comic *model.Comic) error
 	List(ctx context.Context, opt *ComicsListOptions) ([]model.Comic, error)
 	ListByPSID(ctx context.Context, opt *ComicsListOptions, psid string) ([]model.Comic, error)
 }
 
 type comicDB struct {
-	dbconn *sql.DB
+	dbconn     *sql.DB
+	firebaseDB *db.FirebaseDB
 }
 
-func newComicRepo(dbconn *sql.DB) *comicDB {
-	return &comicDB{dbconn: dbconn}
+func newComicRepo(dbconn *sql.DB, firebaseDB *db.FirebaseDB) *comicDB {
+	return &comicDB{dbconn: dbconn, firebaseDB: firebaseDB}
 }
+
+/*-------------------------- Handle query options ------------------------------- */
 
 // ComicsListOptions specifies the options for listing projects.
 type ComicsListOptions struct {
@@ -82,6 +89,32 @@ func NewComicsListOptions(query string, limit int, offset int) *ComicsListOption
 	}
 }
 
+/* ------------------------- Handle Firebase Storage */
+
+// Save --> upload image to cloud
+func (c *comicDB) UploadImg(comicPage, comicName, imgURL string) (cloudImg string, err error) {
+
+	// Image will be uploaded to folder: page/name.ext in Firebas storage, so we need to pass comicPage and comicName
+
+	// download img first
+	fileName := comicName + filepath.Ext(imgURL)
+	err = util.DownloadFile(imgURL, "./"+fileName)
+	if err != nil {
+		logging.Danger(err)
+		return
+	}
+
+	// upload image to firebase
+	err = c.firebaseDB.Upload("./"+fileName, fmt.Sprintf("%s/%s", comicPage, comicName)) // ex: prefix = beeng.net, fileName = tay-du.jpg
+	if err != nil {
+		return "", err
+	}
+
+	// delete img whether upload success or not, to save disk
+	err = os.Remove("./" + fileName)
+	return fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comicPage, comicName), err
+}
+
 func (c *comicDB) Get(ctx context.Context, id int) (*model.Comic, error) {
 
 	comics, err := c.getBySQL(ctx, "WHERE id=$1", id)
@@ -130,30 +163,52 @@ func (c *comicDB) CheckComicSubscribe(ctx context.Context, psid string, comicID 
 	return &comics[0], nil
 }
 
-func (c *comicDB) Create(ctx context.Context, comic *model.Comic) error {
+func (c *comicDB) Create(ctx context.Context, comic *model.Comic) (err error) {
+
+	comic.CloudImg, err = c.UploadImg(comic.Page, comic.Name, comic.OriginImgURL)
+	if err != nil {
+		return err
+	}
 
 	query := "INSERT INTO comics (page, name, url, img_url, cloud_img, latest_chap, chap_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
 
-	err := db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
+	err = db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
 		return tx.QueryRowContext(
 			ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.CloudImg, comic.LatestChap, comic.ChapURL,
 		).Scan(&comic.ID)
 	})
+
+	if err != nil {
+		c.firebaseDB.Delete(comic.Page, comic.Name)
+	}
+
 	return err
 
 }
 
-func (c *comicDB) Update(ctx context.Context, comic *model.Comic) error {
+func (c *comicDB) Update(ctx context.Context, comic *model.Comic, oldImgURL string) (err error) {
+
+	if oldImgURL != comic.OriginImgURL || c.firebaseDB.Get(comic.Page, comic.Name) != nil {
+		comic.CloudImg, err = c.UploadImg(comic.Page, comic.Name, comic.OriginImgURL)
+		if err != nil {
+			return
+		}
+	}
 
 	query := "UPDATE comics SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img=$5 WHERE id=$1"
-	_, err := c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.OriginImgURL, comic.CloudImg)
+	_, err = c.dbconn.ExecContext(ctx, query, comic.ID, comic.LatestChap, comic.ChapURL, comic.OriginImgURL, comic.CloudImg)
 	return err
 }
 
-func (c *comicDB) Delete(ctx context.Context, id int) error {
+func (c *comicDB) Delete(ctx context.Context, comic *model.Comic) error {
+
+	err := c.firebaseDB.Delete(comic.Page, comic.Name)
+	if err != nil {
+		return err
+	}
 
 	query := "DELETE FROM comics WHERE id=$1"
-	_, err := c.dbconn.ExecContext(ctx, query, id)
+	_, err = c.dbconn.ExecContext(ctx, query, comic.ID)
 	if err != nil {
 		logging.Danger(err)
 	}

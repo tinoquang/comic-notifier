@@ -1,6 +1,7 @@
 drop table if exists subscribers;
 drop table if exists users;
 drop table if exists comics;
+
 create table comics (
     "id" serial UNIQUE,
     "page" VARCHAR(64),
@@ -13,6 +14,7 @@ create table comics (
     PRIMARY KEY (id, url, img_url)
 );
 create table users (
+    "id" serial UNIQUE,
     "name" VARCHAR(64),
     "psid" VARCHAR(64) UNIQUE,
     "appid" VARCHAR(64) UNIQUE,
@@ -23,5 +25,5 @@ create table subscribers (
     "id" serial,
     "user_psid" VARCHAR(64) references users(psid) on DELETE CASCADE on UPDATE CASCADE,
     "comic_id" INT references comics(id) on DELETE CASCADE on UPDATE CASCADE,
-    "created_at" timestamp with time zone DEFAULT now()
+    "created_at" timestamptz NOT NULL DEFAULT (now())
 );

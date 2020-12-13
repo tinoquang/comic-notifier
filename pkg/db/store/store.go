@@ -8,7 +8,8 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
+
+	// "github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -58,7 +59,7 @@ func (s *Stores) SubscribeComic(ctx context.Context, userPSID, comicURL string) 
 			}
 
 			// Get all comic infos includes latest chapter
-			inErr = crawler.GetComicInfo(ctx, comic)
+			// inErr = crawler.GetComicInfo(ctx, comic)
 			if inErr != nil {
 				// logging.Danger(inErr)
 				return inErr

@@ -10,8 +10,8 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_ROOT_PASSWORD
     volumes:
-      # - backend_postgresql:/var/lib/postgresql
-      # - backend_postgresql_data:/var/lib/postgresql/data
+      - backend_postgresql:/var/lib/postgresql
+      - backend_postgresql_data:/var/lib/postgresql/data
       - ./setupDB.sql:/docker-entrypoint-initdb.d/init.sql
   backend:
     build: .
@@ -25,6 +25,6 @@ services:
     volumes:
       - backend_go_mod_data:/go/pkg/mod
 volumes:
-  # backend_postgresql:
-  # backend_postgresql_data:
+  backend_postgresql:
+  backend_postgresql_data:
   backend_go_mod_data:

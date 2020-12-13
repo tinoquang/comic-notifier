@@ -10,7 +10,6 @@ import (
 
 	"github.com/keegancsmith/sqlf"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -168,18 +167,6 @@ func (c *comicDB) Create(ctx context.Context, comic *model.Comic) (err error) {
 	comic.CloudImg, err = c.UploadImg(comic.Page, comic.Name, comic.OriginImgURL)
 	if err != nil {
 		return err
-	}
-
-	query := "INSERT INTO comics (page, name, url, img_url, cloud_img, latest_chap, chap_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
-
-	err = db.WithTransaction(ctx, c.dbconn, func(tx db.Transaction) error {
-		return tx.QueryRowContext(
-			ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.CloudImg, comic.LatestChap, comic.ChapURL,
-		).Scan(&comic.ID)
-	})
-
-	if err != nil {
-		c.firebaseDB.Delete(comic.Page, comic.Name)
 	}
 
 	return err

@@ -14,21 +14,21 @@ INSERT INTO comics
 	name,
 	url,
 	img_url,
-	cloud_img,
+	cloud_img_url,
 	latest_chap,
 	chap_url)
 	VALUES ($1,$2,$3,$4,$5,$6,$7)
-	RETURNING id, page, name, url, img_url, cloud_img, latest_chap, chap_url
+	RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url
 `
 
 type CreateComicParams struct {
-	Page       sql.NullString
-	Name       sql.NullString
-	Url        string
-	ImgUrl     sql.NullString
-	CloudImg   sql.NullString
-	LatestChap string
-	ChapUrl    string
+	Page        string
+	Name        string
+	Url         string
+	ImgUrl      string
+	CloudImgUrl string
+	LatestChap  string
+	ChapUrl     string
 }
 
 func (q *Queries) CreateComic(ctx context.Context, arg CreateComicParams) (Comic, error) {
@@ -37,7 +37,7 @@ func (q *Queries) CreateComic(ctx context.Context, arg CreateComicParams) (Comic
 		arg.Name,
 		arg.Url,
 		arg.ImgUrl,
-		arg.CloudImg,
+		arg.CloudImgUrl,
 		arg.LatestChap,
 		arg.ChapUrl,
 	)
@@ -48,7 +48,7 @@ func (q *Queries) CreateComic(ctx context.Context, arg CreateComicParams) (Comic
 		&i.Name,
 		&i.Url,
 		&i.ImgUrl,
-		&i.CloudImg,
+		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
 	)
@@ -66,7 +66,7 @@ func (q *Queries) DeleteComic(ctx context.Context, id sql.NullInt32) error {
 }
 
 const getComic = `-- name: GetComic :one
-SELECT id, page, name, url, img_url, cloud_img, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE id = $1 LIMIT 1
 `
 
@@ -79,7 +79,7 @@ func (q *Queries) GetComic(ctx context.Context, id sql.NullInt32) (Comic, error)
 		&i.Name,
 		&i.Url,
 		&i.ImgUrl,
-		&i.CloudImg,
+		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
 	)
@@ -87,7 +87,7 @@ func (q *Queries) GetComic(ctx context.Context, id sql.NullInt32) (Comic, error)
 }
 
 const getComicByURL = `-- name: GetComicByURL :one
-SELECT id, page, name, url, img_url, cloud_img, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE url = $1 LIMIT 1
 `
 
@@ -100,7 +100,7 @@ func (q *Queries) GetComicByURL(ctx context.Context, url string) (Comic, error) 
 		&i.Name,
 		&i.Url,
 		&i.ImgUrl,
-		&i.CloudImg,
+		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
 	)
@@ -108,7 +108,7 @@ func (q *Queries) GetComicByURL(ctx context.Context, url string) (Comic, error) 
 }
 
 const getComicForUpdate = `-- name: GetComicForUpdate :one
-SELECT id, page, name, url, img_url, cloud_img, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE id = $1LIMIT 1
 FOR NO KEY UPDATE
 `
@@ -122,7 +122,7 @@ func (q *Queries) GetComicForUpdate(ctx context.Context, id sql.NullInt32) (Comi
 		&i.Name,
 		&i.Url,
 		&i.ImgUrl,
-		&i.CloudImg,
+		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
 	)
@@ -130,7 +130,7 @@ func (q *Queries) GetComicForUpdate(ctx context.Context, id sql.NullInt32) (Comi
 }
 
 const listComics = `-- name: ListComics :many
-SELECT id, page, name, url, img_url, cloud_img, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE comics.name ILIKE $1 or unaccent(comics.name) ILIKE $2
 ORDER BY id DESC
 LIMIT $3
@@ -138,8 +138,8 @@ OFFSET $4
 `
 
 type ListComicsParams struct {
-	Name   sql.NullString
-	Name_2 sql.NullString
+	Name   string
+	Name_2 string
 	Limit  int32
 	Offset int32
 }
@@ -164,7 +164,7 @@ func (q *Queries) ListComics(ctx context.Context, arg ListComicsParams) ([]Comic
 			&i.Name,
 			&i.Url,
 			&i.ImgUrl,
-			&i.CloudImg,
+			&i.CloudImgUrl,
 			&i.LatestChap,
 			&i.ChapUrl,
 		); err != nil {
@@ -183,17 +183,17 @@ func (q *Queries) ListComics(ctx context.Context, arg ListComicsParams) ([]Comic
 
 const updateComic = `-- name: UpdateComic :one
 UPDATE comics 
-SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img=$5 
+SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5 
 WHERE id=$1
-RETURNING id, page, name, url, img_url, cloud_img, latest_chap, chap_url
+RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url
 `
 
 type UpdateComicParams struct {
-	ID         sql.NullInt32
-	LatestChap string
-	ChapUrl    string
-	ImgUrl     sql.NullString
-	CloudImg   sql.NullString
+	ID          sql.NullInt32
+	LatestChap  string
+	ChapUrl     string
+	ImgUrl      string
+	CloudImgUrl string
 }
 
 func (q *Queries) UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic, error) {
@@ -202,7 +202,7 @@ func (q *Queries) UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic
 		arg.LatestChap,
 		arg.ChapUrl,
 		arg.ImgUrl,
-		arg.CloudImg,
+		arg.CloudImgUrl,
 	)
 	var i Comic
 	err := row.Scan(
@@ -211,7 +211,7 @@ func (q *Queries) UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic
 		&i.Name,
 		&i.Url,
 		&i.ImgUrl,
-		&i.CloudImg,
+		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
 	)

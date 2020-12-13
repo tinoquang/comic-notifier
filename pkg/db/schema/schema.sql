@@ -4,21 +4,21 @@ drop table if exists comics;
 
 create table comics (
     "id" serial UNIQUE,
-    "page" VARCHAR(64),
-    "name" VARCHAR(128),
+    "page" VARCHAR(64) not null,
+    "name" VARCHAR(128)not null,
     "url" VARCHAR(256) not null unique,
-    "img_url" VARCHAR(128),
-    "cloud_img" VARCHAR(256),
+    "img_url" VARCHAR(128) not null,
+    "cloud_img_url" VARCHAR(256) not null,
     "latest_chap" VARCHAR(128) not null,
     "chap_url" VARCHAR(128) not null,
     PRIMARY KEY (id, url, img_url)
 );
 create table users (
     "id" serial UNIQUE,
-    "name" VARCHAR(64),
-    "psid" VARCHAR(64) UNIQUE,
-    "appid" VARCHAR(64) UNIQUE,
-    "profile_pic" VARCHAR(256),
+    "name" VARCHAR(64) not null,
+    "psid" VARCHAR(64) not null UNIQUE,
+    "appid" VARCHAR(64) not null UNIQUE,
+    "profile_pic" VARCHAR(256) not null,
     PRIMARY KEY (psid, appid)
 );
 create table subscribers (

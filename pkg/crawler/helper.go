@@ -11,12 +11,17 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
 
-type spoiler struct{}
+type helper interface {
+	detectSpoiler(chapURL string, attr1, attr2 string) error
+	getPageSource(pageURL string) (doc *goquery.Document, err error)
+}
 
-func (s spoiler) detect(chapURL string, attr1, attr2 string) error {
+type comicHelper struct{}
+
+func (ch comicHelper) detectSpoiler(chapURL string, attr1, attr2 string) error {
 
 	// Check if chapter is full upload (detect spolier chap)
-	doc, err := getPageSource(chapURL)
+	doc, err := ch.getPageSource(chapURL)
 	if err != nil {
 		logging.Danger()
 		return err
@@ -31,7 +36,7 @@ func (s spoiler) detect(chapURL string, attr1, attr2 string) error {
 	return nil
 }
 
-func getPageSource(pageURL string) (doc *goquery.Document, err error) {
+func (ch comicHelper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
 	c := http.Client{
 		Timeout: 10 * time.Second,

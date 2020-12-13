@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -43,14 +42,14 @@ func (s *subscriberDB) Get(ctx context.Context, psid string, comicID int) (*mode
 
 func (s *subscriberDB) Create(ctx context.Context, subscriber *model.Subscriber) error {
 
-	query := "INSERT INTO subscribers (user_psid, comic_id) VALUES ($1,$2) RETURNING id"
+	// query := "INSERT INTO subscribers (user_psid, comic_id) VALUES ($1,$2) RETURNING id"
 
-	err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
-		return tx.QueryRowContext(
-			ctx, query, subscriber.PSID, subscriber.ComicID,
-		).Scan(&subscriber.ID)
-	})
-	return err
+	// err := db.WithTransaction(ctx, s.dbconn, func(tx db.Transaction) error {
+	// 	return tx.QueryRowContext(
+	// 		ctx, query, subscriber.PSID, subscriber.ComicID,
+	// 	).Scan(&subscriber.ID)
+	// })
+	return nil
 }
 
 func (s *subscriberDB) ListByComicID(ctx context.Context, comicID int) ([]model.Subscriber, error) {

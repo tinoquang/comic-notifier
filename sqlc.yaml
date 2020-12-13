@@ -1,9 +1,9 @@
 version: "1"
 packages:
   - name: "db"
-    path: "./pkg/db/psql/sqlc"
-    queries: "./pkg/db/psql/query/"
-    schema: "./pkg/db/psql/schema/"
+    path: "./pkg/db/sqlc"
+    queries: "./pkg/db/query/"
+    schema: "./pkg/db/schema/"
     engine: "postgresql"
     emit_json_tags: false
     emit_prepared_queries: false

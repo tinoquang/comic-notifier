@@ -8,7 +8,6 @@ import (
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/server/crawler"
 	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -86,7 +85,7 @@ func worker(id int, s *store.Stores, wg *sync.WaitGroup, comicPool <-chan model.
 func updateComic(ctx context.Context, s *store.Stores, comic *model.Comic) (err error) {
 
 	oldImgURL := comic.OriginImgURL
-	err = crawler.GetComicInfo(ctx, comic)
+	// err = crawler.GetComicInfo(ctx, comic)
 	if err != nil {
 		return
 	}

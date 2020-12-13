@@ -4,7 +4,7 @@ INSERT INTO comics
 	name,
 	url,
 	img_url,
-	cloud_img,
+	cloud_img_url,
 	latest_chap,
 	chap_url)
 	VALUES ($1,$2,$3,$4,$5,$6,$7)
@@ -44,7 +44,7 @@ OFFSET $3;
 
 -- name: UpdateComic :one
 UPDATE comics 
-SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img=$5 
+SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5 
 WHERE id=$1
 RETURNING *;
 

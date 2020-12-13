@@ -1,25 +1,29 @@
-package db
+package crawler
 
 import (
 	"context"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"cloud.google.com/go/storage"
 	firebase "firebase.google.com/go/v4"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-// FirebaseDB contains bucket object to communicate with Firebase storage
-type FirebaseDB struct {
+// New return new DB connection
+
+// FirebaseImg contains bucket object to communicate with Firebase storage
+type FirebaseImg struct {
 	bucket *storage.BucketHandle
 }
 
 // NewFirebaseConnection create new bucket object to communicate with Firebase storage
-func NewFirebaseConnection() *FirebaseDB {
+func NewFirebaseConnection() *FirebaseImg {
 
 	var bucket *storage.BucketHandle
 
@@ -42,11 +46,11 @@ func NewFirebaseConnection() *FirebaseDB {
 		panic(err)
 	}
 
-	return &FirebaseDB{bucket: bucket}
+	return &FirebaseImg{bucket: bucket}
 }
 
 // Get verify comic image is exist in cloud
-func (f *FirebaseDB) Get(comicPage, comicName string) error {
+func (f *FirebaseImg) Get(comicPage, comicName string) error {
 
 	objectName := fmt.Sprintf("%s/%s", comicPage, comicName)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
@@ -61,8 +65,32 @@ func (f *FirebaseDB) Get(comicPage, comicName string) error {
 	return nil
 }
 
+// UploadImg include download image to local then upload it to firebase cloud
+func (f *FirebaseImg) UploadImg(comicPage, comicName, imgURL string) (err error) {
+
+	// Image will be uploaded to folder: page/name.ext in Firebas storage, so we need to pass comicPage and comicName
+
+	// download img first, path will be ./name.ext
+	fileName := comicName + filepath.Ext(imgURL)
+	err = util.DownloadFile(imgURL, "./"+fileName)
+	if err != nil {
+		logging.Danger(err)
+		return
+	}
+
+	// upload image to firebase
+	err = f.upload("./"+fileName, fmt.Sprintf("%s/%s", comicPage, comicName)) // ex: prefix = beeng.net, fileName = tay-du.jpg
+	if err != nil {
+		return err
+	}
+
+	// delete img whether upload success or not, since we don't need it anyway
+	err = os.Remove("./" + fileName)
+	return err
+}
+
 // Upload save file to Firebase storage and make it public
-func (f *FirebaseDB) Upload(fileName, objectName string) error {
+func (f *FirebaseImg) upload(fileName, objectName string) error {
 
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -95,7 +123,7 @@ func (f *FirebaseDB) Upload(fileName, objectName string) error {
 }
 
 // Delete remove img in cloud
-func (f *FirebaseDB) Delete(comicPage, comicName string) error {
+func (f *FirebaseImg) Delete(comicPage, comicName string) error {
 
 	objectName := fmt.Sprintf("%s/%s", comicPage, comicName)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)

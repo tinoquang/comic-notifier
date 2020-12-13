@@ -13,12 +13,12 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteComic(ctx context.Context, id sql.NullInt32) error
 	DeleteSubscriber(ctx context.Context, arg DeleteSubscriberParams) error
-	DeleteUser(ctx context.Context, psid sql.NullString) error
+	DeleteUser(ctx context.Context, psid string) error
 	GetComic(ctx context.Context, id sql.NullInt32) (Comic, error)
 	GetComicByURL(ctx context.Context, url string) (Comic, error)
 	GetComicForUpdate(ctx context.Context, id sql.NullInt32) (Comic, error)
 	GetSubscriber(ctx context.Context, arg GetSubscriberParams) (Subscriber, error)
-	GetUserByPSID(ctx context.Context, psid sql.NullString) (User, error)
+	GetUserByPSID(ctx context.Context, psid string) (User, error)
 	ListComicSubscribers(ctx context.Context, comicID sql.NullInt32) ([]Subscriber, error)
 	ListComics(ctx context.Context, arg ListComicsParams) ([]Comic, error)
 	ListUsers(ctx context.Context) ([]User, error)

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/pkg/errors"
-	"github.com/tinoquang/comic-notifier/pkg/db"
 	"github.com/tinoquang/comic-notifier/pkg/model"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
@@ -43,19 +42,19 @@ func (u *userDB) GetByFBID(ctx context.Context, field, id string) (*model.User, 
 
 func (u *userDB) Create(ctx context.Context, user *model.User) error {
 
-	query := `INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4)
-				ON CONFLICT (psid) DO NOTHING
-				RETURNING psid`
+	// query := `INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4)
+	// 			ON CONFLICT (psid) DO NOTHING
+	// 			RETURNING psid`
 
-	err := db.WithTransaction(ctx, u.dbconn, func(tx db.Transaction) error {
-		return tx.QueryRowContext(ctx, query, user.Name, user.PSID, user.AppID, user.ProfilePic).Scan(&user.PSID)
-	})
+	// err := db.WithTransaction(ctx, u.dbconn, func(tx db.Transaction) error {
+	// 	return tx.QueryRowContext(ctx, query, user.Name, user.PSID, user.AppID, user.ProfilePic).Scan(&user.PSID)
+	// })
 
-	if err == sql.ErrNoRows {
-		return nil
-	}
+	// if err == sql.ErrNoRows {
+	// 	return nil
+	// }
 
-	return err
+	return nil
 
 }
 

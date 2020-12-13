@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -20,10 +19,10 @@ INSERT INTO users
 `
 
 type CreateUserParams struct {
-	Name       sql.NullString
-	Psid       sql.NullString
-	Appid      sql.NullString
-	ProfilePic sql.NullString
+	Name       string
+	Psid       string
+	Appid      string
+	ProfilePic string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -49,7 +48,7 @@ DELETE FROM users
 WHERE psid = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, psid sql.NullString) error {
+func (q *Queries) DeleteUser(ctx context.Context, psid string) error {
 	_, err := q.db.ExecContext(ctx, deleteUser, psid)
 	return err
 }
@@ -59,7 +58,7 @@ SELECT id, name, psid, appid, profile_pic FROM users
 WHERE psid = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByPSID(ctx context.Context, psid sql.NullString) (User, error) {
+func (q *Queries) GetUserByPSID(ctx context.Context, psid string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByPSID, psid)
 	var i User
 	err := row.Scan(

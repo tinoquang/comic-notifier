@@ -11,16 +11,21 @@ INSERT INTO users
 
 -- name: GetUserByPSID :one
 SELECT * FROM users
-WHERE psid = $1 LIMIT 1;
+WHERE psid = $1;
 
---name GetSubscribedComic :one
-SELECT * FROM comics
-LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2;
+-- name: GetUserByAppID :one
+SELECT * FROM users
+WHERE appid = $1;
 
 -- name: ListUsers :many
 SELECT * FROM users
 ORDER BY id;
+
+-- name: UpdateUser :one
+UPDATE users
+SET appid=$1
+WHERE psid=$2
+RETURNING *;
 
 -- name: DeleteUser :exec
 DELETE FROM users

@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/store"
+	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 )
 
 // Server implement main business logic
@@ -18,7 +18,7 @@ var (
 )
 
 // New  create new server
-func New(store *store.Stores) *Server {
+func New(store db.Stores) *Server {
 
 	// Get env config
 	messengerEndpoint = conf.Cfg.Webhook.GraphEndpoint + "/me/messages"

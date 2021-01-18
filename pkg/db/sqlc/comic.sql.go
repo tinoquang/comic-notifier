@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createComic = `-- name: CreateComic :one
@@ -60,18 +59,45 @@ DELETE FROM comics
 WHERE id = $1
 `
 
-func (q *Queries) DeleteComic(ctx context.Context, id sql.NullInt32) error {
+func (q *Queries) DeleteComic(ctx context.Context, id int32) error {
 	_, err := q.db.ExecContext(ctx, deleteComic, id)
 	return err
 }
 
 const getComic = `-- name: GetComic :one
 SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
-WHERE id = $1 LIMIT 1
+WHERE id = $1
 `
 
-func (q *Queries) GetComic(ctx context.Context, id sql.NullInt32) (Comic, error) {
+func (q *Queries) GetComic(ctx context.Context, id int32) (Comic, error) {
 	row := q.db.QueryRowContext(ctx, getComic, id)
+	var i Comic
+	err := row.Scan(
+		&i.ID,
+		&i.Page,
+		&i.Name,
+		&i.Url,
+		&i.ImgUrl,
+		&i.CloudImgUrl,
+		&i.LatestChap,
+		&i.ChapUrl,
+	)
+	return i, err
+}
+
+const getComicByPSIDAndComicID = `-- name: GetComicByPSIDAndComicID :one
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
+LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
+WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2
+`
+
+type GetComicByPSIDAndComicIDParams struct {
+	UserPsid string
+	ComicID  int32
+}
+
+func (q *Queries) GetComicByPSIDAndComicID(ctx context.Context, arg GetComicByPSIDAndComicIDParams) (Comic, error) {
+	row := q.db.QueryRowContext(ctx, getComicByPSIDAndComicID, arg.UserPsid, arg.ComicID)
 	var i Comic
 	err := row.Scan(
 		&i.ID,
@@ -88,7 +114,7 @@ func (q *Queries) GetComic(ctx context.Context, id sql.NullInt32) (Comic, error)
 
 const getComicByURL = `-- name: GetComicByURL :one
 SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
-WHERE url = $1 LIMIT 1
+WHERE url = $1
 `
 
 func (q *Queries) GetComicByURL(ctx context.Context, url string) (Comic, error) {
@@ -109,11 +135,10 @@ func (q *Queries) GetComicByURL(ctx context.Context, url string) (Comic, error) 
 
 const getComicForUpdate = `-- name: GetComicForUpdate :one
 SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
-WHERE id = $1LIMIT 1
-FOR NO KEY UPDATE
+WHERE id = $1 FOR NO KEY UPDATE
 `
 
-func (q *Queries) GetComicForUpdate(ctx context.Context, id sql.NullInt32) (Comic, error) {
+func (q *Queries) GetComicForUpdate(ctx context.Context, id int32) (Comic, error) {
 	row := q.db.QueryRowContext(ctx, getComicForUpdate, id)
 	var i Comic
 	err := row.Scan(
@@ -130,27 +155,140 @@ func (q *Queries) GetComicForUpdate(ctx context.Context, id sql.NullInt32) (Comi
 }
 
 const listComics = `-- name: ListComics :many
+
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+ORDER BY id DESC
+`
+
+// LIMIT $3
+// OFFSET $4;
+func (q *Queries) ListComics(ctx context.Context) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComics)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Comic{}
+	for rows.Next() {
+		var i Comic
+		if err := rows.Scan(
+			&i.ID,
+			&i.Page,
+			&i.Name,
+			&i.Url,
+			&i.ImgUrl,
+			&i.CloudImgUrl,
+			&i.LatestChap,
+			&i.ChapUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listComicsByAppID = `-- name: ListComicsByAppID :many
+
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
+LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
+WHERE subscribers.user_appid=$1 ORDER BY subscribers.created_at DESC
+`
+
+// LIMIT $2
+// OFFSET $3;
+func (q *Queries) ListComicsByAppID(ctx context.Context, userAppid string) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComicsByAppID, userAppid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Comic{}
+	for rows.Next() {
+		var i Comic
+		if err := rows.Scan(
+			&i.ID,
+			&i.Page,
+			&i.Name,
+			&i.Url,
+			&i.ImgUrl,
+			&i.CloudImgUrl,
+			&i.LatestChap,
+			&i.ChapUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listComicsByName = `-- name: ListComicsByName :many
 SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE comics.name ILIKE $1 or unaccent(comics.name) ILIKE $2
 ORDER BY id DESC
-LIMIT $3
-OFFSET $4
 `
 
-type ListComicsParams struct {
+type ListComicsByNameParams struct {
 	Name   string
 	Name_2 string
-	Limit  int32
-	Offset int32
 }
 
-func (q *Queries) ListComics(ctx context.Context, arg ListComicsParams) ([]Comic, error) {
-	rows, err := q.db.QueryContext(ctx, listComics,
-		arg.Name,
-		arg.Name_2,
-		arg.Limit,
-		arg.Offset,
-	)
+func (q *Queries) ListComicsByName(ctx context.Context, arg ListComicsByNameParams) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComicsByName, arg.Name, arg.Name_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Comic{}
+	for rows.Next() {
+		var i Comic
+		if err := rows.Scan(
+			&i.ID,
+			&i.Page,
+			&i.Name,
+			&i.Url,
+			&i.ImgUrl,
+			&i.CloudImgUrl,
+			&i.LatestChap,
+			&i.ChapUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listComicsByPSID = `-- name: ListComicsByPSID :many
+
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
+LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
+WHERE subscribers.user_psid=$1 ORDER BY subscribers.created_at DESC
+`
+
+// LIMIT $1
+// OFFSET $2;
+func (q *Queries) ListComicsByPSID(ctx context.Context, userPsid string) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComicsByPSID, userPsid)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +320,7 @@ func (q *Queries) ListComics(ctx context.Context, arg ListComicsParams) ([]Comic
 }
 
 const updateComic = `-- name: UpdateComic :one
+
 UPDATE comics 
 SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5 
 WHERE id=$1
@@ -189,13 +328,15 @@ RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url
 `
 
 type UpdateComicParams struct {
-	ID          sql.NullInt32
+	ID          int32
 	LatestChap  string
 	ChapUrl     string
 	ImgUrl      string
 	CloudImgUrl string
 }
 
+// LIMIT $2
+// OFFSET $3;
 func (q *Queries) UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic, error) {
 	row := q.db.QueryRowContext(ctx, updateComic,
 		arg.ID,

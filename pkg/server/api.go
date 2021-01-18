@@ -1,34 +1,33 @@
 package server
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/tinoquang/comic-notifier/pkg/api"
+	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // API -> server handler for api endpoint
 type API struct {
-	store *store.Stores
+	store db.Stores
 }
 
 // NewAPI return new api interface
-func NewAPI(s *store.Stores) *API {
+func NewAPI(s db.Stores) *API {
 	return &API{store: s}
 }
 
 // Comics (GET /comics)
-func (a *API) Comics(ctx echo.Context) error {
+func (a *API) Comics(ctx echo.Context, params api.ComicsParams) error {
 
-	// _, offset, limit := listArgs(params.Q, params.Limit, params.Offset)
-	opt := store.NewComicsListOptions("", 0, 0)
 	comicPage := api.ComicPage{}
+	comics, err := a.store.ListComics(ctx.Request().Context())
 
-	comics, err := a.store.Comic.List(ctx.Request().Context(), opt)
 	if err != nil {
 		if err == util.ErrNotFound {
 			return ctx.JSON(http.StatusOK, &comicPage)
@@ -39,14 +38,15 @@ func (a *API) Comics(ctx echo.Context) error {
 
 	for i := range comics {
 		c := comics[i]
+		id := int(c.ID)
 		comicPage.Comics = append(comicPage.Comics, api.Comic{
-			Id:         &c.ID,
+			Id:         &id,
 			Page:       &c.Page,
 			Name:       &c.Name,
-			Url:        &c.URL,
+			Url:        &c.Url,
 			LatestChap: &c.LatestChap,
-			ImgURL:     &c.CloudImg,
-			ChapURL:    &c.ChapURL,
+			ImgURL:     &c.CloudImgUrl,
+			ChapURL:    &c.ChapUrl,
 		})
 	}
 	return ctx.JSON(http.StatusOK, &comicPage)
@@ -55,7 +55,7 @@ func (a *API) Comics(ctx echo.Context) error {
 // GetComic (GET /comics/{id})
 func (a *API) GetComic(ctx echo.Context, id int) error {
 
-	c, err := a.store.Comic.Get(ctx.Request().Context(), id)
+	c, err := a.store.GetComic(ctx.Request().Context(), int32(id))
 	if err != nil {
 		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
@@ -65,13 +65,13 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 	}
 
 	comic := api.Comic{
-		Id:         &c.ID,
+		Id:         &id,
 		Page:       &c.Page,
 		Name:       &c.Name,
-		Url:        &c.URL,
+		Url:        &c.Url,
 		LatestChap: &c.LatestChap,
-		ImgURL:     &c.CloudImg,
-		ChapURL:    &c.ChapURL,
+		ImgURL:     &c.CloudImgUrl,
+		ChapURL:    &c.ChapUrl,
 	}
 	return ctx.JSON(http.StatusOK, &comic)
 }
@@ -82,8 +82,7 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 func (a *API) Users(ctx echo.Context) error {
 
 	userPage := []api.User{}
-
-	users, err := a.store.User.List(ctx.Request().Context())
+	users, err := a.store.ListUsers(ctx.Request().Context())
 	if err != nil {
 		if err == util.ErrNotFound {
 			return ctx.JSON(http.StatusOK, &userPage)
@@ -95,14 +94,8 @@ func (a *API) Users(ctx echo.Context) error {
 
 	for i := range users {
 		u := users[i]
-
-		userPage = append(userPage, api.User{
-			Psid:       &u.PSID,
-			Appid:      &u.AppID,
-			Name:       &u.Name,
-			ProfilePic: &u.ProfilePic,
-			Comics:     nil,
-		})
+		responseUser := createResponseUser(u)
+		userPage = append(userPage, responseUser)
 
 	}
 	return ctx.JSON(http.StatusOK, &userPage)
@@ -115,7 +108,7 @@ func (a *API) GetUser(ctx echo.Context, userAppID string) error {
 		return ctx.NoContent(http.StatusForbidden)
 	}
 
-	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
+	u, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
 		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
@@ -124,14 +117,7 @@ func (a *API) GetUser(ctx echo.Context, userAppID string) error {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	user := api.User{
-		Psid:       &u.PSID,
-		Appid:      &u.AppID,
-		Name:       &u.Name,
-		ProfilePic: &u.ProfilePic,
-		Comics:     nil,
-	}
-
+	user := createResponseUser(u)
 	return ctx.JSON(http.StatusOK, &user)
 }
 
@@ -142,20 +128,18 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 		return ctx.NoContent(http.StatusForbidden)
 	}
 
-	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
+	user, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
 		if err == util.ErrNotFound {
-			return ctx.String(http.StatusNotFound, "404 - Not found")
+			return ctx.String(http.StatusNotFound, "Not found")
 		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	q, limit, offset := listArgs(params.Q, params.Limit, params.Offset)
-	opt := store.NewComicsListOptions(q, limit, offset)
-
 	comicPage := api.ComicPage{}
-	comics, err := a.store.Comic.ListByPSID(ctx.Request().Context(), opt, u.PSID)
+
+	comics, err := a.store.ListComicsByAppID(ctx.Request().Context(), user.Appid.String)
 	if err != nil {
 		// Return empty list if not found comic
 		if err == util.ErrNotFound {
@@ -168,60 +152,62 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 	for i := range comics {
 		c := comics[i]
+		comicID := int(c.ID)
 		comicPage.Comics = append(comicPage.Comics, api.Comic{
-			Id:         &c.ID,
+			Id:         &comicID,
 			Page:       &c.Page,
 			Name:       &c.Name,
-			Url:        &c.URL,
+			Url:        &c.Url,
 			LatestChap: &c.LatestChap,
-			ImgURL:     &c.CloudImg,
-			ChapURL:    &c.ChapURL,
+			ImgURL:     &c.CloudImgUrl,
+			ChapURL:    &c.ChapUrl,
 		})
 	}
 	return ctx.JSON(http.StatusOK, &comicPage)
 }
 
 // SubscribeComic (POST /users/{id}/comics)
-func (a *API) SubscribeComic(ctx echo.Context, userAppID string) error {
+// func (a *API) SubscribeComic(ctx echo.Context, userAppID string) error {
 
-	if !userHasAccess(ctx, userAppID) {
-		return ctx.NoContent(http.StatusForbidden)
-	}
+// 	if !userHasAccess(ctx, userAppID) {
+// 		return ctx.NoContent(http.StatusForbidden)
+// 	}
 
-	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
-	if err != nil {
-		if err == util.ErrNotFound {
-			return ctx.String(http.StatusNotFound, "404 - Not found")
-		}
-		logging.Danger(err)
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
+// 	user, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
+// 	if err != nil {
+// 		if err == util.ErrNotFound {
+// 			return ctx.String(http.StatusNotFound, "Not found")
+// 		}
+// 		logging.Danger(err)
+// 		return ctx.NoContent(http.StatusInternalServerError)
+// 	}
 
-	comicURL := ctx.FormValue("comic")
-	if comicURL == "" {
-		return ctx.NoContent(http.StatusBadRequest)
-	}
+// 	comicURL := ctx.FormValue("comic")
+// 	if comicURL == "" {
+// 		return ctx.NoContent(http.StatusBadRequest)
+// 	}
 
-	c, err := a.store.SubscribeComic(ctx.Request().Context(), u.PSID, comicURL)
-	if err != nil {
-		if err == util.ErrInvalidURL {
-			return ctx.NoContent(http.StatusBadRequest)
-		}
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
+// 	c, err := a.store.SubscribeComic(ctx.Request().Context(), u.PSID, comicURL)
+// 	if err != nil {
+// 		if err == util.ErrInvalidURL {
+// 			return ctx.NoContent(http.StatusBadRequest)
+// 		}
+// 		return ctx.NoContent(http.StatusInternalServerError)
+// 	}
 
-	comic := api.Comic{
-		Id:         &c.ID,
-		Page:       &c.Page,
-		Name:       &c.Name,
-		Url:        &c.URL,
-		LatestChap: &c.LatestChap,
-		ImgURL:     &c.CloudImg,
-		ChapURL:    &c.ChapURL,
-	}
+// 	comicID := int(c.ID)
+// 	comic := api.Comic{
+// 		Id:         &comicID,
+// 		Page:       &c.Page,
+// 		Name:       &c.Name,
+// 		Url:        &c.Url,
+// 		LatestChap: &c.LatestChap,
+// 		ImgURL:     &c.CloudImgUrl,
+// 		ChapURL:    &c.ChapUrl,
+// 	}
 
-	return ctx.JSON(http.StatusOK, &comic)
-}
+// 	return ctx.JSON(http.StatusOK, &comic)
+// }
 
 // UnsubscribeComic (DELETE /users/{user_id}/comics/{id})
 func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) error {
@@ -230,28 +216,34 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 		return ctx.NoContent(http.StatusForbidden)
 	}
 
-	u, err := a.store.User.GetByFBID(ctx.Request().Context(), "appID", userAppID)
+	_, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
 		if err == util.ErrNotFound {
-			return ctx.String(http.StatusNotFound, "404 - Not found")
+			return ctx.String(http.StatusNotFound, "Not found")
 		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
 	// Validate if user has subscribed to this comic, if not then this request is invalid
-	c, err := a.store.Comic.CheckComicSubscribe(ctx.Request().Context(), u.PSID, comicID)
+	_, err = a.store.GetSubscriberByAppIDAndComicID(ctx.Request().Context(), db.GetSubscriberByAppIDAndComicIDParams{
+		UserAppid: userAppID,
+		ComicID:   int32(comicID),
+	})
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	err = a.store.Subscriber.Delete(ctx.Request().Context(), u.PSID, comicID)
+	err = a.store.DeleteSubscriberByAppID(ctx.Request().Context(), db.DeleteSubscriberByAppIDParams{
+		UserAppid: userAppID,
+		ComicID:   int32(comicID),
+	})
 	if err != nil {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	s, err := a.store.Subscriber.ListByComicID(ctx.Request().Context(), comicID)
+	s, err := a.store.ListSubscriberByComicID(ctx.Request().Context(), int32(comicID))
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
@@ -259,7 +251,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 
 	// Check if no user subscribe to this comic --> remove this comic from DB
 	if len(s) == 0 {
-		a.store.Comic.Delete(ctx.Request().Context(), c)
+		a.store.DeleteComic(ctx.Request().Context(), int32(comicID))
 	}
 
 	return ctx.NoContent(http.StatusOK)
@@ -274,4 +266,29 @@ func userHasAccess(ctx echo.Context, appID string) bool {
 	}
 
 	return true
+}
+
+func createResponseUser(u db.User) (responseUser api.User) {
+
+	if u.Psid.Valid {
+		responseUser.Psid = &u.Psid.String
+	} else {
+		responseUser.Psid = nil
+	}
+
+	if u.Appid.Valid {
+		responseUser.Appid = &u.Appid.String
+	} else {
+		responseUser.Appid = nil
+	}
+
+	if u.ProfilePic.Valid {
+		responseUser.ProfilePic = &u.ProfilePic.String
+	} else {
+		responseUser.ProfilePic = nil
+	}
+
+	responseUser.Name = &u.Name
+	responseUser.Comics = nil
+	return
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/tinoquang/comic-notifier/pkg/api"
 )
@@ -19,7 +20,8 @@ func listArgs(q *api.Q, limit *api.Limit, offset *api.Offset) (string, int, int)
 func toString(v interface{}, defaultValue string) string {
 	drv, _, _ := derefPointersZero(reflect.ValueOf(v))
 	if drv.Kind() == reflect.String {
-		return drv.String()
+		query := "%" + strings.Replace(drv.String(), " ", "%", -1) + "%"
+		return query
 	}
 
 	return defaultValue

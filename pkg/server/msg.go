@@ -6,19 +6,18 @@ import (
 	"strconv"
 	"strings"
 
+	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // MSG -> server handler for messenger endpoint
 type MSG struct {
-	store *store.Stores
+	store db.Stores
 }
 
 // NewMSG return new api interface
-func NewMSG(s *store.Stores) *MSG {
+func NewMSG(s db.Stores) *MSG {
 	return &MSG{store: s}
 }
 
@@ -36,7 +35,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		return
 	}
 
-	comic, err := m.subscribeComic(ctx, senderID, text)
+	comic, err := m.store.SubscribeComic(ctx, senderID, text)
 	if err != nil {
 		if err == util.ErrAlreadySubscribed {
 			sendTextBack(senderID, "Already subscribed")
@@ -75,8 +74,12 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	}
 
 	comicID, _ := strconv.Atoi(payload)
+	arg := db.GetComicByPSIDAndComicIDParams{
+		UserPsid: senderID,
+		ComicID:  int32(comicID),
+	}
 
-	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
+	comic, err := m.store.GetComicByPSIDAndComicID(ctx, arg)
 
 	if err != nil {
 		if err == util.ErrNotFound {
@@ -86,43 +89,45 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 		return
 	}
 
-	sendQuickReplyChoice(senderID, c)
+	sendQuickReplyChoice(senderID, comic)
 }
 
 // HandleQuickReply handle messages when user click "Yes" to confirm unsubscribe action
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	comicID, err := strconv.Atoi(payload)
 
-	c, err := m.store.Comic.CheckComicSubscribe(ctx, senderID, comicID)
+	c, err := m.store.GetComicByPSIDAndComicID(ctx, db.GetComicByPSIDAndComicIDParams{
+		UserPsid: senderID,
+		ComicID:  int32(comicID),
+	})
 	if err != nil {
 		logging.Danger(err)
 		sendTextBack(senderID, "This comic is not subscribed yet!")
 		return
 	}
 
-	err = m.store.Subscriber.Delete(ctx, senderID, comicID)
+	err = m.store.DeleteSubscriberByPSID(ctx, db.DeleteSubscriberByPSIDParams{
+		UserPsid: senderID,
+		ComicID:  int32(comicID),
+	})
+
 	if err != nil {
 		sendTextBack(senderID, "Please try again later")
 		return
 	}
 
-	s, err := m.store.Subscriber.ListByComicID(ctx, comicID)
+	s, err := m.store.ListSubscriberByComicID(ctx, c.ID)
 	if err != nil {
 		logging.Danger(err)
-
+		sendTextBack(senderID, "Please try again later")
+		return
 	}
 
 	if len(s) == 0 {
-		m.store.Comic.Delete(ctx, c)
+		m.store.DeleteComic(ctx, c.ID)
 	}
 	sendTextBack(senderID, fmt.Sprintf("Unsub %s\nSuccess!", c.Name))
 
-}
-
-// Update comic helper
-func (m *MSG) subscribeComic(ctx context.Context, id, comicURL string) (*model.Comic, error) {
-
-	return m.store.SubscribeComic(ctx, id, comicURL)
 }
 
 func responseCommand(ctx context.Context, senderID, text string) {

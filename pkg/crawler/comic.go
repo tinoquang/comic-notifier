@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
@@ -11,29 +12,36 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
+type helper interface {
+	detectSpoiler(chapURL string, attr1, attr2 string) error
+	getPageSource(pageURL string) (doc *goquery.Document, err error)
+}
 type comicCrawler struct {
-	crawlerMap map[string]func(ctx context.Context, comic *db.Comic, helper helper) (err error)
-	helper
+	crawlerMap  map[string]func(ctx context.Context, comic *db.Comic, helper helper) (err error)
+	crawlHelper helper
 }
 
-func newComicCrawler() *comicCrawler {
+func newComicCrawler(crawlHelper helper) *comicCrawler {
 
-	return &comicCrawler{
-		initMap(),
-		comicHelper{},
-	}
-}
-
-// New init cwl.crawlerMap contain page which is supported
-func initMap() map[string]func(ctx context.Context, comic *db.Comic, helper helper) (err error) {
 	crawlerMap := make(map[string]func(ctx context.Context, comic *db.Comic, helper helper) (err error))
 	crawlerMap["beeng.net"] = crawlBeeng
 	crawlerMap["blogtruyen.vn"] = crawlBlogtruyen
 	crawlerMap["truyentranh.net"] = crawlTruyentranhnet
 	crawlerMap["truyentranhtuan.com"] = crawlTruyentranhtuan
 
-	// cwl.crawlerMap["truyendep.com"] = mangaK{}
-	return crawlerMap
+	return &comicCrawler{
+		crawlerMap:  crawlerMap,
+		crawlHelper: crawlHelper,
+	}
+}
+
+func (c *comicCrawler) crawl(ctx context.Context, comic *db.Comic) (err error) {
+
+	if _, ok := c.crawlerMap[comic.Page]; !ok {
+		return util.ErrPageNotSupported
+	}
+
+	return c.crawlerMap[comic.Page](ctx, comic, c.crawlHelper)
 }
 
 func crawlBeeng(ctx context.Context, comic *db.Comic, helper helper) (err error) {

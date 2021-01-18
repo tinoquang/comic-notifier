@@ -1,20 +1,27 @@
 -- name: CreateSubscriber :one
 INSERT INTO subscribers
 	(user_psid,
+	user_appid,
 	comic_id) 
-	VALUES ($1,$2)
+	VALUES ($1,$2,$3)
 	RETURNING *;
 
--- name: GetSubscriber :one
+-- name: GetSubscriberByPSIDAndComicID :one
 SELECT * FROM subscribers
-WHERE user_psid=$1 AND comic_id=$2
-LIMIT 1;
+WHERE user_psid=$1 AND comic_id=$2;
 
--- name: ListComicSubscribers :many
+-- name: GetSubscriberByAppIDAndComicID :one
 SELECT * FROM subscribers
-WHERE comic_id=$1
-ORDER BY id;
+WHERE user_appid=$1 AND comic_id=$2;
 
--- name: DeleteSubscriber :exec
+-- name: ListSubscriberByComicID :many
+SELECT * FROM subscribers
+WHERE subscribers.comic_id=$1;
+
+-- name: DeleteSubscriberByAppID :exec
+DELETE FROM subscribers
+WHERE user_appid=$1 AND comic_id=$2;
+
+-- name: DeleteSubscriberByPSID :exec
 DELETE FROM subscribers
 WHERE user_psid=$1 AND comic_id=$2;

@@ -3,11 +3,12 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
+	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/model"
 )
 
 /* -------------Message response format----------- */
@@ -99,7 +100,7 @@ func sendActionBack(senderid, action string) {
 }
 
 // Use to send message within 24-hour window of FACEBOOK policy
-func sendNormalReply(senderid string, comic *model.Comic) {
+func sendNormalReply(senderid string, comic *db.Comic) {
 
 	response := &Response{
 		Recipient: &User{ID: senderid},
@@ -111,7 +112,7 @@ func sendNormalReply(senderid string, comic *model.Comic) {
 					Elements: []Element{
 						{
 							Title:    comic.Name + "\n" + comic.LatestChap,
-							ImgURL:   comic.CloudImg,
+							ImgURL:   comic.CloudImgUrl,
 							Subtitle: comic.Page,
 							// DefaultAction: &Action{
 							// 	Type: "web_url",
@@ -120,13 +121,13 @@ func sendNormalReply(senderid string, comic *model.Comic) {
 							Buttons: []Button{
 								{
 									Type:  "web_url",
-									URL:   comic.ChapURL,
+									URL:   comic.ChapUrl,
 									Title: "Read",
 								},
 								{
 									Type:    "postback",
 									Title:   "Unsubscribe",
-									Payload: strconv.Itoa(comic.ID),
+									Payload: strconv.Itoa(int(comic.ID)),
 								},
 							},
 						},
@@ -139,7 +140,7 @@ func sendNormalReply(senderid string, comic *model.Comic) {
 	callSendAPI(response)
 }
 
-func sendMsgTagsReply(senderid string, comic *model.Comic) {
+func sendMsgTagsReply(senderid string, comic *db.Comic) {
 
 	response := &Response{
 		Recipient: &User{ID: senderid},
@@ -151,22 +152,22 @@ func sendMsgTagsReply(senderid string, comic *model.Comic) {
 					Elements: []Element{
 						{
 							Title:    comic.Name + "\n" + comic.LatestChap,
-							ImgURL:   comic.CloudImg,
+							ImgURL:   comic.CloudImgUrl,
 							Subtitle: comic.Page,
 							DefaultAction: &Action{
 								Type: "web_url",
-								URL:  comic.ChapURL,
+								URL:  comic.ChapUrl,
 							},
 							Buttons: []Button{
 								{
 									Type:  "web_url",
-									URL:   comic.ChapURL,
+									URL:   comic.ChapUrl,
 									Title: "Read Now",
 								},
 								{
 									Type:    "postback",
 									Title:   "Unsubscribe",
-									Payload: strconv.Itoa(comic.ID),
+									Payload: strconv.Itoa(int(comic.ID)),
 								},
 							},
 						},
@@ -182,19 +183,19 @@ func sendMsgTagsReply(senderid string, comic *model.Comic) {
 	return
 }
 
-func sendQuickReplyChoice(senderid string, c *model.Comic) {
+func sendQuickReplyChoice(senderid string, comic db.Comic) {
 
 	// send back quick reply "Are you sure ?" for user to confirm
 	response := &Response{
 		Recipient: &User{ID: senderid},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
-			Text: "Unsub " + c.Name + "\nAre you sure ?",
+			Text: fmt.Sprint("Hủy nhận thông báo khi %s update chap mới ?", comic.Name),
 			Options: []QuickReply{
 				{
 					Type:    "text",
 					Title:   "Yes",
-					Payload: strconv.Itoa(c.ID),
+					Payload: strconv.Itoa(int(comic.ID)),
 					ImgURL:  "https://www.vhv.rs/dpng/d/356-3568543_check-icon-green-tick-hd-png-download.png",
 				},
 				{

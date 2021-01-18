@@ -16,15 +16,15 @@ import (
 // Crawler contain comic, user and image crawler
 type Crawler struct {
 	*comicCrawler
-	FirebaseImg *FirebaseImg
+	*firebaseImg
 }
 
 // NewCrawler constructor
 func NewCrawler() *Crawler {
 
 	return &Crawler{
-		newComicCrawler(),
-		NewFirebaseConnection(),
+		newComicCrawler(crawlHelperWrapper{}),
+		newFirebaseConnection(),
 	}
 }
 
@@ -46,15 +46,11 @@ func (crwl *Crawler) GetComicInfo(ctx context.Context, comic *db.Comic) (err err
 		return
 	}()
 
-	if _, ok := crwl.crawlerMap[comic.Page]; !ok {
-		return util.ErrPageNotSupported
-	}
-
-	return crwl.crawlerMap[comic.Page](ctx, comic, crwl.helper)
+	return crwl.crawl(ctx, comic)
 }
 
-// GetUserInfoFromFB call facebook API to get user info, include psid, appid and profile picture
-func (crwl *Crawler) GetUserInfoFromFB(field, id string, user *db.User) error {
+// GetUserInfoFromFacebook call facebook API to get user info, include psid, appid and profile picture
+func (crwl *Crawler) GetUserInfoFromFacebook(field, id string, user *db.CreateUserParams) error {
 
 	info := map[string]json.RawMessage{}
 	appInfo := []map[string]json.RawMessage{}
@@ -63,11 +59,11 @@ func (crwl *Crawler) GetUserInfoFromFB(field, id string, user *db.User) error {
 
 	switch field {
 	case "psid":
-		user.Psid = id
+		user.Psid.String = id
 		queries["fields"] = "name,picture.width(500).height(500),ids_for_apps"
 		queries["access_token"] = conf.Cfg.FBSecret.PakeToken
 	case "appid":
-		user.Appid = id
+		user.Appid.String = id
 		queries["fields"] = "name,ids_for_pages,picture.width(500).height(500)"
 		queries["access_token"] = conf.Cfg.FBSecret.AppToken
 		queries["appsecret_proof"] = conf.Cfg.FBSecret.AppSecret
@@ -99,14 +95,13 @@ func (crwl *Crawler) GetUserInfoFromFB(field, id string, user *db.User) error {
 
 	if len(appInfo) != 0 {
 		if field == "psid" {
-			user.Appid = util.ConvertJSONToString(appInfo[0]["id"])
+			user.Appid.String = util.ConvertJSONToString(appInfo[0]["id"])
 		} else {
-			user.Psid = util.ConvertJSONToString(appInfo[0]["id"])
+			user.Psid.String = util.ConvertJSONToString(appInfo[0]["id"])
 		}
 	}
 
-	user.ProfilePic = util.ConvertJSONToString(picture["url"])
-	user.ProfilePic = strings.Replace(user.ProfilePic, "\\", "", -1)
+	user.ProfilePic.String = strings.Replace(util.ConvertJSONToString(picture["url"]), "\\", "", -1)
 
 	return nil
 }

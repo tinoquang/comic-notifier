@@ -1,18 +1,16 @@
 package main
 
 import (
-	"database/sql"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	"github.com/tinoquang/comic-notifier/pkg/auth"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
 	"github.com/tinoquang/comic-notifier/pkg/server"
-	"github.com/tinoquang/comic-notifier/pkg/store"
 )
 
 func main() {
@@ -20,45 +18,42 @@ func main() {
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
 
-	// // Init global config
-	// conf.Init()
+	// Init global config
+	conf.Init()
 
-	// Db, err := sql.Open("postgres", conf.Cfg.DBInfo)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// dbconn := db.New(Db)
-	// firebaseBucket := db.NewFirebaseConnection()
+	dbconn := db.NewDBConn()
 
-	// // Init Repository
-	// s := store.New(dbconn, firebaseBucket)
+	crawler := crawler.NewCrawler()
 
-	// // Init main business logic server
-	// svr := server.New(s)
+	// Init Repository
+	store := db.NewStore(dbconn, crawler)
+
+	// Init main business logic server
+	svr := server.New(store)
 
 	// // Facebook webhook
-	// msg.RegisterHandler(e.Group("/webhook"), svr.Msg)
+	msg.RegisterHandler(e.Group("/webhook"), svr.Msg)
 
-	// // API handler register
-	// apiGroup := e.Group("/api/v1")
-	// apiGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-	// 	SigningKey:  []byte(conf.Cfg.JWT.SecretKey),
-	// 	Claims:      &jwt.StandardClaims{},
-	// 	TokenLookup: "cookie:_session",
-	// }))
-	// api.RegisterHandlers(apiGroup, svr.API)
+	// API handler register
+	apiGroup := e.Group("/api/v1")
+	apiGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+		SigningKey:  []byte(conf.Cfg.JWT.SecretKey),
+		Claims:      &jwt.StandardClaims{},
+		TokenLookup: "cookie:_session",
+	}))
+	api.RegisterHandlers(apiGroup, svr.API)
 
-	// /* Routing */
-	// e.Static("/static", "ui/static")
-	// e.Static("/assets", "ui/assets")
-	// e.Static("/favicon.ico", "ui/favicon.ico")
+	/* Routing */
+	e.Static("/static", "ui/static")
+	e.Static("/assets", "ui/assets")
+	e.Static("/favicon.ico", "ui/favicon.ico")
 
-	// e.GET("/*", func(c echo.Context) error {
-	// 	return c.File("ui/index.html")
-	// })
+	e.GET("/*", func(c echo.Context) error {
+		return c.File("ui/index.html")
+	})
 
-	// // Authentication JWT
-	// auth.RegisterHandler(e.Group(""), s)
+	// Authentication JWT
+	auth.RegisterHandler(e.Group(""), store)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":" + conf.Cfg.Port))

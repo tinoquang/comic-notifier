@@ -12,35 +12,47 @@ INSERT INTO comics
 
 -- name: GetComic :one
 SELECT * FROM comics
-WHERE id = $1 LIMIT 1;
+WHERE id = $1;
 
 -- name: GetComicByURL :one
 SELECT * FROM comics
-WHERE url = $1 LIMIT 1;
+WHERE url = $1;
 
---name GetSubscribedComic :one
-SELECT * FROM comics
+-- name: GetComicByPSIDAndComicID :one
+SELECT comics.* FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
 WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2;
 
 -- name: GetComicForUpdate :one
 SELECT * FROM comics
-WHERE id = $1LIMIT 1
-FOR NO KEY UPDATE;
+WHERE id = $1 FOR NO KEY UPDATE;
+
+-- name: ListComicsByName :many
+SELECT * FROM comics
+WHERE comics.name ILIKE $1 or unaccent(comics.name) ILIKE $2
+ORDER BY id DESC;
+-- LIMIT $3
+-- OFFSET $4;
 
 -- name: ListComics :many
 SELECT * FROM comics
-WHERE comics.name ILIKE $1 or unaccent(comics.name) ILIKE $2
-ORDER BY id DESC
-LIMIT $3
-OFFSET $4;
+ORDER BY id DESC;
+-- LIMIT $1
+-- OFFSET $2;
 
---name: ListComicsByUserPSID :many
-SELECT * FROM comics
+-- name: ListComicsByPSID :many
+SELECT comics.* FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_psid=$1 ORDER BY subscribers.created_at DESC
-LIMIT $2
-OFFSET $3;
+WHERE subscribers.user_psid=$1 ORDER BY subscribers.created_at DESC;
+-- LIMIT $2
+-- OFFSET $3;
+
+-- name: ListComicsByAppID :many
+SELECT comics.* FROM comics
+LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
+WHERE subscribers.user_appid=$1 ORDER BY subscribers.created_at DESC;
+-- LIMIT $2
+-- OFFSET $3;
 
 -- name: UpdateComic :one
 UPDATE comics 

@@ -8,7 +8,7 @@ import (
 )
 
 type Comic struct {
-	ID          sql.NullInt32
+	ID          int32
 	Page        string
 	Name        string
 	Url         string
@@ -19,16 +19,17 @@ type Comic struct {
 }
 
 type Subscriber struct {
-	ID        sql.NullInt32
-	UserPsid  sql.NullString
-	ComicID   sql.NullInt32
+	ID        int32
+	UserPsid  string
+	UserAppid string
+	ComicID   int32
 	CreatedAt time.Time
 }
 
 type User struct {
-	ID         sql.NullInt32
+	ID         int32
 	Name       string
-	Psid       string
-	Appid      string
-	ProfilePic string
+	Psid       sql.NullString
+	Appid      sql.NullString
+	ProfilePic sql.NullString
 }

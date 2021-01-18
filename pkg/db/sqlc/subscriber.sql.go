@@ -5,80 +5,119 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createSubscriber = `-- name: CreateSubscriber :one
 INSERT INTO subscribers
 	(user_psid,
+	user_appid,
 	comic_id) 
-	VALUES ($1,$2)
-	RETURNING id, user_psid, comic_id, created_at
+	VALUES ($1,$2,$3)
+	RETURNING id, user_psid, user_appid, comic_id, created_at
 `
 
 type CreateSubscriberParams struct {
-	UserPsid sql.NullString
-	ComicID  sql.NullInt32
+	UserPsid  string
+	UserAppid string
+	ComicID   int32
 }
 
 func (q *Queries) CreateSubscriber(ctx context.Context, arg CreateSubscriberParams) (Subscriber, error) {
-	row := q.db.QueryRowContext(ctx, createSubscriber, arg.UserPsid, arg.ComicID)
+	row := q.db.QueryRowContext(ctx, createSubscriber, arg.UserPsid, arg.UserAppid, arg.ComicID)
 	var i Subscriber
 	err := row.Scan(
 		&i.ID,
 		&i.UserPsid,
+		&i.UserAppid,
 		&i.ComicID,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const deleteSubscriber = `-- name: DeleteSubscriber :exec
+const deleteSubscriberByAppID = `-- name: DeleteSubscriberByAppID :exec
+DELETE FROM subscribers
+WHERE user_appid=$1 AND comic_id=$2
+`
+
+type DeleteSubscriberByAppIDParams struct {
+	UserAppid string
+	ComicID   int32
+}
+
+func (q *Queries) DeleteSubscriberByAppID(ctx context.Context, arg DeleteSubscriberByAppIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteSubscriberByAppID, arg.UserAppid, arg.ComicID)
+	return err
+}
+
+const deleteSubscriberByPSID = `-- name: DeleteSubscriberByPSID :exec
 DELETE FROM subscribers
 WHERE user_psid=$1 AND comic_id=$2
 `
 
-type DeleteSubscriberParams struct {
-	UserPsid sql.NullString
-	ComicID  sql.NullInt32
+type DeleteSubscriberByPSIDParams struct {
+	UserPsid string
+	ComicID  int32
 }
 
-func (q *Queries) DeleteSubscriber(ctx context.Context, arg DeleteSubscriberParams) error {
-	_, err := q.db.ExecContext(ctx, deleteSubscriber, arg.UserPsid, arg.ComicID)
+func (q *Queries) DeleteSubscriberByPSID(ctx context.Context, arg DeleteSubscriberByPSIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteSubscriberByPSID, arg.UserPsid, arg.ComicID)
 	return err
 }
 
-const getSubscriber = `-- name: GetSubscriber :one
-SELECT id, user_psid, comic_id, created_at FROM subscribers
-WHERE user_psid=$1 AND comic_id=$2
-LIMIT 1
+const getSubscriberByAppIDAndComicID = `-- name: GetSubscriberByAppIDAndComicID :one
+SELECT id, user_psid, user_appid, comic_id, created_at FROM subscribers
+WHERE user_appid=$1 AND comic_id=$2
 `
 
-type GetSubscriberParams struct {
-	UserPsid sql.NullString
-	ComicID  sql.NullInt32
+type GetSubscriberByAppIDAndComicIDParams struct {
+	UserAppid string
+	ComicID   int32
 }
 
-func (q *Queries) GetSubscriber(ctx context.Context, arg GetSubscriberParams) (Subscriber, error) {
-	row := q.db.QueryRowContext(ctx, getSubscriber, arg.UserPsid, arg.ComicID)
+func (q *Queries) GetSubscriberByAppIDAndComicID(ctx context.Context, arg GetSubscriberByAppIDAndComicIDParams) (Subscriber, error) {
+	row := q.db.QueryRowContext(ctx, getSubscriberByAppIDAndComicID, arg.UserAppid, arg.ComicID)
 	var i Subscriber
 	err := row.Scan(
 		&i.ID,
 		&i.UserPsid,
+		&i.UserAppid,
 		&i.ComicID,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const listComicSubscribers = `-- name: ListComicSubscribers :many
-SELECT id, user_psid, comic_id, created_at FROM subscribers
-WHERE comic_id=$1
-ORDER BY id
+const getSubscriberByPSIDAndComicID = `-- name: GetSubscriberByPSIDAndComicID :one
+SELECT id, user_psid, user_appid, comic_id, created_at FROM subscribers
+WHERE user_psid=$1 AND comic_id=$2
 `
 
-func (q *Queries) ListComicSubscribers(ctx context.Context, comicID sql.NullInt32) ([]Subscriber, error) {
-	rows, err := q.db.QueryContext(ctx, listComicSubscribers, comicID)
+type GetSubscriberByPSIDAndComicIDParams struct {
+	UserPsid string
+	ComicID  int32
+}
+
+func (q *Queries) GetSubscriberByPSIDAndComicID(ctx context.Context, arg GetSubscriberByPSIDAndComicIDParams) (Subscriber, error) {
+	row := q.db.QueryRowContext(ctx, getSubscriberByPSIDAndComicID, arg.UserPsid, arg.ComicID)
+	var i Subscriber
+	err := row.Scan(
+		&i.ID,
+		&i.UserPsid,
+		&i.UserAppid,
+		&i.ComicID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listSubscriberByComicID = `-- name: ListSubscriberByComicID :many
+SELECT id, user_psid, user_appid, comic_id, created_at FROM subscribers
+WHERE subscribers.comic_id=$1
+`
+
+func (q *Queries) ListSubscriberByComicID(ctx context.Context, comicID int32) ([]Subscriber, error) {
+	rows, err := q.db.QueryContext(ctx, listSubscriberByComicID, comicID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +128,7 @@ func (q *Queries) ListComicSubscribers(ctx context.Context, comicID sql.NullInt3
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserPsid,
+			&i.UserAppid,
 			&i.ComicID,
 			&i.CreatedAt,
 		); err != nil {

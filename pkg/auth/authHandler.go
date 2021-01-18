@@ -12,19 +12,18 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/model"
-	"github.com/tinoquang/comic-notifier/pkg/store"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // Handler main authenticate handler
 type Handler struct {
-	store *store.Stores
+	store db.Stores
 }
 
 // RegisterHandler create new auth route
-func RegisterHandler(g *echo.Group, store *store.Stores) {
+func RegisterHandler(g *echo.Group, store db.Stores) {
 
 	h := Handler{store: store}
 
@@ -39,8 +38,8 @@ func RegisterHandler(g *echo.Group, store *store.Stores) {
 
 }
 
-func (h *Handler) loggedIn(c echo.Context) error {
-	return c.NoContent(http.StatusOK)
+func (h *Handler) loggedIn(ctx echo.Context) error {
+	return ctx.NoContent(http.StatusOK)
 }
 
 func (h *Handler) login(c echo.Context) error {
@@ -57,7 +56,7 @@ func (h *Handler) login(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, authURL.String())
 }
 
-func (h *Handler) logout(c echo.Context) error {
+func (h *Handler) logout(ctx echo.Context) error {
 
 	cookie := &http.Cookie{
 		Name:     "_session",
@@ -65,19 +64,15 @@ func (h *Handler) logout(c echo.Context) error {
 		MaxAge:   -1,
 		HttpOnly: true,
 	}
-	c.SetCookie(cookie)
-	return c.NoContent(http.StatusOK)
+	ctx.SetCookie(cookie)
+	return ctx.NoContent(http.StatusOK)
 }
 
-func (h *Handler) auth(c echo.Context) error {
+func (h *Handler) auth(ctx echo.Context) error {
 
 	// Get FB access token
-	code := c.QueryParam("code")
-	state := c.QueryParam("state")
-
-	// if state != "quangmt2" {
-	// 	return c.NoContent(http.StatusBadRequest)
-	// }
+	code := ctx.QueryParam("code")
+	state := ctx.QueryParam("state")
 
 	/* Exchange token using given code */
 	queries := map[string]string{
@@ -95,42 +90,32 @@ func (h *Handler) auth(c echo.Context) error {
 	respBody, err := util.MakeGetRequest(conf.Cfg.Webhook.GraphEndpoint+"/oauth/access_token", queries)
 	if err != nil {
 		logging.Danger(err)
-		return c.NoContent(http.StatusBadRequest)
+		return ctx.NoContent(http.StatusBadRequest)
 	}
 
 	tokenRes := make(map[string]json.RawMessage)
 	err = json.Unmarshal(respBody, &tokenRes)
 	if err != nil {
 		logging.Danger(err)
-		return c.NoContent(http.StatusInternalServerError)
+		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
 	userAppID, err := h.validateToken(util.ConvertJSONToString(tokenRes["access_token"]))
 	if err != nil {
 		logging.Danger(err)
-		return c.NoContent(http.StatusInternalServerError)
+		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	user := &model.User{}
-	err = user.GetInfoFromFB("appid", userAppID)
+	// user, err := h.store.CheckUserExist(ctx.Request().Context(), userAppID)
+	// if err != nil {
+	// 	logging.Danger(err)
+	// 	return ctx.NoContent(http.StatusInternalServerError)
+	// }
+
+	jwtCookie, err := h.generateJWT(userAppID)
 	if err != nil {
 		logging.Danger(err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
-
-	// Save user info to DB to get later
-	if user.PSID != "" {
-		err = h.store.User.Create(c.Request().Context(), user)
-		if err != nil {
-			logging.Danger(err)
-			return c.NoContent(http.StatusInternalServerError)
-		}
-	}
-
-	jwtCookie, err := h.generateJWT(user.AppID)
-	if err != nil {
-		logging.Danger(err)
-		return c.NoContent(http.StatusInternalServerError)
+		return ctx.NoContent(http.StatusInternalServerError)
 	}
 	cookie := &http.Cookie{
 		Name:     "_session",
@@ -139,20 +124,20 @@ func (h *Handler) auth(c echo.Context) error {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}
-	c.SetCookie(cookie)
+	ctx.SetCookie(cookie)
 
 	cookie = &http.Cookie{
-		Name:    "upid",
-		Value:   user.AppID,
+		Name:    "uaid",
+		Value:   userAppID,
 		Expires: time.Now().AddDate(0, 1, 0),
 	}
-	c.SetCookie(cookie)
+	ctx.SetCookie(cookie)
 
 	if conf.Cfg.Host == "http://localhost" {
-		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000%s", conf.Cfg.Host, state))
+		return ctx.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000%s", conf.Cfg.Host, state))
 	}
 
-	return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", conf.Cfg.Host, state))
+	return ctx.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", conf.Cfg.Host, state))
 }
 
 func (h *Handler) generateJWT(userAppID string) (string, error) {

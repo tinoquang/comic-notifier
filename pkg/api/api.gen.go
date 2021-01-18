@@ -74,6 +74,16 @@ type Offset int64
 // Q defines model for q.
 type Q string
 
+// ComicsParams defines parameters for Comics.
+type ComicsParams struct {
+
+	// Used to request the next page in a list operation.
+	Offset *Offset `json:"offset,omitempty"`
+
+	// Used to specify the maximum number of records which are returned in the next page.
+	Limit *Limit `json:"limit,omitempty"`
+}
+
 // GetUserComicsParams defines parameters for GetUserComics.
 type GetUserComicsParams struct {
 
@@ -91,7 +101,7 @@ type GetUserComicsParams struct {
 type ServerInterface interface {
 
 	// (GET /comics)
-	Comics(ctx echo.Context) error
+	Comics(ctx echo.Context, params ComicsParams) error
 
 	// (GET /comics/{id})
 	GetComic(ctx echo.Context, id int) error
@@ -104,9 +114,6 @@ type ServerInterface interface {
 
 	// (GET /users/{id}/comics)
 	GetUserComics(ctx echo.Context, id string, params GetUserComicsParams) error
-
-	// (POST /users/{id}/comics)
-	SubscribeComic(ctx echo.Context, id string) error
 
 	// (DELETE /users/{user_id}/comics/{id})
 	UnsubscribeComic(ctx echo.Context, userId string, id int) error
@@ -121,8 +128,24 @@ type ServerInterfaceWrapper struct {
 func (w *ServerInterfaceWrapper) Comics(ctx echo.Context) error {
 	var err error
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ComicsParams
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", ctx.QueryParams(), &params.Offset)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", ctx.QueryParams(), &params.Limit)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter limit: %s", err))
+	}
+
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Comics(ctx)
+	err = w.Handler.Comics(ctx, params)
 	return err
 }
 
@@ -206,22 +229,6 @@ func (w *ServerInterfaceWrapper) GetUserComics(ctx echo.Context) error {
 	return err
 }
 
-// SubscribeComic converts echo context to params.
-func (w *ServerInterfaceWrapper) SubscribeComic(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameter("simple", false, "id", ctx.Param("id"), &id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.SubscribeComic(ctx, id)
-	return err
-}
-
 // UnsubscribeComic converts echo context to params.
 func (w *ServerInterfaceWrapper) UnsubscribeComic(ctx echo.Context) error {
 	var err error
@@ -279,7 +286,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/users", wrapper.Users)
 	router.GET(baseURL+"/users/:id", wrapper.GetUser)
 	router.GET(baseURL+"/users/:id/comics", wrapper.GetUserComics)
-	router.POST(baseURL+"/users/:id/comics", wrapper.SubscribeComic)
 	router.DELETE(baseURL+"/users/:user_id/comics/:id", wrapper.UnsubscribeComic)
 
 }
@@ -287,26 +293,23 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xY32/bNhD+VwhuQF/kyGnSrdNbl2KFgWAIkuWpMApaOlnsJJIhT0k8Q//7cJRs+Qfl",
-	"uAmWAHuKTN3xPt59/O6UJU91ZbQChY4nS26EFRUgWP+rlJVEesjApVYalFrxhN86yBhq5gykMl8wLIBV",
-	"4lFWdcVUXc3AMp0zC6m2mWMPhUwLJiwwC1hbBRmTyvsoeERmxBxOeMQl7XxXg13wiCtRAU+6+BF3aQGV",
-	"aIHkoi6RJx/GEc+1rQTyhEuFv5zziOPCQPsT5mB500Rc57mDA2ewcFeDw208BFCwUjpk2oAV5DOEsQsQ",
-	"BHkkxrtheD4Ymy0YRfsRWHdhRLxH4NBKNecNIWgtfc0vdCVTTwVLQVCCX04LYW6vL/eRXhTCIFhW23J/",
-	"74jLLOBCIdjkcyAbEZfVPBjn9vqSEpKS7zvHxL1AYUMRS4HgkGANRH7nWGvD0hZ7aJc2jWHk/l3Ah6iz",
-	"73NFhPJME1kLP+RL6RsIF8xss17Rs++QIu3hza+CIC6JND44s+CMVo5OsFNieu2fJELlH362kPOE/xT3",
-	"KhF3XIlbovQ4hLVi4YHRnZIWMp58XW06bSLitN0nljAmxJFPxjCXagNbPOnz1YPd9vtzrT+tBXP1jN7P",
-	"IAvS7Vl1tjqXJXwz7UXZu7m2Yycrpfo7uIELHdkTZfjM+xWnJalyHcje1YTl2jI6hyKJTguBM00yhRJL",
-	"6I7oX326mvCI34N1re/pyZgwagNKGMkTfnYyPjkjtggsfMbjPvnzkLZee53vhGpVCO63bEVrkq1yTMsr",
-	"QvoN34/HLRcVgsKOIKVMvV/83VGA5YayHU9VfzH26dpEO+hv6jQF5/K6LBddy1qr7vowvhpi7tYU51Na",
-	"6jITL2XWPJWejp8zQVKvVVvz7RR9AbzoBGOzMX89IKi+F1Cl+lYgM755J9HWsNkb9hrS9IUlOUI09rP+",
-	"h65VJ4/sQWJBp2kifj4+H7idjmUaHFMaGTxKh8M1qV03zhxD1tZ4txC33ep/T1Uvki9maXuKzYTQymY+",
-	"jqLo4aR8AfRoX4Gcaw2c/u9q8Cwx7YZq2mWjwTHUQ0Vai+3BUvneRZ138jlimcxzsKCwvY/+nW9RN32L",
-	"enlBo3ApepjxHT/CqJvCj7Bsvyleh0hDI9Kzes5wzYd00peMBDIncQ3qY8SNdjjguo5C46uCh/X0uk2x",
-	"m5XZUb3qDTg2bY3B4e86W+yUGeERY1MKuVNgeBSV8ZNSgWhcEsczADU/UYAx2noBaoRWqGKkVSkVxKjl",
-	"CAuh5qNUmFGlcVRJVYycez86O/v1t3H4wysklX5qbN6iCW/RcItjTHTF91w7HSBMrUSNhbbyH8iOZmXE",
-	"P7Rn2zabKASrRMnAWm0PN/d4SX++9Wq67m4ZlICBAf9W9eQOs3rD4tV43Z3iRwX0DYbBJ7LJep+DQ9wT",
-	"6uT/NQH2fpVx/5Hs72MSx6VORVloh8nH8cdxLIyM70/5LqUvyYr9RV/7N34n3kybfwMAAP//cfGPRfYS",
-	"AAA=",
+	"H4sIAAAAAAAC/9xX32/bNhD+VwhuQF+EyF2zodBbkWKFgWAIkvmpMApaOlnsJJImT2kMQ//7cKRiORYV",
+	"u02GDXuyzB933919952047lujFag0PFsx42wogEE6//VspFIDwW43EqDUiue8YWDgqFmzkAuyy3DClgj",
+	"HmTTNky1zQos0yWzkGtbOPatknnFhAVmAVuroGBS+TsKHpAZsYYLnnBJljct2C1PuBIN8Kz3n3CXV9CI",
+	"AKQUbY08+3WW8FLbRiDPuFT42yVPOG4NhL+wBsu7LuG6LB08E4OFTQsOn+IhgILV0iHTBqygO1MYewdR",
+	"kGdi3EzD887YasvI2/fA2sQR8QGBQyvVmneEIJz0Nb/Sjcw9FSw5QQl+Oa+EWdxej5FeVcIgWNbaemw7",
+	"4bKIXCEXbP4xko2Ey2Yd9bO4vaaE5HT3jWPiXqCwMY+1QHBIsCY8v3EsnGF5wB6zEtIYR+73IneIOuM7",
+	"N0QozzRRBPixu5S+CXfRzHb7Fb36CjmSDX/8JgrimkjjnTMLzmjlKIKjEtO2f5IIjX/42ULJM/5TOqhE",
+	"2nMlDUQZcAhrxdYDo56SFgqefX40uuwS4rQdE0sYE+PIB2OYy7WBJzwZ8jWAfXrvj73+hBPMtSvaX0ER",
+	"pdsP1dnqUtbwxYRGGXWu7dnJaqn+ihpwsZA9UaZjHleclqQqdSR7N3NWassoDkUSnVcCV5pkCiXW0Ifo",
+	"tz7czHnC78G6cPftxYwwagNKGMkz/u5idvGO2CKw8hlPh+SvY9p663W+F6rHQnBvMojWvHjMsfN2h5nz",
+	"Oc654Uja622XnDwZpke3JEIGynvIv8xmge0KQWFPwVrmHln61VEIuwPtPL8ZfOuNG6JLjvJz1+Y5OFe2",
+	"db3th+Je1/fp8vUWa7dvIr6kpT736U4W3akC9B2wEjRMtAqselqET4BXvSQdlWFSsv20IS4Mw0ZSbw1d",
+	"j7aFw+kzGnkvLckZsjTO+u+6Vb0As28SK4qmS/jl7HKi/x0rNDimNDJ4kA6na9K6/oXpnHYIh48LsehX",
+	"/3mqehl+MUtDFIcJoZXDfJxF0eeT8gnQoz1BTi+5L+PmXmSX/7sS/JBa92/tZOVggjLUUzWaUvNIpWi0",
+	"zz8mrJBlCRYUhnb0e34G3g0z8OUFPT0nNucMk//w2HmtkTNd8ymZ9CUjfSxJW5+Xx3RHP18GQu71oYAa",
+	"MPIStlB7FPv35iPRHE6cNcVeg359FN/LwX9hnJ7IJhvuPDsGTxWYPh/B3j9m3H/I8ArRZGla61zUlXaY",
+	"vZ+9n6XCyPT+LT8m5zWdYn/SF9mdt8S7Zfd3AAAA//9wE0sJmhAAAA==",
 }
 
 // GetSwagger returns the Swagger specification corresponding to the generated code

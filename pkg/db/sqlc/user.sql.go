@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -20,9 +21,9 @@ INSERT INTO users
 
 type CreateUserParams struct {
 	Name       string
-	Psid       string
-	Appid      string
-	ProfilePic string
+	Psid       sql.NullString
+	Appid      sql.NullString
+	ProfilePic sql.NullString
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -48,17 +49,35 @@ DELETE FROM users
 WHERE psid = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, psid string) error {
+func (q *Queries) DeleteUser(ctx context.Context, psid sql.NullString) error {
 	_, err := q.db.ExecContext(ctx, deleteUser, psid)
 	return err
 }
 
-const getUserByPSID = `-- name: GetUserByPSID :one
+const getUserByAppID = `-- name: GetUserByAppID :one
 SELECT id, name, psid, appid, profile_pic FROM users
-WHERE psid = $1 LIMIT 1
+WHERE appid = $1
 `
 
-func (q *Queries) GetUserByPSID(ctx context.Context, psid string) (User, error) {
+func (q *Queries) GetUserByAppID(ctx context.Context, appid sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByAppID, appid)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Psid,
+		&i.Appid,
+		&i.ProfilePic,
+	)
+	return i, err
+}
+
+const getUserByPSID = `-- name: GetUserByPSID :one
+SELECT id, name, psid, appid, profile_pic FROM users
+WHERE psid = $1
+`
+
+func (q *Queries) GetUserByPSID(ctx context.Context, psid sql.NullString) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByPSID, psid)
 	var i User
 	err := row.Scan(
@@ -103,4 +122,29 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+SET appid=$1
+WHERE psid=$2
+RETURNING id, name, psid, appid, profile_pic
+`
+
+type UpdateUserParams struct {
+	Appid sql.NullString
+	Psid  sql.NullString
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUser, arg.Appid, arg.Psid)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Psid,
+		&i.Appid,
+		&i.ProfilePic,
+	)
+	return i, err
 }

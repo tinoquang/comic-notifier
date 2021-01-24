@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createComic = `-- name: CreateComic :one
@@ -87,17 +88,18 @@ func (q *Queries) GetComic(ctx context.Context, id int32) (Comic, error) {
 
 const getComicByPSIDAndComicID = `-- name: GetComicByPSIDAndComicID :one
 SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
-LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2
+JOIN subscribers ON comics.id=subscribers.comic_id
+JOIN users ON users.id=subscribers.user_id
+WHERE users.psid=$1 AND comics.id=$2
 `
 
 type GetComicByPSIDAndComicIDParams struct {
-	UserPsid string
-	ComicID  int32
+	Psid sql.NullString
+	ID   int32
 }
 
 func (q *Queries) GetComicByPSIDAndComicID(ctx context.Context, arg GetComicByPSIDAndComicIDParams) (Comic, error) {
-	row := q.db.QueryRowContext(ctx, getComicByPSIDAndComicID, arg.UserPsid, arg.ComicID)
+	row := q.db.QueryRowContext(ctx, getComicByPSIDAndComicID, arg.Psid, arg.ID)
 	var i Comic
 	err := row.Scan(
 		&i.ID,
@@ -194,47 +196,6 @@ func (q *Queries) ListComics(ctx context.Context) ([]Comic, error) {
 	return items, nil
 }
 
-const listComicsByAppID = `-- name: ListComicsByAppID :many
-
-SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
-LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_appid=$1 ORDER BY subscribers.created_at DESC
-`
-
-// LIMIT $2
-// OFFSET $3;
-func (q *Queries) ListComicsByAppID(ctx context.Context, userAppid string) ([]Comic, error) {
-	rows, err := q.db.QueryContext(ctx, listComicsByAppID, userAppid)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Comic{}
-	for rows.Next() {
-		var i Comic
-		if err := rows.Scan(
-			&i.ID,
-			&i.Page,
-			&i.Name,
-			&i.Url,
-			&i.ImgUrl,
-			&i.CloudImgUrl,
-			&i.LatestChap,
-			&i.ChapUrl,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listComicsByName = `-- name: ListComicsByName :many
 SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE comics.name ILIKE $1 or unaccent(comics.name) ILIKE $2
@@ -278,17 +239,17 @@ func (q *Queries) ListComicsByName(ctx context.Context, arg ListComicsByNamePara
 	return items, nil
 }
 
-const listComicsByPSID = `-- name: ListComicsByPSID :many
+const listComicsPerUser = `-- name: ListComicsPerUser :many
 
 SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_psid=$1 ORDER BY subscribers.created_at DESC
+WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC
 `
 
 // LIMIT $1
 // OFFSET $2;
-func (q *Queries) ListComicsByPSID(ctx context.Context, userPsid string) ([]Comic, error) {
-	rows, err := q.db.QueryContext(ctx, listComicsByPSID, userPsid)
+func (q *Queries) ListComicsPerUser(ctx context.Context, userID int32) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComicsPerUser, userID)
 	if err != nil {
 		return nil, err
 	}

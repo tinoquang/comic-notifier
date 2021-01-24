@@ -21,6 +21,11 @@ WHERE appid = $1;
 SELECT * FROM users
 ORDER BY id;
 
+-- name: ListUsersPerComic :many
+SELECT users.* FROM users
+LEFT JOIN subscribers ON users.id=subscribers.user_id
+WHERE subscribers.comic_id=$1 ORDER BY users.id DESC;
+
 -- name: UpdateUser :one
 UPDATE users
 SET appid=$1

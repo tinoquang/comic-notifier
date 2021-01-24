@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -29,7 +30,7 @@ func NewCrawler() *Crawler {
 }
 
 // GetComicInfo return link of latest chapter of a page
-func (crwl *Crawler) GetComicInfo(ctx context.Context, comic *db.Comic) (err error) {
+func (crwl *Crawler) GetComicInfo(ctx context.Context, page, comicURL string) (comic db.Comic, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -46,16 +47,23 @@ func (crwl *Crawler) GetComicInfo(ctx context.Context, comic *db.Comic) (err err
 		return
 	}()
 
-	return crwl.crawl(ctx, comic)
+	comic.Page = page
+	comic.Url = comicURL
+	err = crwl.crawl(ctx, &comic)
+	return
 }
 
 // GetUserInfoFromFacebook call facebook API to get user info, include psid, appid and profile picture
-func (crwl *Crawler) GetUserInfoFromFacebook(field, id string, user *db.CreateUserParams) error {
+func (crwl *Crawler) GetUserInfoFromFacebook(field, id string) (user db.User, err error) {
 
+	err = nil
 	info := map[string]json.RawMessage{}
 	appInfo := []map[string]json.RawMessage{}
 	picture := map[string]json.RawMessage{}
 	queries := map[string]string{}
+
+	user.Psid = sql.NullString{String: "", Valid: true}
+	user.Appid = sql.NullString{String: "", Valid: true}
 
 	switch field {
 	case "psid":
@@ -68,17 +76,18 @@ func (crwl *Crawler) GetUserInfoFromFacebook(field, id string, user *db.CreateUs
 		queries["access_token"] = conf.Cfg.FBSecret.AppToken
 		queries["appsecret_proof"] = conf.Cfg.FBSecret.AppSecret
 	default:
-		return fmt.Errorf("Wrong field request, field: %s", field)
+		err = fmt.Errorf("Wrong field request, field: %s", field)
+		return
 	}
 
 	respBody, err := util.MakeGetRequest(fmt.Sprintf("%s/%s", conf.Cfg.Webhook.GraphEndpoint, id), queries)
 	if err != nil {
-		return err
+		return
 	}
 
 	err = json.Unmarshal(respBody, &info)
 	if err != nil {
-		return err
+		return
 	}
 
 	user.Name = util.ConvertJSONToString(info["name"])
@@ -103,5 +112,5 @@ func (crwl *Crawler) GetUserInfoFromFacebook(field, id string, user *db.CreateUs
 
 	user.ProfilePic.String = strings.Replace(util.ConvertJSONToString(picture["url"]), "\\", "", -1)
 
-	return nil
+	return
 }

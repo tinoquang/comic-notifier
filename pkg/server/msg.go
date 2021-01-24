@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -74,16 +75,13 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	}
 
 	comicID, _ := strconv.Atoi(payload)
-	arg := db.GetComicByPSIDAndComicIDParams{
-		UserPsid: senderID,
-		ComicID:  int32(comicID),
-	}
-
-	comic, err := m.store.GetComicByPSIDAndComicID(ctx, arg)
-
+	comic, err := m.store.GetComicByPSIDAndComicID(ctx, db.GetComicByPSIDAndComicIDParams{
+		Psid: sql.NullString{String: senderID, Valid: true},
+		ID:   int32(comicID),
+	})
 	if err != nil {
 		if err == util.ErrNotFound {
-			sendTextBack(senderID, "This comic is not subscribed yet!")
+			sendTextBack(senderID, "Truyện chưa được đăng ký !")
 			return
 		}
 		return
@@ -96,19 +94,26 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	comicID, err := strconv.Atoi(payload)
 
+	user, err := m.store.GetUserByAppID(ctx, sql.NullString{String: senderID, Valid: true})
+	if err != nil {
+		logging.Danger(err)
+		sendTextBack(senderID, "Truyện chưa được đăng ký !")
+		return
+	}
+
 	c, err := m.store.GetComicByPSIDAndComicID(ctx, db.GetComicByPSIDAndComicIDParams{
-		UserPsid: senderID,
-		ComicID:  int32(comicID),
+		Psid: sql.NullString{String: senderID, Valid: true},
+		ID:   int32(comicID),
 	})
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "This comic is not subscribed yet!")
+		sendTextBack(senderID, "Truyện chưa được đăng ký !")
 		return
 	}
 
-	err = m.store.DeleteSubscriberByPSID(ctx, db.DeleteSubscriberByPSIDParams{
-		UserPsid: senderID,
-		ComicID:  int32(comicID),
+	err = m.store.DeleteSubscriber(ctx, db.DeleteSubscriberParams{
+		UserID:  user.ID,
+		ComicID: int32(comicID),
 	})
 
 	if err != nil {
@@ -116,14 +121,15 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 		return
 	}
 
-	s, err := m.store.ListSubscriberByComicID(ctx, c.ID)
+	// Check if any user still subscribed to this comic, if not remove comic from DB
+	users, err := m.store.ListUsersPerComic(ctx, c.ID)
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "Please try again later")
+		sendTextBack(senderID, "Đợi xíu rồi thử lại sau nhé bạn :) !!")
 		return
 	}
 
-	if len(s) == 0 {
+	if len(users) == 0 {
 		m.store.DeleteComic(ctx, c.ID)
 	}
 	sendTextBack(senderID, fmt.Sprintf("Unsub %s\nSuccess!", c.Name))

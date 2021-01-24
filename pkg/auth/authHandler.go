@@ -106,11 +106,11 @@ func (h *Handler) auth(ctx echo.Context) error {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	// user, err := h.store.CheckUserExist(ctx.Request().Context(), userAppID)
-	// if err != nil {
-	// 	logging.Danger(err)
-	// 	return ctx.NoContent(http.StatusInternalServerError)
-	// }
+	err = h.store.CheckUserExist(ctx.Request().Context(), userAppID)
+	if err != nil {
+		logging.Danger(err)
+		return ctx.NoContent(http.StatusInternalServerError)
+	}
 
 	jwtCookie, err := h.generateJWT(userAppID)
 	if err != nil {

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/url"
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -16,8 +17,8 @@ type Stores interface {
 }
 
 type crawler interface {
-	GetComicInfo(ctx context.Context, comic *Comic) (err error)
-	GetUserInfoFromFacebook(field, id string, user *CreateUserParams) error
+	GetComicInfo(ctx context.Context, page, comicURL string) (comic Comic, err error)
+	GetUserInfoFromFacebook(field, id string) (user User, err error)
 	GetImg(comicPage, comicName string) error
 	UploadImg(comicPage, comicName, imgURL string) (err error)
 	DeleteImg(comicPage, comicName string) error
@@ -29,7 +30,7 @@ type StoreDB struct {
 	crawl crawler
 }
 
-// New create new stores
+// NewStore create new stores
 func NewStore(dbconn *sql.DB, crawl crawler) Stores {
 	return &StoreDB{
 		db:      dbconn,
@@ -38,106 +39,139 @@ func NewStore(dbconn *sql.DB, crawl crawler) Stores {
 	}
 }
 
+func (s *StoreDB) execTx(ctx context.Context, fn func(Querier) error) error {
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		logging.Danger(err)
+		return err
+	}
+
+	q := New(tx)
+	err = fn(q)
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logging.Danger(rbErr)
+			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
+		}
+		return err
+	}
+
+	return tx.Commit()
+}
+
 // SubscribeComic subscribe and return comic info to user
 func (s *StoreDB) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*Comic, error) {
 
-	var err error
-	var comic *Comic
+	var comic Comic
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
 		return nil, util.ErrInvalidURL
 	}
 
-	// err = db.WithTransaction(ctx, s.db, func(tx db.Transaction) (inErr error) {
+	err = s.execTx(ctx, func(q Querier) (txErr error) {
 
-	// 	comic = &model.Comic{
-	// 		Page: parsedURL.Hostname(),
-	// 		URL:  comicURL,
-	// 	}
+		// Check comic existed in DB, if not crawl comic's info
+		comic, txErr = q.GetComicByURL(ctx, comicURL)
+		if txErr != nil {
 
-	// 	inErr = tx.QueryRowContext(ctx, "SELECT * from comics WHERE url=$1", comicURL).
-	// 		Scan(&comic.ID, &comic.Page, &comic.Name, &comic.URL, &comic.OriginImgURL, &comic.CloudImg, &comic.LatestChap, &comic.ChapURL)
-	// 	if inErr != nil {
+			// Fail to get comic, return err
+			if txErr != sql.ErrNoRows {
+				logging.Danger(txErr)
+				return
+			}
 
-	// 		if inErr != sql.ErrNoRows {
-	// 			logging.Danger(inErr)
-	// 			return inErr
-	// 		}
+			// Comic doesn't existed in DB --> crawl Comic info and add into DB
+			comic, txErr = s.crawl.GetComicInfo(ctx, parsedURL.Hostname(), comicURL)
+			if txErr != nil {
+				logging.Danger(err)
+				return
+			}
 
-	// 		// Get all comic infos includes latest chapter
-	// 		// inErr = crawler.GetComicInfo(ctx, comic)
-	// 		if inErr != nil {
-	// 			// logging.Danger(inErr)
-	// 			return inErr
-	// 		}
-	// 		// Add new comic to DB
-	// 		query := `INSERT INTO comics (page, name, url, img_url, latest_chap, chap_url)
-	// 					VALUES ($1, $2, $3, $4, $5, $6)
-	// 					RETURNING id`
-	// 		inErr = tx.QueryRowContext(ctx, query, comic.Page, comic.Name, comic.URL, comic.OriginImgURL, comic.LatestChap, comic.ChapURL).
-	// 			Scan(&comic.ID)
+			comic, txErr = s.CreateComic(ctx, CreateComicParams{
+				Page:        comic.Page,
+				Name:        comic.Name,
+				Url:         comic.Url,
+				ImgUrl:      comic.ImgUrl,
+				CloudImgUrl: comic.CloudImgUrl,
+				LatestChap:  comic.LatestChap,
+				ChapUrl:     comic.ChapUrl,
+			})
+			if txErr != nil {
+				logging.Danger(txErr)
+				return
+			}
+		}
 
-	// 		if inErr != nil {
-	// 			logging.Danger(inErr)
-	// 			return inErr
-	// 		}
-	// 	}
+		// Check user existed in DB, if not crawl user's info
+		user, txErr := s.GetUserByPSID(ctx, sql.NullString{String: userPSID, Valid: true})
+		if txErr != nil {
 
-	// 	// Validate users is in user DB or not
-	// 	// If not, add user to database, return "Subscribed to ..."
-	// 	// else return "Already subscribed"
-	// 	user := &model.User{}
-	// 	inErr = tx.QueryRowContext(ctx, "SELECT * from users WHERE psid=$1", userPSID).Scan(&user.Name, &user.PSID, &user.AppID, &user.ProfilePic)
-	// 	if inErr != nil {
+			if txErr != sql.ErrNoRows {
+				logging.Danger(txErr)
+				return
+			}
 
-	// 		if inErr != sql.ErrNoRows {
-	// 			logging.Danger(inErr)
-	// 			return inErr
-	// 		}
+			user, txErr = s.crawl.GetUserInfoFromFacebook("psid", userPSID)
+			if txErr != nil {
+				logging.Danger(txErr)
+				return
+			}
 
-	// 		inErr = user.GetInfoFromFB("psid", userPSID)
-	// 		if inErr != nil {
-	// 			logging.Danger(inErr)
-	// 			return inErr
-	// 		}
+			user, txErr = s.CreateUser(ctx, CreateUserParams{
+				Name:       user.Name,
+				Psid:       user.Psid,
+				Appid:      user.Appid,
+				ProfilePic: user.ProfilePic,
+			})
+			if txErr != nil {
+				logging.Danger(err)
+				return
+			}
+		}
 
-	// 		query := `INSERT INTO users (name, psid, appid, profile_pic) VALUES ($1, $2, $3, $4) RETURNING psid`
-	// 		inErr = tx.QueryRowContext(ctx, query, user.Name, user.PSID, user.AppID, user.ProfilePic).Scan(&user.PSID)
-	// 		if inErr != nil && inErr != sql.ErrNoRows {
-	// 			logging.Danger(inErr)
-	// 			return inErr
-	// 		}
-	// 	}
+		// Check comic already subscired
+		_, txErr = s.GetSubscriber(ctx, GetSubscriberParams{UserID: user.ID, ComicID: comic.ID})
+		if txErr == nil {
+			return util.ErrAlreadySubscribed
+		}
 
-	// 	subscriber, inErr := s.Subscriber.Get(ctx, user.PSID, comic.ID)
-	// 	if inErr != nil {
-	// 		if inErr != util.ErrNotFound {
-	// 			logging.Danger(inErr)
-	// 			return
-	// 		}
+		if txErr != sql.ErrNoRows {
+			logging.Danger(err)
+			return
+		}
 
-	// 		// Add comic and user to subscribe table
-	// 		query := `INSERT INTO subscribers (user_psid, comic_id) VALUES ($1,$2) RETURNING id`
-	// 		inErr = tx.QueryRowContext(ctx, query, user.PSID, comic.ID).Scan(&subscriber.ID)
-	// 		if inErr != nil {
-	// 			return
-	// 		}
-	// 	} else {
-	// 		return util.ErrAlreadySubscribed
-	// 	}
+		_, txErr = s.CreateSubscriber(ctx, CreateSubscriberParams{
+			UserID:  user.ID,
+			ComicID: comic.ID,
+		})
+		if txErr != nil {
+			logging.Danger(err)
+			return
+		}
 
-	// 	return
-	// })
+		// Last step, check comic's image in firebase DB
+		txErr = s.crawl.GetImg(comic.Page, comic.Name)
+		if txErr != nil {
+			logging.Danger(err)
 
-	return comic, err
+			err := s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+			if err != nil {
+				logging.Danger(err)
+				return err
+			}
+		}
+		return nil
+	})
+
+	return &comic, err
 }
 
 // CheckUserExist call FacebookAPI to get userinfo, then update user DB if user already exist PSID
 func (s *StoreDB) CheckUserExist(ctx context.Context, userAppID string) error {
 
-	var userParam CreateUserParams
-
+	var user User
 	// Check user already existed in DB
 	_, err := s.GetUserByAppID(ctx, sql.NullString{
 		String: userAppID,
@@ -157,23 +191,23 @@ func (s *StoreDB) CheckUserExist(ctx context.Context, userAppID string) error {
 	// we need to verify if same user existed by check user's psid
 
 	// Get user info first
-	err = s.crawl.GetUserInfoFromFacebook("appid", userAppID, &userParam)
+	user, err = s.crawl.GetUserInfoFromFacebook("appid", userAppID)
 	if err != nil {
 		logging.Danger(err)
 		return err
 	}
 
 	// Check user's psid existed to
-	if userParam.Psid.String != "" {
-		_, err := s.GetUserByPSID(ctx, userParam.Psid)
+	if user.Psid.String != "" {
+		_, err := s.GetUserByPSID(ctx, user.Psid)
 		if err != nil {
 			logging.Danger(err)
 			return err
 		}
 
 		_, err = s.UpdateUser(ctx, UpdateUserParams{
-			Appid: userParam.Appid,
-			Psid:  userParam.Psid,
+			Appid: user.Appid,
+			Psid:  user.Psid,
 		})
 
 		if err != nil {

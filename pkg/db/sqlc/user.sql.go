@@ -124,6 +124,41 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const listUsersPerComic = `-- name: ListUsersPerComic :many
+SELECT users.id, users.name, users.psid, users.appid, users.profile_pic FROM users
+LEFT JOIN subscribers ON users.id=subscribers.user_id
+WHERE subscribers.comic_id=$1 ORDER BY users.id DESC
+`
+
+func (q *Queries) ListUsersPerComic(ctx context.Context, comicID int32) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsersPerComic, comicID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []User{}
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Psid,
+			&i.Appid,
+			&i.ProfilePic,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET appid=$1

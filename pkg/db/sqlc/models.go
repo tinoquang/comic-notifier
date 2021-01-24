@@ -20,8 +20,7 @@ type Comic struct {
 
 type Subscriber struct {
 	ID        int32
-	UserPsid  string
-	UserAppid string
+	UserID    int32
 	ComicID   int32
 	CreatedAt time.Time
 }

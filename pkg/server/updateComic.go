@@ -27,7 +27,7 @@ func updateComicThread(s db.Stores, workerNum, timeout int) {
 		cancel() // Call context cancel here to avoid context leak
 
 		if err != nil {
-			logging.Info("Get list of comic fails, sleep sometimes...")
+			logging.Info("Get list of comic fails, err", err)
 			time.Sleep(time.Duration(timeout) * time.Minute)
 			continue
 		}
@@ -94,13 +94,13 @@ func updateComic(ctx context.Context, s db.Stores, comic *db.Comic) (err error) 
 
 func notifyToUsers(ctx context.Context, s db.Stores, comic *db.Comic) {
 
-	subscribers, err := s.ListSubscriberByComicID(ctx, comic.ID)
+	users, err := s.ListUsersPerComic(ctx, comic.ID)
 	if err != nil {
 		logging.Danger("Can't send notification for comic %s, err: %s", comic.Name, err.Error())
 		return
 	}
 
-	for _, sub := range subscribers {
-		sendMsgTagsReply(sub.UserPsid, comic)
+	for _, user := range users {
+		sendMsgTagsReply(user.Psid.String, comic)
 	}
 }

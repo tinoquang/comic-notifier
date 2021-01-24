@@ -139,7 +139,7 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 	comicPage := api.ComicPage{}
 
-	comics, err := a.store.ListComicsByAppID(ctx.Request().Context(), user.Appid.String)
+	comics, err := a.store.ListComicsPerUser(ctx.Request().Context(), user.ID)
 	if err != nil {
 		// Return empty list if not found comic
 		if err == util.ErrNotFound {
@@ -216,7 +216,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 		return ctx.NoContent(http.StatusForbidden)
 	}
 
-	_, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
+	user, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
 		if err == util.ErrNotFound {
 			return ctx.String(http.StatusNotFound, "Not found")
@@ -226,31 +226,31 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 	}
 
 	// Validate if user has subscribed to this comic, if not then this request is invalid
-	_, err = a.store.GetSubscriberByAppIDAndComicID(ctx.Request().Context(), db.GetSubscriberByAppIDAndComicIDParams{
-		UserAppid: userAppID,
-		ComicID:   int32(comicID),
+	_, err = a.store.GetSubscriber(ctx.Request().Context(), db.GetSubscriberParams{
+		UserID:  user.ID,
+		ComicID: int32(comicID),
 	})
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusBadRequest)
 	}
 
-	err = a.store.DeleteSubscriberByAppID(ctx.Request().Context(), db.DeleteSubscriberByAppIDParams{
-		UserAppid: userAppID,
-		ComicID:   int32(comicID),
+	err = a.store.DeleteSubscriber(ctx.Request().Context(), db.DeleteSubscriberParams{
+		UserID:  user.ID,
+		ComicID: int32(comicID),
 	})
 	if err != nil {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	s, err := a.store.ListSubscriberByComicID(ctx.Request().Context(), int32(comicID))
+	// Check if no user subscribe to this comic --> remove this comic from DB
+	users, err := a.store.ListComicsPerUser(ctx.Request().Context(), int32(comicID))
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	// Check if no user subscribe to this comic --> remove this comic from DB
-	if len(s) == 0 {
+	if len(users) == 0 {
 		a.store.DeleteComic(ctx.Request().Context(), int32(comicID))
 	}
 

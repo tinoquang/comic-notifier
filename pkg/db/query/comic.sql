@@ -20,8 +20,9 @@ WHERE url = $1;
 
 -- name: GetComicByPSIDAndComicID :one
 SELECT comics.* FROM comics
-LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_psid=$1 AND subscribers.comic_id=$2;
+JOIN subscribers ON comics.id=subscribers.comic_id
+JOIN users ON users.id=subscribers.user_id
+WHERE users.psid=$1 AND comics.id=$2;
 
 -- name: GetComicForUpdate :one
 SELECT * FROM comics
@@ -40,17 +41,10 @@ ORDER BY id DESC;
 -- LIMIT $1
 -- OFFSET $2;
 
--- name: ListComicsByPSID :many
+-- name: ListComicsPerUser :many
 SELECT comics.* FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_psid=$1 ORDER BY subscribers.created_at DESC;
--- LIMIT $2
--- OFFSET $3;
-
--- name: ListComicsByAppID :many
-SELECT comics.* FROM comics
-LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
-WHERE subscribers.user_appid=$1 ORDER BY subscribers.created_at DESC;
+WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC;
 -- LIMIT $2
 -- OFFSET $3;
 

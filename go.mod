@@ -20,6 +20,7 @@ require (
 	github.com/robertkrimen/otto v0.0.0-20200922221731-ef014fd054ac // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/tinoquang/go-cloudflare-scraper v0.0.0-20200802120520-9158f3ffb9bf
+	github.com/wolfeidau/exitus v0.0.0-20191024041719-542b13ea03db
 	google.golang.org/api v0.32.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect

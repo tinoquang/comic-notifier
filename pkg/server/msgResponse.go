@@ -190,7 +190,7 @@ func sendQuickReplyChoice(senderid string, comic db.Comic) {
 		Recipient: &User{ID: senderid},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
-			Text: fmt.Sprint("Hủy nhận thông báo khi %s update chap mới ?", comic.Name),
+			Text: fmt.Sprintf("Hủy nhận thông báo khi %s update chap mới ?", comic.Name),
 			Options: []QuickReply{
 				{
 					Type:    "text",

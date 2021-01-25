@@ -2,11 +2,13 @@ package crawler
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -53,8 +55,9 @@ func crawlBeeng(ctx context.Context, comic *db.Comic, helper helper) (err error)
 		return util.ErrInvalidURL
 	}
 
-	comic.Name = doc.Find(".detail").Find("h4").Text()
+	comic.Name = doc.Find(".detail").Find("h1").Text()
 	comic.ImgUrl, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
+	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
 
 	// Find latest chap
 	firstItem := doc.Find(".listChapters").Find(".list").Find("li:nth-child(1)")

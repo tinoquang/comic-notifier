@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -154,10 +155,10 @@ func sendMsgTagsReply(senderid string, comic *db.Comic) {
 							Title:    comic.Name + "\n" + comic.LatestChap,
 							ImgURL:   comic.CloudImgUrl,
 							Subtitle: comic.Page,
-							DefaultAction: &Action{
-								Type: "web_url",
-								URL:  comic.ChapUrl,
-							},
+							// DefaultAction: &Action{
+							// 	Type: "web_url",
+							// 	URL:  comic.ChapUrl,
+							// },
 							Buttons: []Button{
 								{
 									Type:  "web_url",
@@ -175,7 +176,7 @@ func sendMsgTagsReply(senderid string, comic *db.Comic) {
 				},
 			},
 		},
-		Type: "MESSAGE_TYPE",
+		Type: "MESSAGE_TAG",
 		Tag:  "CONFIRMED_EVENT_UPDATE",
 	}
 
@@ -236,10 +237,17 @@ func callSendAPI(r *Response) {
 	client := http.Client{}
 
 	// Send POST message to FACEBOOK API
-	_, err = client.Do(request)
+	resp, err := client.Do(request)
 	if err != nil {
 		logging.Danger(err)
 	}
 
+	defer resp.Body.Close()
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logging.Danger(err)
+	}
+
+	fmt.Println(string(respBody))
 	return
 }

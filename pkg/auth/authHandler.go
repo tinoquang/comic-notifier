@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -107,7 +108,7 @@ func (h *Handler) auth(ctx echo.Context) error {
 	}
 
 	err = h.store.CheckUserExist(ctx.Request().Context(), userAppID)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}

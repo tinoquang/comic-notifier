@@ -9,7 +9,6 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/api"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // API -> server handler for api endpoint
@@ -29,7 +28,7 @@ func (a *API) Comics(ctx echo.Context, params api.ComicsParams) error {
 	comics, err := a.store.ListComics(ctx.Request().Context())
 
 	if err != nil {
-		if err == util.ErrNotFound {
+		if err == sql.ErrNoRows {
 			return ctx.JSON(http.StatusOK, &comicPage)
 		}
 		logging.Danger(err)
@@ -57,7 +56,7 @@ func (a *API) GetComic(ctx echo.Context, id int) error {
 
 	c, err := a.store.GetComic(ctx.Request().Context(), int32(id))
 	if err != nil {
-		if err == util.ErrNotFound {
+		if err == sql.ErrNoRows {
 			return ctx.String(http.StatusNotFound, "404 - Not found")
 		}
 		logging.Danger(err)
@@ -84,7 +83,7 @@ func (a *API) Users(ctx echo.Context) error {
 	userPage := []api.User{}
 	users, err := a.store.ListUsers(ctx.Request().Context())
 	if err != nil {
-		if err == util.ErrNotFound {
+		if err == sql.ErrNoRows {
 			return ctx.JSON(http.StatusOK, &userPage)
 		}
 
@@ -104,25 +103,28 @@ func (a *API) Users(ctx echo.Context) error {
 // GetUser (GET /user/{id})
 func (a *API) GetUser(ctx echo.Context, userAppID string) error {
 
+	user := api.User{Appid: &userAppID}
 	if !userHasAccess(ctx, userAppID) {
 		return ctx.NoContent(http.StatusForbidden)
 	}
 
 	u, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
-		if err == util.ErrNotFound {
-			return ctx.String(http.StatusNotFound, "404 - Not found")
+		if err == sql.ErrNoRows {
+			return ctx.JSON(http.StatusOK, &user)
 		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	user := createResponseUser(u)
+	user = createResponseUser(u)
 	return ctx.JSON(http.StatusOK, &user)
 }
 
 // GetUserComics (GET users/{id}/comics)
 func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUserComicsParams) error {
+
+	comicPage := api.ComicPage{Comics: []api.Comic{}}
 
 	if !userHasAccess(ctx, userAppID) {
 		return ctx.NoContent(http.StatusForbidden)
@@ -130,20 +132,17 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 	user, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
-		if err == util.ErrNotFound {
-			return ctx.String(http.StatusNotFound, "Not found")
+		if err == sql.ErrNoRows {
+			return ctx.JSON(http.StatusOK, &comicPage)
 		}
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	comicPage := api.ComicPage{}
-
 	comics, err := a.store.ListComicsPerUser(ctx.Request().Context(), user.ID)
 	if err != nil {
 		// Return empty list if not found comic
-		if err == util.ErrNotFound {
-			comicPage.Comics = []api.Comic{}
+		if err == sql.ErrNoRows {
 			return ctx.JSON(http.StatusOK, &comicPage)
 		}
 		logging.Danger(err)
@@ -175,7 +174,7 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 // 	user, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 // 	if err != nil {
-// 		if err == util.ErrNotFound {
+// 		if err == sql.ErrNoRows {
 // 			return ctx.String(http.StatusNotFound, "Not found")
 // 		}
 // 		logging.Danger(err)
@@ -218,7 +217,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 
 	user, err := a.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{String: userAppID, Valid: true})
 	if err != nil {
-		if err == util.ErrNotFound {
+		if err == sql.ErrNoRows {
 			return ctx.String(http.StatusNotFound, "Not found")
 		}
 		logging.Danger(err)

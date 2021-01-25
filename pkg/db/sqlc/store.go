@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -154,13 +155,17 @@ func (s *StoreDB) SubscribeComic(ctx context.Context, userPSID, comicURL string)
 		// Last step, check comic's image in firebase DB
 		txErr = s.crawl.GetImg(comic.Page, comic.Name)
 		if txErr != nil {
-			logging.Danger(err)
-
-			err := s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
-			if err != nil {
-				logging.Danger(err)
-				return err
+			if strings.Contains(txErr.Error(), "object doesn't exist") {
+				txErr = s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+				if txErr != nil {
+					logging.Danger(txErr)
+					return
+				}
+			} else {
+				logging.Danger(txErr)
+				return
 			}
+
 		}
 		return nil
 	})
@@ -201,7 +206,6 @@ func (s *StoreDB) CheckUserExist(ctx context.Context, userAppID string) error {
 	if user.Psid.String != "" {
 		_, err := s.GetUserByPSID(ctx, user.Psid)
 		if err != nil {
-			logging.Danger(err)
 			return err
 		}
 

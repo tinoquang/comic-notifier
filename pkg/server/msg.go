@@ -42,7 +42,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			sendTextBack(senderID, "Already subscribed")
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
-			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)") // handle later: get time delay and send back to user
+			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
 		} else if err == util.ErrPageNotSupported {
 			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ !!!")
 			responseCommand(ctx, senderID, "/page")
@@ -50,7 +50,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			sendTextBack(senderID, "Đường dẫn chưa chính xác, hãy xem qua hướng dẫn bằng lệnh /tutor")
 			// responseCommand(ctx, senderID, "/help")
 		} else {
-			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé! :)")
+			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé!")
 		}
 		return
 	}
@@ -80,10 +80,13 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 		ID:   int32(comicID),
 	})
 	if err != nil {
-		if err == util.ErrNotFound {
+		if err == sql.ErrNoRows {
 			sendTextBack(senderID, "Truyện chưa được đăng ký !")
 			return
 		}
+
+		logging.Danger(err)
+		sendTextBack(senderID, "Đợi xíu rồi thử lại nhé bạn")
 		return
 	}
 
@@ -125,7 +128,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	users, err := m.store.ListUsersPerComic(ctx, c.ID)
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "Đợi xíu rồi thử lại sau nhé bạn :) !!")
+		sendTextBack(senderID, "Đợi xíu rồi thử lại nhé bạn")
 		return
 	}
 

@@ -15,10 +15,11 @@ type Stores interface {
 	Querier
 	SubscribeComic(ctx context.Context, userPSID, comicURL string) (*Comic, error)
 	CheckUserExist(ctx context.Context, userAppID string) error
+	UpdateComicChapter(ctx context.Context, comic *Comic) error
 }
 
 type crawler interface {
-	GetComicInfo(ctx context.Context, page, comicURL string) (comic Comic, err error)
+	GetComicInfo(ctx context.Context, comic *Comic) (err error)
 	GetUserInfoFromFacebook(field, id string) (user User, err error)
 	GetImg(comicPage, comicName string) error
 	UploadImg(comicPage, comicName, imgURL string) (err error)
@@ -77,6 +78,8 @@ func (s *StoreDB) SubscribeComic(ctx context.Context, userPSID, comicURL string)
 		comic, txErr = q.GetComicByURL(ctx, comicURL)
 		if txErr != nil {
 
+			comic.Page = parsedURL.Hostname()
+			comic.Url = comicURL
 			// Fail to get comic, return err
 			if txErr != sql.ErrNoRows {
 				logging.Danger(txErr)
@@ -84,7 +87,7 @@ func (s *StoreDB) SubscribeComic(ctx context.Context, userPSID, comicURL string)
 			}
 
 			// Comic doesn't existed in DB --> crawl Comic info and add into DB
-			comic, txErr = s.crawl.GetComicInfo(ctx, parsedURL.Hostname(), comicURL)
+			txErr = s.crawl.GetComicInfo(ctx, &comic)
 			if txErr != nil {
 				logging.Danger(err)
 				return
@@ -218,6 +221,33 @@ func (s *StoreDB) CheckUserExist(ctx context.Context, userAppID string) error {
 			logging.Danger(err)
 			return err
 		}
+	}
+
+	return nil
+}
+
+// UpdateComicChapter get comic info and compare to current comic in DB to verify new chapter release
+func (s *StoreDB) UpdateComicChapter(ctx context.Context, comic *Comic) error {
+	oldImgURL := comic.ImgUrl
+
+	err := s.crawl.GetComicInfo(ctx, comic)
+	if err != nil {
+		return err
+	}
+
+	if oldImgURL != comic.ImgUrl {
+		s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+	}
+
+	_, err = s.UpdateComic(ctx, UpdateComicParams{
+		ID:          comic.ID,
+		LatestChap:  comic.LatestChap,
+		ChapUrl:     comic.ChapUrl,
+		ImgUrl:      comic.ImgUrl,
+		CloudImgUrl: comic.CloudImgUrl,
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -15,7 +15,7 @@ import (
 )
 
 type helper interface {
-	detectSpoiler(chapURL string, attr1, attr2 string) error
+	detectSpoiler(name, chapURL, attr1, attr2 string) error
 	getPageSource(pageURL string) (doc *goquery.Document, err error)
 }
 type comicCrawler struct {
@@ -73,7 +73,7 @@ func crawlBeeng(ctx context.Context, comic *db.Comic, helper helper) (err error)
 	}
 
 	if comic.ChapUrl != "" {
-		err = helper.detectSpoiler(chapURL, ".comicDetail2#lightgallery2", "img")
+		err = helper.detectSpoiler(comic.Name, chapURL, ".comicDetail2#lightgallery2", "img")
 		if err != nil {
 			return
 		}
@@ -114,7 +114,7 @@ func crawlBlogtruyen(ctx context.Context, comic *db.Comic, helper helper) (err e
 	}
 
 	if comic.ChapUrl != "" {
-		err = helper.detectSpoiler(chapURL, "#content", "img[src]")
+		err = helper.detectSpoiler(comic.Name, chapURL, "#content", "img[src]")
 		if err != nil {
 			return
 		}
@@ -154,7 +154,7 @@ func crawlMangaK(ctx context.Context, comic *db.Comic, helper helper) (err error
 	}
 
 	if comic.ChapUrl != "" {
-		err = helper.detectSpoiler(chapURL, ".vung_doc", "img")
+		err = helper.detectSpoiler(comic.Name, chapURL, ".vung_doc", "img")
 		if err != nil {
 			return
 		}
@@ -231,7 +231,7 @@ func crawlTruyentranhnet(ctx context.Context, comic *db.Comic, helper helper) (e
 	}
 
 	if comic.ChapUrl != "" {
-		err = helper.detectSpoiler(chapURL, ".manga-reading-box", "img")
+		err = helper.detectSpoiler(comic.Name, chapURL, ".manga-reading-box", "img")
 		if err != nil {
 			return
 		}

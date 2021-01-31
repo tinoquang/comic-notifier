@@ -13,7 +13,7 @@ import (
 
 type crawlHelperWrapper struct{}
 
-func (ch crawlHelperWrapper) detectSpoiler(chapURL string, attr1, attr2 string) error {
+func (ch crawlHelperWrapper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
 
 	// Check if chapter is full upload (detect spolier chap)
 	doc, err := ch.getPageSource(chapURL)
@@ -23,8 +23,7 @@ func (ch crawlHelperWrapper) detectSpoiler(chapURL string, attr1, attr2 string) 
 	}
 
 	if chapSelections := doc.Find(attr1).Find(attr2); chapSelections.Size() < 3 {
-		logging.Danger()
-		return errors.New("No new chapter, just some spoilers :)")
+		return errors.Errorf("%s has spoiler chapter", name)
 
 	}
 

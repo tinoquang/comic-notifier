@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -237,17 +236,17 @@ func callSendAPI(r *Response) {
 	client := http.Client{}
 
 	// Send POST message to FACEBOOK API
-	resp, err := client.Do(request)
+	_, err = client.Do(request)
 	if err != nil {
 		logging.Danger(err)
 	}
 
-	defer resp.Body.Close()
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logging.Danger(err)
-	}
+	// defer resp.Body.Close()
+	// respBody, err := ioutil.ReadAll(resp.Body)
+	// if err != nil {
+	// 	logging.Danger(err)
+	// }
 
-	fmt.Println(string(respBody))
+	// fmt.Println(string(respBody))
 	return
 }

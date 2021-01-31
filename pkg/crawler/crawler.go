@@ -30,7 +30,7 @@ func NewCrawler() *Crawler {
 }
 
 // GetComicInfo return link of latest chapter of a page
-func (crwl *Crawler) GetComicInfo(ctx context.Context, page, comicURL string) (comic db.Comic, err error) {
+func (crwl *Crawler) GetComicInfo(ctx context.Context, comic *db.Comic) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -47,9 +47,7 @@ func (crwl *Crawler) GetComicInfo(ctx context.Context, page, comicURL string) (c
 		return
 	}()
 
-	comic.Page = page
-	comic.Url = comicURL
-	err = crwl.crawl(ctx, &comic)
+	err = crwl.crawl(ctx, comic)
 	return
 }
 

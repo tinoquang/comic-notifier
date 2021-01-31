@@ -58,7 +58,6 @@ func (f *firebaseImg) GetImg(comicPage, comicName string) error {
 
 	_, err := f.bucket.Object(objectName).Attrs(ctx)
 	if err != nil {
-		logging.Danger(err)
 		return err
 	}
 

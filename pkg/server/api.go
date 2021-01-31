@@ -126,6 +126,8 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 
 	comicPage := api.ComicPage{Comics: []api.Comic{}}
 
+	q, _, _ := listArgs(params.Q, params.Limit, params.Offset)
+
 	if !userHasAccess(ctx, userAppID) {
 		return ctx.NoContent(http.StatusForbidden)
 	}
@@ -139,7 +141,10 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	comics, err := a.store.ListComicsPerUser(ctx.Request().Context(), user.ID)
+	comics, err := a.store.ListComicsPerUserByName(ctx.Request().Context(), db.ListComicsPerUserByNameParams{
+		UserID: user.ID,
+		Name:   q,
+	})
 	if err != nil {
 		// Return empty list if not found comic
 		if err == sql.ErrNoRows {

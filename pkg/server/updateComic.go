@@ -65,7 +65,7 @@ func worker(id int, s db.Stores, wg *sync.WaitGroup, comicPool <-chan db.Comic) 
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-		err := updateComic(ctx, s, &comic)
+		err := s.UpdateComicChapter(ctx, &comic)
 		if err == nil {
 			logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
 			notifyToUsers(ctx, s, &comic)
@@ -77,19 +77,6 @@ func worker(id int, s db.Stores, wg *sync.WaitGroup, comicPool <-chan db.Comic) 
 	}
 
 	wg.Done()
-}
-
-// UpdateComic use when new chapter realease
-func updateComic(ctx context.Context, s db.Stores, comic *db.Comic) (err error) {
-
-	// oldImgURL := comic.ImgUrl
-	// err = crawler.GetComicInfo(ctx, comic)
-	if err != nil {
-		return
-	}
-
-	// err = s.UpdateComic(ctx, comic, oldImgURL)
-	return
 }
 
 func notifyToUsers(ctx context.Context, s db.Stores, comic *db.Comic) {

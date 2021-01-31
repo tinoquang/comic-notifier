@@ -98,6 +98,7 @@ func crawlBlogtruyen(ctx context.Context, comic *db.Comic, helper helper) (err e
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
 	comic.ImgUrl, _ = doc.Find(".thumbnail").Find("img[src]").Attr("src")
+	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
 
 	// Find latest chap
 	firstItem := doc.Find(".list-wrap#list-chapters").Find("p:nth-child(1)")
@@ -139,6 +140,7 @@ func crawlMangaK(ctx context.Context, comic *db.Comic, helper helper) (err error
 
 	comic.Name = doc.Find(".entry-title").Text()
 	comic.ImgUrl, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
+	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
 
 	// Find latest chap
 	firstItem := doc.Find(".chapter-list").Find(".row:nth-child(1)")
@@ -178,6 +180,7 @@ func crawlTruyentranhtuan(ctx context.Context, comic *db.Comic, helper helper) (
 
 	comic.Name = doc.Find("#infor-box").Find("h1").Text()
 	comic.ImgUrl, _ = doc.Find(".manga-cover").Find("img[src]").Attr("src")
+	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
 
 	// Find latest chap
 	firstItem := doc.Find("#manga-chapter").Find(".chapter-name").First()
@@ -216,6 +219,7 @@ func crawlTruyentranhnet(ctx context.Context, comic *db.Comic, helper helper) (e
 
 	comic.Name = doc.Find(".detail-manga-title").Find("h1").Text()
 	comic.ImgUrl, _ = doc.Find(".detail-img").Find("img[src]").Attr("src")
+	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
 
 	// Find latest chap
 	firstItem := doc.Find(".chapter-list").Find(".chapter-select").First()

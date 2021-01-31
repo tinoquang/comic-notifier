@@ -122,11 +122,11 @@ func sendNormalReply(senderid string, comic *db.Comic) {
 								{
 									Type:  "web_url",
 									URL:   comic.ChapUrl,
-									Title: "Read",
+									Title: "Đọc chap mới",
 								},
 								{
 									Type:    "postback",
-									Title:   "Unsubscribe",
+									Title:   "Hủy đăng ký",
 									Payload: strconv.Itoa(int(comic.ID)),
 								},
 							},
@@ -162,11 +162,11 @@ func sendMsgTagsReply(senderid string, comic *db.Comic) {
 								{
 									Type:  "web_url",
 									URL:   comic.ChapUrl,
-									Title: "Read Now",
+									Title: "Đọc chap mới",
 								},
 								{
 									Type:    "postback",
-									Title:   "Unsubscribe",
+									Title:   "Hủy đăng ký",
 									Payload: strconv.Itoa(int(comic.ID)),
 								},
 							},

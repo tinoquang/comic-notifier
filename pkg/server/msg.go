@@ -39,10 +39,10 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	comic, err := m.store.SubscribeComic(ctx, senderID, text)
 	if err != nil {
 		if err == util.ErrAlreadySubscribed {
-			sendTextBack(senderID, "Already subscribed")
+			sendTextBack(senderID, fmt.Sprintf("%s đã được đăng ký", comic.Name))
 		} else if strings.Contains(err.Error(), "too fast") {
 			// Upload image API is busy
-			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
+			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
 		} else if err == util.ErrPageNotSupported {
 			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ !!!")
 			responseCommand(ctx, senderID, "/page")
@@ -50,14 +50,14 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			sendTextBack(senderID, "Đường dẫn chưa chính xác, hãy xem qua hướng dẫn bằng lệnh /tutor")
 			// responseCommand(ctx, senderID, "/help")
 		} else {
-			sendTextBack(senderID, "Hiện tại tôi đang busy, hãy thử lại sau nhé!")
+			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!")
 		}
 		return
 	}
 
-	sendTextBack(senderID, "Subscribed")
+	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s", comic.Name))
 
-	// send back message in template with buttons
+	// send back message in template with bDnDwauttons
 	sendNormalReply(senderID, comic)
 
 }

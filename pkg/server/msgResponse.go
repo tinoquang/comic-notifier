@@ -114,10 +114,10 @@ func sendNormalReply(senderid string, comic *db.Comic) {
 							Title:    comic.Name + "\n" + comic.LatestChap,
 							ImgURL:   comic.CloudImgUrl,
 							Subtitle: comic.Page,
-							// DefaultAction: &Action{
-							// 	Type: "web_url",
-							// 	URL:  comic.ChapURL,
-							// },
+							DefaultAction: &Action{
+								Type: "web_url",
+								URL:  comic.ChapUrl,
+							},
 							Buttons: []Button{
 								{
 									Type:  "web_url",
@@ -154,10 +154,10 @@ func sendMsgTagsReply(senderid string, comic *db.Comic) {
 							Title:    comic.Name + "\n" + comic.LatestChap,
 							ImgURL:   comic.CloudImgUrl,
 							Subtitle: comic.Page,
-							// DefaultAction: &Action{
-							// 	Type: "web_url",
-							// 	URL:  comic.ChapUrl,
-							// },
+							DefaultAction: &Action{
+								Type: "web_url",
+								URL:  comic.ChapUrl,
+							},
 							Buttons: []Button{
 								{
 									Type:  "web_url",

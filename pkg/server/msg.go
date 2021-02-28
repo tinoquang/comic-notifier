@@ -97,7 +97,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	comicID, err := strconv.Atoi(payload)
 
-	user, err := m.store.GetUserByAppID(ctx, sql.NullString{String: senderID, Valid: true})
+	user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
 	if err != nil {
 		logging.Danger(err)
 		sendTextBack(senderID, "Truyện chưa được đăng ký !")
@@ -135,7 +135,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	if len(users) == 0 {
 		m.store.DeleteComic(ctx, c.ID)
 	}
-	sendTextBack(senderID, fmt.Sprintf("Unsub %s\nSuccess!", c.Name))
+	sendTextBack(senderID, fmt.Sprintf("Đã hủy đăng ký %s!", c.Name))
 
 }
 

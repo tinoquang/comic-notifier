@@ -16,6 +16,7 @@ type Stores interface {
 	SubscribeComic(ctx context.Context, userPSID, comicURL string) (*Comic, error)
 	CheckUserExist(ctx context.Context, userAppID string) error
 	UpdateComicChapter(ctx context.Context, comic *Comic) error
+	SynchronizedComicImage(comic *Comic) error
 }
 
 type crawler interface {
@@ -236,7 +237,10 @@ func (s *StoreDB) UpdateComicChapter(ctx context.Context, comic *Comic) error {
 	}
 
 	if oldImgURL != comic.ImgUrl {
-		s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+		err = s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+		if err != nil {
+			logging.Danger(err)
+		}
 	}
 
 	_, err = s.UpdateComic(ctx, UpdateComicParams{
@@ -251,4 +255,21 @@ func (s *StoreDB) UpdateComicChapter(ctx context.Context, comic *Comic) error {
 	}
 
 	return nil
+}
+
+func (s *StoreDB) SynchronizedComicImage(comic *Comic) error {
+
+	err := s.crawl.GetImg(comic.Page, comic.Name)
+	if err == nil {
+		return nil
+	}
+
+	if strings.Contains(err.Error(), "object doesn't exist") {
+		err = s.crawl.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }

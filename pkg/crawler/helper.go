@@ -33,7 +33,7 @@ func (ch crawlHelperWrapper) detectSpoiler(name, chapURL, attr1, attr2 string) e
 func (ch crawlHelperWrapper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
 	c := http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 	}
 
 	resp, err := c.Get(pageURL)

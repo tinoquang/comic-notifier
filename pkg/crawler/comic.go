@@ -52,6 +52,9 @@ func crawlBeeng(ctx context.Context, comic *db.Comic, helper helper) (err error)
 
 	doc, err := helper.getPageSource(comic.Url)
 	if err != nil {
+		if strings.Contains(err.Error(), "Timeout") {
+			return util.ErrCrawlTimeout
+		}
 		return util.ErrInvalidURL
 	}
 
@@ -92,6 +95,11 @@ func crawlBlogtruyen(ctx context.Context, comic *db.Comic, helper helper) (err e
 
 	doc, err := helper.getPageSource(comic.Url)
 	if err != nil {
+		if strings.Contains(err.Error(), "Timeout") {
+			return util.ErrCrawlTimeout
+		}
+
+		logging.Danger(err)
 		return util.ErrInvalidURL
 	}
 
@@ -103,6 +111,7 @@ func crawlBlogtruyen(ctx context.Context, comic *db.Comic, helper helper) (err e
 	// Find latest chap
 	firstItem := doc.Find(".list-wrap#list-chapters").Find("p:nth-child(1)")
 	if firstItem.Nodes == nil {
+		logging.Danger(err)
 		return util.ErrInvalidURL
 	}
 
@@ -134,6 +143,9 @@ func crawlMangaK(ctx context.Context, comic *db.Comic, helper helper) (err error
 
 	doc, err := helper.getPageSource(comic.Url)
 	if err != nil {
+		if strings.Contains(err.Error(), "Timeout") {
+			return util.ErrCrawlTimeout
+		}
 		return util.ErrInvalidURL
 	}
 	logging.Info(doc.Html())
@@ -175,6 +187,9 @@ func crawlTruyentranhtuan(ctx context.Context, comic *db.Comic, helper helper) (
 
 	doc, err := helper.getPageSource(comic.Url)
 	if err != nil {
+		if strings.Contains(err.Error(), "Timeout") {
+			return util.ErrCrawlTimeout
+		}
 		return util.ErrInvalidURL
 	}
 
@@ -214,6 +229,9 @@ func crawlTruyentranhnet(ctx context.Context, comic *db.Comic, helper helper) (e
 	url := comic.Url + "?order=desc"
 	doc, err := helper.getPageSource(url)
 	if err != nil {
+		if strings.Contains(err.Error(), "Timeout") {
+			return util.ErrCrawlTimeout
+		}
 		return util.ErrInvalidURL
 	}
 

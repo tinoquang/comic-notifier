@@ -40,7 +40,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	if err != nil {
 		if err == util.ErrAlreadySubscribed {
 			sendTextBack(senderID, fmt.Sprintf("%s đã được đăng ký", comic.Name))
-		} else if strings.Contains(err.Error(), "too fast") {
+		} else if strings.Contains(err.Error(), "too fast") || err == util.ErrCrawlTimeout {
 			// Upload image API is busy
 			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
 		} else if err == util.ErrPageNotSupported {
@@ -143,12 +143,12 @@ func responseCommand(ctx context.Context, senderID, text string) {
 
 	if text == "/list" {
 		sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
-		sendTextBack(senderID, "https://comicnotifier.herokuapp.com")
+		sendTextBack(senderID, "https://cominify-bot.xyz")
 	} else if text == "/page" {
 		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang: beeng.net, blogtruyen.vn, truyenhtranh.net và truyentranhtuan.com")
 	} else if text == "/tutor" {
 		sendTextBack(senderID, "Xem hướng dẫn tại đây:")
-		sendTextBack(senderID, "https://comicnotifier.herokuapp.com/tutorial")
+		sendTextBack(senderID, "https://cominify-bot.xyz/tutorial")
 	} else {
 		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí

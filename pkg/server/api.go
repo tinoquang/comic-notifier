@@ -229,21 +229,12 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	// Validate if user has subscribed to this comic, if not then this request is invalid
-	_, err = a.store.GetSubscriber(ctx.Request().Context(), db.GetSubscriberParams{
-		UserID:  user.ID,
-		ComicID: int32(comicID),
-	})
-	if err != nil {
-		logging.Danger(err)
-		return ctx.NoContent(http.StatusBadRequest)
-	}
-
 	err = a.store.DeleteSubscriber(ctx.Request().Context(), db.DeleteSubscriberParams{
 		UserID:  user.ID,
 		ComicID: int32(comicID),
 	})
 	if err != nil {
+		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
@@ -255,7 +246,11 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 	}
 
 	if len(users) == 0 {
-		a.store.DeleteComic(ctx.Request().Context(), int32(comicID))
+		err := a.store.RemoveComic(ctx.Request().Context(), int32(comicID))
+		if err != nil {
+			logging.Danger(err)
+			return ctx.NoContent(http.StatusInternalServerError)
+		}
 	}
 
 	return ctx.NoContent(http.StatusOK)

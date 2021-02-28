@@ -17,6 +17,7 @@ type Stores interface {
 	CheckUserExist(ctx context.Context, userAppID string) error
 	UpdateComicChapter(ctx context.Context, comic *Comic) error
 	SynchronizedComicImage(comic *Comic) error
+	RemoveComic(ctx context.Context, comicID int32) error
 }
 
 type crawler interface {
@@ -90,7 +91,7 @@ func (s *StoreDB) SubscribeComic(ctx context.Context, userPSID, comicURL string)
 			// Comic doesn't existed in DB --> crawl Comic info and add into DB
 			txErr = s.crawl.GetComicInfo(ctx, &comic)
 			if txErr != nil {
-				logging.Danger(err)
+				logging.Danger(txErr)
 				return
 			}
 
@@ -257,6 +258,7 @@ func (s *StoreDB) UpdateComicChapter(ctx context.Context, comic *Comic) error {
 	return nil
 }
 
+// SynchronizedComicImage check comic's image exists in Firebase and sync with comic in DB
 func (s *StoreDB) SynchronizedComicImage(comic *Comic) error {
 
 	err := s.crawl.GetImg(comic.Page, comic.Name)
@@ -272,4 +274,31 @@ func (s *StoreDB) SynchronizedComicImage(comic *Comic) error {
 	}
 
 	return err
+}
+
+// RemoveComic delete comic in DB and image in firebase
+func (s *StoreDB) RemoveComic(ctx context.Context, comicID int32) error {
+
+	comic, err := s.GetComic(ctx, comicID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		logging.Danger(err)
+		return err
+	}
+
+	err = s.DeleteComic(ctx, comicID)
+	if err != nil {
+		logging.Danger(err)
+		return err
+	}
+
+	err = s.crawl.DeleteImg(comic.Page, comic.Name)
+	if err != nil {
+		logging.Danger(err)
+		return err
+	}
+
+	return nil
 }

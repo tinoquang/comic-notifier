@@ -17,13 +17,13 @@ import (
 
 // New return new DB connection
 
-// firebaseImg contains bucket object to communicate with Firebase storage
-type firebaseImg struct {
+// firebaseConnection contains bucket object to communicate with Firebase storage
+type firebaseConnection struct {
 	bucket *storage.BucketHandle
 }
 
 // NewFirebaseConnection create new bucket object to communicate with Firebase storage
-func newFirebaseConnection() *firebaseImg {
+func newFirebaseConnection() *firebaseConnection {
 
 	var bucket *storage.BucketHandle
 
@@ -46,11 +46,11 @@ func newFirebaseConnection() *firebaseImg {
 		panic(err)
 	}
 
-	return &firebaseImg{bucket: bucket}
+	return &firebaseConnection{bucket: bucket}
 }
 
 // GetImg verify comic image is exist in cloud
-func (f *firebaseImg) GetImg(comicPage, comicName string) error {
+func (f *firebaseConnection) GetImg(comicPage, comicName string) error {
 
 	objectName := fmt.Sprintf("%s/%s", comicPage, comicName)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
@@ -65,7 +65,7 @@ func (f *firebaseImg) GetImg(comicPage, comicName string) error {
 }
 
 // UploadImg include download image to local then upload it to firebase cloud
-func (f *firebaseImg) UploadImg(comicPage, comicName, imgURL string) (err error) {
+func (f *firebaseConnection) UploadImg(comicPage, comicName, imgURL string) (err error) {
 
 	// Image will be uploaded to folder: page/name.ext in Firebas storage, so we need to pass comicPage and comicName
 
@@ -89,7 +89,7 @@ func (f *firebaseImg) UploadImg(comicPage, comicName, imgURL string) (err error)
 }
 
 // Upload save file to Firebase storage and make it public
-func (f *firebaseImg) upload(fileName, objectName string) error {
+func (f *firebaseConnection) upload(fileName, objectName string) error {
 
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -122,7 +122,7 @@ func (f *firebaseImg) upload(fileName, objectName string) error {
 }
 
 // Delete remove img in cloud
-func (f *firebaseImg) DeleteImg(comicPage, comicName string) error {
+func (f *firebaseConnection) DeleteImg(comicPage, comicName string) error {
 
 	objectName := fmt.Sprintf("%s/%s", comicPage, comicName)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)

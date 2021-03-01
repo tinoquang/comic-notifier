@@ -17,7 +17,7 @@ import (
 // Crawler contain comic, user and image crawler
 type Crawler struct {
 	*comicCrawler
-	*firebaseImg
+	*firebaseConnection
 }
 
 // NewCrawler constructor

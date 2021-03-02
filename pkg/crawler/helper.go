@@ -2,13 +2,11 @@ package crawler
 
 import (
 	"bytes"
-	"io/ioutil"
-	"net/http"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 type crawlHelperWrapper struct{}
@@ -32,28 +30,15 @@ func (ch crawlHelperWrapper) detectSpoiler(name, chapURL, attr1, attr2 string) e
 
 func (ch crawlHelperWrapper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
-	c := http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	resp, err := c.Get(pageURL)
+	pageBody, err := util.MakeGetRequest(pageURL, map[string]string{})
 	if err != nil {
 		return
 	}
 
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
+	doc, err = goquery.NewDocumentFromReader(bytes.NewReader(pageBody))
 	if err != nil {
 		logging.Danger()
 		return
 	}
-
-	doc, err = goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		logging.Danger()
-		return
-	}
-
 	return
 }

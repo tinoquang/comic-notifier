@@ -1,20 +1,19 @@
 package util
 
 import (
-	"errors"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
-	"time"
 
+	"github.com/tinoquang/comic-notifier/pkg/logging"
 	scraper "github.com/tinoquang/go-cloudflare-scraper"
+	"github.com/valyala/fasthttp"
 )
 
 // MakeGetRequest send HTTP GET request with mapped queries
 func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err error) {
 
+	// Create url string with query parameters
 	reqURL, err := url.Parse(URL)
 	if err != nil {
 		return
@@ -26,27 +25,27 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	}
 	reqURL.RawQuery = q.Encode()
 
-	c := http.Client{
-		Timeout: 10 * time.Second,
-	}
+	// Make request using fast http
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
 
-	resp, err := c.Get(reqURL.String())
+	req.SetRequestURI(reqURL.String())
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp)
+
+	err = fasthttp.Do(req, resp)
 	if err != nil {
+		logging.Danger("Client get failed: %s\n", err)
+		return
+	}
+	if resp.StatusCode() != fasthttp.StatusOK {
+		logging.Danger("Expected status code %d but got %d\n", fasthttp.StatusOK, resp.StatusCode())
 		return
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(resp.Status)
-	}
-
-	defer resp.Body.Close()
-	respBody, err = ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return
-	}
-
+	respBody = resp.Body()
 	return
+
 }
 
 // DownloadFile simple function for downloading file bypass cloudfare

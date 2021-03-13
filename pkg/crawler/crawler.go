@@ -15,22 +15,30 @@ import (
 )
 
 // Crawler contain comic, user and image crawler
-type Crawler struct {
+type Crawler interface {
+	GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error)
+	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
+}
+type Crawl struct {
 	*comicCrawler
-	*firebaseConnection
 }
 
 // NewCrawler constructor
-func NewCrawler() *Crawler {
+func NewCrawler() Crawler {
 
-	return &Crawler{
-		newComicCrawler(crawlHelperWrapper{}),
-		newFirebaseConnection(),
+	return &Crawl{
+		newComicCrawler(crawlHelper{}),
 	}
 }
 
 // GetComicInfo return link of latest chapter of a page
-func (crwl *Crawler) GetComicInfo(ctx context.Context, comic *db.Comic) (err error) {
+func (crwl *Crawl) GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error) {
+
+	comic = db.Comic{
+		Page:    pageURL,
+		Url:     comicURL,
+		ChapUrl: chapURL,
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -47,14 +55,15 @@ func (crwl *Crawler) GetComicInfo(ctx context.Context, comic *db.Comic) (err err
 		return
 	}()
 
-	err = crwl.crawl(ctx, comic)
+	err = crwl.crawl(ctx, &comic)
 	return
 }
 
 // GetUserInfoFromFacebook call facebook API to get user info, include psid, appid and profile picture
-func (crwl *Crawler) GetUserInfoFromFacebook(field, id string) (user db.User, err error) {
+func (crwl *Crawl) GetUserInfoFromFacebook(field, id string) (user db.User, err error) {
 
 	err = nil
+	user = db.User{}
 	info := map[string]json.RawMessage{}
 	appInfo := []map[string]json.RawMessage{}
 	picture := map[string]json.RawMessage{}

@@ -26,10 +26,10 @@ func main() {
 	crawler := crawler.NewCrawler()
 
 	// Init Repository
-	store := db.NewStore(dbconn, crawler)
+	store := db.NewStore(dbconn)
 
 	// Init main business logic server
-	svr := server.New(store)
+	svr := server.New(store, crawler)
 
 	// // Facebook webhook
 	msg.RegisterHandler(e.Group("/webhook"), svr.Msg)
@@ -53,7 +53,7 @@ func main() {
 	})
 
 	// Authentication JWT
-	auth.RegisterHandler(e.Group(""), store)
+	auth.RegisterHandler(e.Group(""), store, crawler)
 
 	// Start the server
 	e.Logger.Fatal(e.Start(":" + conf.Cfg.Port))

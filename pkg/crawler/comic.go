@@ -75,7 +75,7 @@ func crawlBeeng(ctx context.Context, comic *db.Comic, helper helper) (err error)
 		return util.ErrComicUpToDate
 	}
 
-	if comic.ChapUrl != "" {
+	if chapURL != "" {
 		err = helper.detectSpoiler(comic.Name, chapURL, ".comicDetail2#lightgallery2", "img")
 		if err != nil {
 			return
@@ -123,7 +123,7 @@ func crawlBlogtruyen(ctx context.Context, comic *db.Comic, helper helper) (err e
 		return util.ErrComicUpToDate
 	}
 
-	if comic.ChapUrl != "" {
+	if chapURL != "" {
 		err = helper.detectSpoiler(comic.Name, chapURL, "#content", "img[src]")
 		if err != nil {
 			return
@@ -167,7 +167,7 @@ func crawlMangaK(ctx context.Context, comic *db.Comic, helper helper) (err error
 		return util.ErrComicUpToDate
 	}
 
-	if comic.ChapUrl != "" {
+	if chapURL != "" {
 		err = helper.detectSpoiler(comic.Name, chapURL, ".vung_doc", "img")
 		if err != nil {
 			return
@@ -211,7 +211,7 @@ func crawlTruyentranhtuan(ctx context.Context, comic *db.Comic, helper helper) (
 	}
 
 	// Page is load by JS, can't get by just using HTTP.Get --> resolve later
-	// if comic.ChapUrl != "" {
+	// if chapURL != "" {
 	// 	err = helper.detectSpoiler(chapURL, ".vung_doc", "img")
 	// 	if err != nil {
 	// 		return
@@ -252,7 +252,7 @@ func crawlTruyentranhnet(ctx context.Context, comic *db.Comic, helper helper) (e
 		return util.ErrComicUpToDate
 	}
 
-	if comic.ChapUrl != "" {
+	if chapURL != "" {
 		err = helper.detectSpoiler(comic.Name, chapURL, ".manga-reading-box", "img")
 		if err != nil {
 			return

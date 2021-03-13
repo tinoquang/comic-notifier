@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -21,12 +22,13 @@ import (
 // Handler main authenticate handler
 type Handler struct {
 	store db.Stores
+	crawl crawler.Crawler
 }
 
 // RegisterHandler create new auth route
-func RegisterHandler(g *echo.Group, store db.Stores) {
+func RegisterHandler(g *echo.Group, store db.Stores, crawl crawler.Crawler) {
 
-	h := Handler{store: store}
+	h := Handler{store: store, crawl: crawl}
 
 	g.GET("/auth", h.auth)
 	g.GET("/status", h.loggedIn, middleware.JWTWithConfig(middleware.JWTConfig{
@@ -107,11 +109,8 @@ func (h *Handler) auth(ctx echo.Context) error {
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	err = h.store.CheckUserExist(ctx.Request().Context(), userAppID)
-	if err != nil && err != sql.ErrNoRows {
-		logging.Danger(err)
-		return ctx.NoContent(http.StatusInternalServerError)
-	}
+	// Verify user existed in DB to update userAppID
+	h.checkUserExist(ctx, userAppID)
 
 	jwtCookie, err := h.generateJWT(userAppID)
 	if err != nil {
@@ -189,5 +188,46 @@ func (h *Handler) validateToken(token string) (userAppID string, err error) {
 	}
 
 	userAppID = util.ConvertJSONToString(tokenResponse["user_id"])
+	return
+}
+
+func (h *Handler) checkUserExist(ctx echo.Context, userAppID string) {
+
+	// Check user already existed in DB
+	_, err := h.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{
+		String: userAppID,
+		Valid:  true,
+	})
+
+	if err != nil {
+		if err != sql.ErrNoRows {
+			logging.Danger(err)
+			return
+		}
+
+		u, err := h.crawl.GetUserInfoFromFacebook("appid", userAppID)
+		if err != nil {
+			logging.Danger(err)
+			return
+		}
+
+		// Check user's psid existed to
+		if u.Psid.String != "" {
+			_, err := h.store.GetUserByPSID(ctx.Request().Context(), u.Psid)
+			if err != nil {
+				return
+			}
+
+			_, err = h.store.UpdateUser(ctx.Request().Context(), db.UpdateUserParams{
+				Appid: u.Appid,
+				Psid:  u.Psid,
+			})
+			if err != nil {
+				logging.Danger(err)
+				return
+			}
+		}
+	}
+
 	return
 }

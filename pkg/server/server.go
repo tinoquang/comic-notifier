@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -26,7 +27,7 @@ var (
 )
 
 // New  create new server
-func New(store db.Stores) *Server {
+func New(store db.Stores, crawler crawler.Crawler) *Server {
 
 	// Get env config
 	messengerEndpoint = conf.Cfg.Webhook.GraphEndpoint + "/me/messages"
@@ -35,16 +36,16 @@ func New(store db.Stores) *Server {
 
 	s := &Server{
 		API: NewAPI(store),
-		Msg: NewMSG(store),
+		Msg: NewMSG(store, crawler),
 	}
 
 	// Start update-comic thread
-	go updateComicThread(store, conf.Cfg.WrkDat.WorkerNum, conf.Cfg.WrkDat.Timeout)
+	go updateComicThread(crawler, store, conf.Cfg.WrkDat.WorkerNum, conf.Cfg.WrkDat.Timeout)
 	return s
 }
 
 // UpdateThread read comic database and update each comic to each latest chap
-func updateComicThread(s db.Stores, workerNum, timeout int) {
+func updateComicThread(crwl crawler.Crawler, s db.Stores, workerNum, timeout int) {
 
 	// Start update routine, then sleep for a while and re-update
 	for {
@@ -67,7 +68,7 @@ func updateComicThread(s db.Stores, workerNum, timeout int) {
 			// Create workers
 			comicPool := make(chan db.Comic, workerNum)
 			for i := 0; i < workerNum; i++ {
-				go worker(i, s, &wg, comicPool)
+				go worker(i, s, crwl, &wg, comicPool)
 				wg.Add(1)
 			}
 
@@ -87,25 +88,38 @@ func updateComicThread(s db.Stores, workerNum, timeout int) {
 	// Never reach here
 }
 
-func worker(id int, s db.Stores, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
+func worker(id int, s db.Stores, crwl crawler.Crawler, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
 
 	// Get comic from updateComicThread, which run only when updateComicThread push comic into comicPool
 	for comic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-		err := s.UpdateComicChapter(ctx, &comic)
-		if err == nil {
-			logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
-			notifyToUsers(ctx, s, &comic)
-		} else if err != util.ErrComicUpToDate {
-			logging.Danger(err)
-		}
-
 		// Synchronized firebase img
-		err = s.SynchronizedComicImage(&comic)
+		err := s.SynchronizedComicImage(&comic)
 		if err != nil {
 			logging.Danger(err)
 		}
+
+		c, err := crwl.GetComicInfo(ctx, comic.Page, comic.Url, comic.ChapUrl)
+		if err != nil {
+
+			if err != util.ErrComicUpToDate {
+				logging.Danger(err)
+			}
+			cancel()
+			continue
+		}
+		c.ID = comic.ID
+		err = s.UpdateComicChapter(ctx, &c, comic.ImgUrl)
+		if err != nil {
+			logging.Danger(err)
+			cancel()
+			continue
+		}
+
+		logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
+		notifyToUsers(ctx, s, &comic)
+
 		cancel() // Call context cancel here to avoid context leak
 	}
 

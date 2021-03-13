@@ -9,9 +9,9 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-type crawlHelperWrapper struct{}
+type crawlHelper struct{}
 
-func (ch crawlHelperWrapper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
+func (ch crawlHelper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
 
 	// Check if chapter is full upload (detect spolier chap)
 	doc, err := ch.getPageSource(chapURL)
@@ -28,7 +28,7 @@ func (ch crawlHelperWrapper) detectSpoiler(name, chapURL, attr1, attr2 string) e
 	return nil
 }
 
-func (ch crawlHelperWrapper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
+func (ch crawlHelper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
 	pageBody, err := util.MakeGetRequest(pageURL, map[string]string{})
 	if err != nil {

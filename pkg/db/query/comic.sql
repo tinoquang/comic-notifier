@@ -8,6 +8,7 @@ INSERT INTO comics
 	latest_chap,
 	chap_url)
 	VALUES ($1,$2,$3,$4,$5,$6,$7)
+	ON CONFLICT (url) DO NOTHING
 	RETURNING *;
 
 -- name: GetComic :one

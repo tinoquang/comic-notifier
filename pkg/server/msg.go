@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -14,12 +16,13 @@ import (
 
 // MSG -> server handler for messenger endpoint
 type MSG struct {
-	store db.Stores
+	store   db.Stores
+	crawler crawler.Crawler
 }
 
 // NewMSG return new api interface
-func NewMSG(s db.Stores) *MSG {
-	return &MSG{store: s}
+func NewMSG(s db.Stores, crwl crawler.Crawler) *MSG {
+	return &MSG{store: s, crawler: crwl}
 }
 
 /* Message handler function */
@@ -36,10 +39,10 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		return
 	}
 
-	comic, err := m.store.SubscribeComic(ctx, senderID, text)
+	comic, err := m.SubscribeComic(ctx, senderID, text)
 	if err != nil {
 		if err == util.ErrAlreadySubscribed {
-			sendTextBack(senderID, fmt.Sprintf("%s đã được đăng ký", comic.Name))
+			sendTextBack(senderID, fmt.Sprintf("%s đã được đăng ký, BOT sẽ thông báo cho bạn khi có chương mới", comic.Name))
 		} else if strings.Contains(err.Error(), "too fast") || err == util.ErrCrawlTimeout {
 			// Upload image API is busy
 			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
@@ -62,7 +65,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 }
 
-// HandlePostback handle messages when user click "Unsucsribe button"
+// HandlePostback handle messages when user click "Unsubsribe button"
 func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 
 	sendActionBack(senderID, "mark_seen")
@@ -161,7 +164,7 @@ func responseCommand(ctx context.Context, senderID, text string) {
 
 func reponseGetStarted(ctx context.Context, senderID, payload string) {
 
-	sendTextBack(senderID, "Welcome to Cominify!")
+	sendTextBack(senderID, "Welcome to Cominify Bot!")
 	sendTextBack(senderID, "Tôi là chatbot giúp theo dõi truyện tranh và thông báo mỗi khi truyện có chapter mới")
 	sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí
@@ -169,4 +172,64 @@ func reponseGetStarted(ctx context.Context, senderID, payload string) {
 - /tutor: xem hướng dẫn
 - /help:  xem lại các lệnh hỗ trợ`)
 	return
+}
+
+// SubscribeComic add comic and user to DB
+func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*db.Comic, error) {
+
+	var err error
+	var comic db.Comic
+	var user db.User
+
+	parsedURL, err := url.Parse(comicURL)
+	if err != nil || parsedURL.Host == "" {
+		return nil, util.ErrInvalidURL
+	}
+
+	comic, err = m.store.GetComicByURL(ctx, comicURL)
+	if err != nil {
+
+		if err != sql.ErrNoRows {
+			logging.Danger(err)
+			return nil, err
+		}
+		// Comic is not in DB, need to get it's info using crawler pkg
+		comic, err = m.crawler.GetComicInfo(ctx, parsedURL.Hostname(), comicURL, "")
+		if err != nil {
+			logging.Danger(err)
+			return nil, err
+		}
+	}
+
+	user, err = m.store.GetUserByPSID(ctx, sql.NullString{String: userPSID, Valid: true})
+	if err != nil {
+
+		if err != sql.ErrNoRows {
+			logging.Danger(err)
+			return nil, err
+		}
+
+		user, err = m.crawler.GetUserInfoFromFacebook("psid", userPSID)
+		if err != nil {
+			logging.Danger(err)
+			return nil, err
+		}
+	}
+
+	_, err = m.store.GetSubscriber(ctx, db.GetSubscriberParams{
+		UserID:  user.ID,
+		ComicID: comic.ID,
+	})
+
+	if err == nil {
+		return &comic, util.ErrAlreadySubscribed
+	}
+
+	if err != sql.ErrNoRows {
+		logging.Danger(err)
+		return nil, err
+	}
+
+	err = m.store.SubscribeComic(ctx, &comic, &user)
+	return &comic, err
 }

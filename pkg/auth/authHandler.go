@@ -21,12 +21,12 @@ import (
 
 // Handler main authenticate handler
 type Handler struct {
-	store db.Stores
+	store db.Store
 	crawl crawler.Crawler
 }
 
 // RegisterHandler create new auth route
-func RegisterHandler(g *echo.Group, store db.Stores, crawl crawler.Crawler) {
+func RegisterHandler(g *echo.Group, store db.Store, crawl crawler.Crawler) {
 
 	h := Handler{store: store, crawl: crawl}
 

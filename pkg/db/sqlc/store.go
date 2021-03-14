@@ -9,7 +9,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
 
-type Stores interface {
+type Store interface {
 	Querier
 	SubscribeComic(ctx context.Context, comic *Comic, user *User) error
 	UpdateComicChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error)
@@ -17,22 +17,22 @@ type Stores interface {
 	RemoveComic(ctx context.Context, comicID int32) error
 }
 
-type StoreDB struct {
+type store struct {
 	db *sql.DB
 	*Queries
 	firebase *firebaseConnection
 }
 
 // NewStore create new stores
-func NewStore(dbconn *sql.DB) Stores {
-	return &StoreDB{
+func NewStore(dbconn *sql.DB) Store {
+	return &store{
 		db:       dbconn,
 		Queries:  New(dbconn),
 		firebase: newFirebaseConnection(),
 	}
 }
 
-func (s *StoreDB) execTx(ctx context.Context, fn func(Querier) error) error {
+func (s *store) execTx(ctx context.Context, fn func(Querier) error) error {
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *StoreDB) execTx(ctx context.Context, fn func(Querier) error) error {
 }
 
 // SubscribeComic subscribe and return comic info to user
-func (s *StoreDB) SubscribeComic(ctx context.Context, comic *Comic, user *User) error {
+func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) error {
 
 	err := s.execTx(ctx, func(q Querier) (txErr error) {
 
@@ -127,7 +127,7 @@ func (s *StoreDB) SubscribeComic(ctx context.Context, comic *Comic, user *User) 
 }
 
 // UpdateComicChapter get comic info and compare to current comic in DB to verify new chapter release
-func (s *StoreDB) UpdateComicChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error) {
+func (s *store) UpdateComicChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error) {
 
 	if oldImgURL != comic.ImgUrl {
 		err = s.firebase.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
@@ -151,7 +151,7 @@ func (s *StoreDB) UpdateComicChapter(ctx context.Context, comic *Comic, oldImgUR
 }
 
 // SynchronizedComicImage check comic's image exists in Firebase and sync with comic in DB
-func (s *StoreDB) SynchronizedComicImage(comic *Comic) error {
+func (s *store) SynchronizedComicImage(comic *Comic) error {
 
 	err := s.firebase.GetImg(comic.Page, comic.Name)
 	if err == nil {
@@ -169,7 +169,7 @@ func (s *StoreDB) SynchronizedComicImage(comic *Comic) error {
 }
 
 // RemoveComic delete comic in DB and image in firebase
-func (s *StoreDB) RemoveComic(ctx context.Context, comicID int32) error {
+func (s *store) RemoveComic(ctx context.Context, comicID int32) error {
 
 	comic, err := s.GetComic(ctx, comicID)
 	if err != nil {

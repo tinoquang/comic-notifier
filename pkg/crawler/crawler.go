@@ -19,20 +19,20 @@ type Crawler interface {
 	GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error)
 	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
 }
-type Crawl struct {
+type crawler struct {
 	*comicCrawler
 }
 
 // NewCrawler constructor
 func NewCrawler() Crawler {
 
-	return &Crawl{
+	return &crawler{
 		newComicCrawler(crawlHelper{}),
 	}
 }
 
 // GetComicInfo return link of latest chapter of a page
-func (crwl *Crawl) GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error) {
+func (crwl *crawler) GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error) {
 
 	comic = db.Comic{
 		Page:    pageURL,
@@ -60,7 +60,7 @@ func (crwl *Crawl) GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL 
 }
 
 // GetUserInfoFromFacebook call facebook API to get user info, include psid, appid and profile picture
-func (crwl *Crawl) GetUserInfoFromFacebook(field, id string) (user db.User, err error) {
+func (crwl *crawler) GetUserInfoFromFacebook(field, id string) (user db.User, err error) {
 
 	err = nil
 	user = db.User{}

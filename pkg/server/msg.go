@@ -16,12 +16,12 @@ import (
 
 // MSG -> server handler for messenger endpoint
 type MSG struct {
-	store   db.Stores
+	store   db.Store
 	crawler crawler.Crawler
 }
 
 // NewMSG return new api interface
-func NewMSG(s db.Stores, crwl crawler.Crawler) *MSG {
+func NewMSG(s db.Store, crwl crawler.Crawler) *MSG {
 	return &MSG{store: s, crawler: crwl}
 }
 

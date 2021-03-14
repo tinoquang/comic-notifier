@@ -27,7 +27,7 @@ var (
 )
 
 // New  create new server
-func New(store db.Stores, crawler crawler.Crawler) *Server {
+func New(store db.Store, crawler crawler.Crawler) *Server {
 
 	// Get env config
 	messengerEndpoint = conf.Cfg.Webhook.GraphEndpoint + "/me/messages"
@@ -45,7 +45,7 @@ func New(store db.Stores, crawler crawler.Crawler) *Server {
 }
 
 // UpdateThread read comic database and update each comic to each latest chap
-func updateComicThread(crwl crawler.Crawler, s db.Stores, workerNum, timeout int) {
+func updateComicThread(crwl crawler.Crawler, s db.Store, workerNum, timeout int) {
 
 	// Start update routine, then sleep for a while and re-update
 	for {
@@ -88,7 +88,7 @@ func updateComicThread(crwl crawler.Crawler, s db.Stores, workerNum, timeout int
 	// Never reach here
 }
 
-func worker(id int, s db.Stores, crwl crawler.Crawler, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
+func worker(id int, s db.Store, crwl crawler.Crawler, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
 
 	// Get comic from updateComicThread, which run only when updateComicThread push comic into comicPool
 	for comic := range comicPool {
@@ -126,7 +126,7 @@ func worker(id int, s db.Stores, crwl crawler.Crawler, wg *sync.WaitGroup, comic
 	wg.Done()
 }
 
-func notifyToUsers(ctx context.Context, s db.Stores, comic *db.Comic) {
+func notifyToUsers(ctx context.Context, s db.Store, comic *db.Comic) {
 
 	users, err := s.ListUsersPerComic(ctx, comic.ID)
 	if err != nil {

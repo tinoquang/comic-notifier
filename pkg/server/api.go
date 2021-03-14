@@ -13,11 +13,11 @@ import (
 
 // API -> server handler for api endpoint
 type API struct {
-	store db.Stores
+	store db.Store
 }
 
 // NewAPI return new api interface
-func NewAPI(s db.Stores) *API {
+func NewAPI(s db.Store) *API {
 	return &API{store: s}
 }
 

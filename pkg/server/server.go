@@ -10,7 +10,6 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // Server implement main business logic
@@ -91,34 +90,37 @@ func updateComicThread(crwl crawler.Crawler, s db.Store, workerNum, timeout int)
 func worker(id int, s db.Store, crwl crawler.Crawler, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
 
 	// Get comic from updateComicThread, which run only when updateComicThread push comic into comicPool
-	for comic := range comicPool {
+	for oldComic := range comicPool {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		// Synchronized firebase img
-		err := s.SynchronizedComicImage(&comic)
+		err := s.SynchronizedComicImage(&oldComic)
 		if err != nil {
 			logging.Danger(err)
 		}
 
-		c, err := crwl.GetComicInfo(ctx, comic.Page, comic.Url, comic.ChapUrl)
-		if err != nil {
-
-			if err != util.ErrComicUpToDate {
-				logging.Danger(err)
-			}
-			cancel()
-			continue
-		}
-		c.ID = comic.ID
-		err = s.UpdateComicChapter(ctx, &c, comic.ImgUrl)
+		c, err := crwl.GetComicInfo(ctx, oldComic.Url)
 		if err != nil {
 			logging.Danger(err)
 			cancel()
 			continue
 		}
 
-		logging.Info("Comic", comic.ID, "-", comic.Name, "new chapter", comic.LatestChap)
-		notifyToUsers(ctx, s, &comic)
+		if c.ChapUrl == oldComic.ChapUrl {
+			cancel()
+			continue
+		}
+
+		c.ID = oldComic.ID
+		err = s.UpdateComicChapter(ctx, &c, oldComic.ImgUrl)
+		if err != nil {
+			logging.Danger(err)
+			cancel()
+			continue
+		}
+
+		logging.Info("Comic", c.ID, "-", c.Name, "new chapter", c.LatestChap)
+		notifyToUsers(ctx, s, &c)
 
 		cancel() // Call context cancel here to avoid context leak
 	}

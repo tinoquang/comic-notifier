@@ -16,7 +16,7 @@ import (
 
 // Crawler contain comic, user and image crawler
 type Crawler interface {
-	GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error)
+	GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error)
 	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
 }
 type crawler struct {
@@ -32,13 +32,7 @@ func NewCrawler() Crawler {
 }
 
 // GetComicInfo return link of latest chapter of a page
-func (crwl *crawler) GetComicInfo(ctx context.Context, pageURL, comicURL, chapURL string) (comic db.Comic, err error) {
-
-	comic = db.Comic{
-		Page:    pageURL,
-		Url:     comicURL,
-		ChapUrl: chapURL,
-	}
+func (crwl *crawler) GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -55,8 +49,7 @@ func (crwl *crawler) GetComicInfo(ctx context.Context, pageURL, comicURL, chapUR
 		return
 	}()
 
-	err = crwl.crawl(ctx, &comic)
-	return
+	return crwl.crawl(ctx, comicURL)
 }
 
 // GetUserInfoFromFacebook call facebook API to get user info, include psid, appid and profile picture

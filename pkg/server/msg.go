@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -183,11 +182,6 @@ func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*d
 		user  db.User
 	)
 
-	parsedURL, err := url.Parse(comicURL)
-	if err != nil || parsedURL.Host == "" {
-		return nil, util.ErrInvalidURL
-	}
-
 	comic, err = m.store.GetComicByURL(ctx, comicURL)
 	if err != nil {
 
@@ -196,7 +190,7 @@ func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*d
 			return nil, err
 		}
 		// Comic is not in DB, need to get it's info using crawler pkg
-		comic, err = m.crawler.GetComicInfo(ctx, parsedURL.Hostname(), comicURL, "")
+		comic, err = m.crawler.GetComicInfo(ctx, comicURL)
 		if err != nil {
 			logging.Danger(err)
 			return nil, err

@@ -8,6 +8,7 @@ var (
 	ErrNotFound          = errors.New("Not found")
 	ErrInvalidURL        = errors.New("Invalid URL")
 	ErrCrawlTimeout      = errors.New("Time out when crawl comic")
+	ErrCrawlFailed       = errors.New("Crawl failed, can't get a field in comic struct")
 	ErrComicUpToDate     = errors.New("Comic is up-to-date, no new chapter")
 	ErrPageNotSupported  = errors.New("Page is not supported yet")
 )

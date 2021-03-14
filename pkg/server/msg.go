@@ -177,9 +177,11 @@ func reponseGetStarted(ctx context.Context, senderID, payload string) {
 // SubscribeComic add comic and user to DB
 func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*db.Comic, error) {
 
-	var err error
-	var comic db.Comic
-	var user db.User
+	var (
+		err   error
+		comic db.Comic
+		user  db.User
+	)
 
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {

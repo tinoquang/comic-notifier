@@ -56,46 +56,41 @@ func (s *store) execTx(ctx context.Context, fn func(Querier) error) error {
 // SubscribeComic subscribe and return comic info to user
 func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) error {
 
+	c := Comic{ID: comic.ID}
+	u := User{ID: user.ID}
+
 	err := s.execTx(ctx, func(q Querier) (txErr error) {
 
-		// Check comic existed in DB, if not crawl comic's info
-		c, txErr := q.CreateComic(ctx, CreateComicParams{
-			Page:        comic.Page,
-			Name:        comic.Name,
-			Url:         comic.Url,
-			ImgUrl:      comic.ImgUrl,
-			CloudImgUrl: comic.CloudImgUrl,
-			LatestChap:  comic.LatestChap,
-			ChapUrl:     comic.ChapUrl,
-		})
-		if txErr != nil && txErr != sql.ErrNoRows {
-			logging.Danger(txErr)
-			return
+		// Check comic existed in DB, if not crawl comic's
+		if comic.ID == 0 {
+			c, txErr = q.CreateComic(ctx, CreateComicParams{
+				Page:        comic.Page,
+				Name:        comic.Name,
+				Url:         comic.Url,
+				ImgUrl:      comic.ImgUrl,
+				CloudImgUrl: comic.CloudImgUrl,
+				LatestChap:  comic.LatestChap,
+				ChapUrl:     comic.ChapUrl,
+			})
+			if txErr != nil && txErr != sql.ErrNoRows {
+				logging.Danger(txErr)
+				return
+			}
 		}
 
-		if c.ID == 0 {
-			// Duplicate record
-			c.ID = comic.ID
+		if user.ID == 0 {
+			u, txErr = q.CreateUser(ctx, CreateUserParams{
+				Name:       user.Name,
+				Psid:       user.Psid,
+				Appid:      user.Appid,
+				ProfilePic: user.ProfilePic,
+			})
+			if txErr != nil && txErr != sql.ErrNoRows {
+				logging.Danger(txErr)
+				return
+			}
 		}
 
-		u, txErr := q.CreateUser(ctx, CreateUserParams{
-			Name:       user.Name,
-			Psid:       user.Psid,
-			Appid:      user.Appid,
-			ProfilePic: user.ProfilePic,
-		})
-		if txErr != nil && txErr != sql.ErrNoRows {
-			logging.Danger(txErr)
-			return
-		}
-
-		if u.ID == 0 {
-			// Duplicate record
-			u.ID = user.ID
-		}
-
-		logging.Info(comic)
-		logging.Info(user)
 		_, txErr = q.CreateSubscriber(ctx, CreateSubscriberParams{
 			UserID:  u.ID,
 			ComicID: c.ID,

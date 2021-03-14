@@ -2,7 +2,7 @@ drop table if exists subscribers;
 drop table if exists users;
 drop table if exists comics;
 
-CREATE EXTENSION unaccent;
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
 create table comics (
     id serial UNIQUE not null,

@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
+	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 type Store interface {
 	Querier
 	SubscribeComic(ctx context.Context, comic *Comic, user *User) error
-	UpdateComicChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error)
-	SynchronizedComicImage(comic *Comic) error
+	UpdateNewChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error)
+	SyncComicImage(comic *Comic) error
 	RemoveComic(ctx context.Context, comicID int32) error
 }
 
@@ -76,6 +77,7 @@ func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) er
 				logging.Danger(txErr)
 				return
 			}
+			comic.ID = c.ID
 		}
 
 		if user.ID == 0 {
@@ -118,11 +120,15 @@ func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) er
 		return nil
 	})
 
+	if err != nil && strings.Contains(err.Error(), "duplicate") {
+		err = util.ErrAlreadySubscribed
+	}
+
 	return err
 }
 
-// UpdateComicChapter get comic info and compare to current comic in DB to verify new chapter release
-func (s *store) UpdateComicChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error) {
+// UpdateNewChapter get comic info and compare to current comic in DB to verify new chapter release
+func (s *store) UpdateNewChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error) {
 
 	if oldImgURL != comic.ImgUrl {
 		err = s.firebase.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
@@ -145,8 +151,8 @@ func (s *store) UpdateComicChapter(ctx context.Context, comic *Comic, oldImgURL 
 	return nil
 }
 
-// SynchronizedComicImage check comic's image exists in Firebase and sync with comic in DB
-func (s *store) SynchronizedComicImage(comic *Comic) error {
+// SyncComicImage check comic's image exists in Firebase and sync with comic in DB
+func (s *store) SyncComicImage(comic *Comic) error {
 
 	err := s.firebase.GetImg(comic.Page, comic.Name)
 	if err == nil {

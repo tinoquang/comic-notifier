@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
@@ -15,6 +16,7 @@ import (
 
 // MSG -> server handler for messenger endpoint
 type MSG struct {
+	sync.Mutex
 	store   db.Store
 	crawler crawler.Crawler
 }
@@ -182,6 +184,8 @@ func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*d
 		user  db.User
 	)
 
+	m.Lock()
+	defer m.Unlock()
 	comic, err = m.store.GetComicByURL(ctx, comicURL)
 	if err != nil {
 

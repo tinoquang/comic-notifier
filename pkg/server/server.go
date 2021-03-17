@@ -55,7 +55,7 @@ func updateComicThread(crwl crawler.Crawler, s db.Store, workerNum, timeout int)
 		cancel() // Call context cancel here to avoid context leak
 
 		if err != nil {
-			logging.Info("Get list of comic fails, err", err)
+			logging.Danger("Get list of comic fails, err", err)
 			time.Sleep(time.Duration(timeout) * time.Minute)
 			continue
 		}
@@ -94,7 +94,7 @@ func worker(id int, s db.Store, crwl crawler.Crawler, wg *sync.WaitGroup, comicP
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 		// Synchronized firebase img
-		err := s.SynchronizedComicImage(&oldComic)
+		err := s.SyncComicImage(&oldComic)
 		if err != nil {
 			logging.Danger(err)
 		}
@@ -112,7 +112,7 @@ func worker(id int, s db.Store, crwl crawler.Crawler, wg *sync.WaitGroup, comicP
 		}
 
 		c.ID = oldComic.ID
-		err = s.UpdateComicChapter(ctx, &c, oldComic.ImgUrl)
+		err = s.UpdateNewChapter(ctx, &c, oldComic.ImgUrl)
 		if err != nil {
 			logging.Danger(err)
 			cancel()

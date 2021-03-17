@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -44,7 +44,10 @@ func (crwl *crawler) GetComicInfo(ctx context.Context, comicURL string) (comic d
 			default:
 				err = errors.New("Unknown panic")
 			}
-			logging.Danger()
+		}
+
+		if err != nil {
+			logging.Danger(err)
 		}
 		return
 	}()

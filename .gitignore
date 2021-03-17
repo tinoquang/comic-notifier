@@ -2,5 +2,5 @@
 .vscode
 notifier
 *session.sql
-/.bin
+.bin
 google-credentials.json

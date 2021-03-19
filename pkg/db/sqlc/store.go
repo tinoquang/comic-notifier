@@ -18,18 +18,24 @@ type Store interface {
 	RemoveComic(ctx context.Context, comicID int32) error
 }
 
+type cloudConnector interface {
+	GetImg(comicPage, comicName string) error
+	UploadImg(comicPage, comicName, imgURL string) (err error)
+	DeleteImg(comicPage, comicName string) error
+}
+
 type store struct {
 	db *sql.DB
 	*Queries
-	firebase *firebaseConnection
+	cloud cloudConnector
 }
 
 // NewStore create new stores
-func NewStore(dbconn *sql.DB) Store {
+func NewStore(dbconn *sql.DB, cloud cloudConnector) *store {
 	return &store{
-		db:       dbconn,
-		Queries:  New(dbconn),
-		firebase: newFirebaseConnection(),
+		db:      dbconn,
+		Queries: New(dbconn),
+		cloud:   cloud,
 	}
 }
 
@@ -103,10 +109,10 @@ func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) er
 		}
 
 		// Last step, check comic's image in firebase DB
-		txErr = s.firebase.GetImg(comic.Page, comic.Name)
+		txErr = s.cloud.GetImg(comic.Page, comic.Name)
 		if txErr != nil {
 			if strings.Contains(txErr.Error(), "object doesn't exist") {
-				txErr = s.firebase.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+				txErr = s.cloud.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
 				if txErr != nil {
 					logging.Danger(txErr)
 					return
@@ -131,7 +137,7 @@ func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) er
 func (s *store) UpdateNewChapter(ctx context.Context, comic *Comic, oldImgURL string) (err error) {
 
 	if oldImgURL != comic.ImgUrl {
-		err = s.firebase.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+		err = s.cloud.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
 		if err != nil {
 			logging.Danger(err)
 		}
@@ -154,13 +160,13 @@ func (s *store) UpdateNewChapter(ctx context.Context, comic *Comic, oldImgURL st
 // SyncComicImage check comic's image exists in Firebase and sync with comic in DB
 func (s *store) SyncComicImage(comic *Comic) error {
 
-	err := s.firebase.GetImg(comic.Page, comic.Name)
+	err := s.cloud.GetImg(comic.Page, comic.Name)
 	if err == nil {
 		return nil
 	}
 
 	if strings.Contains(err.Error(), "object doesn't exist") {
-		err = s.firebase.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
+		err = s.cloud.UploadImg(comic.Page, comic.Name, comic.ImgUrl)
 		if err != nil {
 			return err
 		}
@@ -187,7 +193,7 @@ func (s *store) RemoveComic(ctx context.Context, comicID int32) error {
 		return err
 	}
 
-	err = s.firebase.DeleteImg(comic.Page, comic.Name)
+	err = s.cloud.DeleteImg(comic.Page, comic.Name)
 	if err != nil {
 		logging.Danger(err)
 		return err

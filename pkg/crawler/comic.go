@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -35,6 +36,30 @@ func newComicCrawler(crawlHelper helper) *comicCrawler {
 		crawlerMap:  crawlerMap,
 		crawlHelper: crawlHelper,
 	}
+}
+
+// GetComicInfo return link of latest chapter of a page
+func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			switch x := r.(type) {
+			case string:
+				err = errors.New(x)
+			case error:
+				err = x
+			default:
+				err = errors.New("Unknown panic")
+			}
+		}
+
+		if err != nil {
+			logging.Danger(err)
+		}
+		return
+	}()
+
+	return c.crawl(ctx, comicURL)
 }
 
 func (c *comicCrawler) crawl(ctx context.Context, comicURL string) (comic db.Comic, err error) {

@@ -8,6 +8,7 @@ import (
 	"github.com/tinoquang/comic-notifier/pkg/auth"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	"github.com/tinoquang/comic-notifier/pkg/crawler"
+	"github.com/tinoquang/comic-notifier/pkg/db/cloud"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/msg"
 	"github.com/tinoquang/comic-notifier/pkg/server"
@@ -22,11 +23,12 @@ func main() {
 	conf.Init()
 
 	dbconn := db.NewDBConn()
+	firebase := cloud.NewFirebaseConnection()
 
 	crawler := crawler.NewCrawler()
 
 	// Init Repository
-	store := db.NewStore(dbconn)
+	store := db.NewStore(dbconn, firebase)
 
 	// Init main business logic server
 	svr := server.New(store, crawler)

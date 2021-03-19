@@ -1,58 +1,26 @@
 package crawler
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/tinoquang/comic-notifier/pkg/conf"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
-	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
-// Crawler contain comic, user and image crawler
-type Crawler interface {
-	GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error)
-	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
-}
 type crawler struct {
 	*comicCrawler
 }
 
 // NewCrawler constructor
-func NewCrawler() Crawler {
+func NewCrawler() *crawler {
 
 	return &crawler{
 		newComicCrawler(crawlHelper{}),
 	}
-}
-
-// GetComicInfo return link of latest chapter of a page
-func (crwl *crawler) GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			switch x := r.(type) {
-			case string:
-				err = errors.New(x)
-			case error:
-				err = x
-			default:
-				err = errors.New("Unknown panic")
-			}
-		}
-
-		if err != nil {
-			logging.Danger(err)
-		}
-		return
-	}()
-
-	return crwl.crawl(ctx, comicURL)
 }
 
 // GetUserInfoFromFacebook call facebook API to get user info, include psid, appid and profile picture

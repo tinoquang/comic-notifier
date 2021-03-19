@@ -13,22 +13,25 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
 // Handler main authenticate handler
-type Handler struct {
+type AuthHandler struct {
 	store db.Store
-	crawl crawler.Crawler
+	crawl infoCrawler
+}
+
+type infoCrawler interface {
+	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
 }
 
 // RegisterHandler create new auth route
-func RegisterHandler(g *echo.Group, store db.Store, crawl crawler.Crawler) {
+func RegisterHandler(g *echo.Group, store db.Store, crawl infoCrawler) {
 
-	h := Handler{store: store, crawl: crawl}
+	h := AuthHandler{store: store, crawl: crawl}
 
 	g.GET("/auth", h.auth)
 	g.GET("/status", h.loggedIn, middleware.JWTWithConfig(middleware.JWTConfig{
@@ -41,11 +44,11 @@ func RegisterHandler(g *echo.Group, store db.Store, crawl crawler.Crawler) {
 
 }
 
-func (h *Handler) loggedIn(ctx echo.Context) error {
+func (h *AuthHandler) loggedIn(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusOK)
 }
 
-func (h *Handler) login(c echo.Context) error {
+func (h *AuthHandler) login(c echo.Context) error {
 
 	authURL, _ := url.Parse("https://www.facebook.com/v8.0/dialog/oauth")
 	q := authURL.Query()
@@ -59,7 +62,7 @@ func (h *Handler) login(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, authURL.String())
 }
 
-func (h *Handler) logout(ctx echo.Context) error {
+func (h *AuthHandler) logout(ctx echo.Context) error {
 
 	cookie := &http.Cookie{
 		Name:     "_session",
@@ -71,7 +74,7 @@ func (h *Handler) logout(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusOK)
 }
 
-func (h *Handler) auth(ctx echo.Context) error {
+func (h *AuthHandler) auth(ctx echo.Context) error {
 
 	// Get FB access token
 	code := ctx.QueryParam("code")
@@ -140,7 +143,7 @@ func (h *Handler) auth(ctx echo.Context) error {
 	return ctx.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", conf.Cfg.Host, state))
 }
 
-func (h *Handler) generateJWT(userAppID string) (string, error) {
+func (h *AuthHandler) generateJWT(userAppID string) (string, error) {
 
 	claims := &jwt.StandardClaims{
 		Issuer:    conf.Cfg.JWT.Issuer,
@@ -162,7 +165,7 @@ func (h *Handler) generateJWT(userAppID string) (string, error) {
 
 }
 
-func (h *Handler) validateToken(token string) (userAppID string, err error) {
+func (h *AuthHandler) validateToken(token string) (userAppID string, err error) {
 
 	userAppID = ""
 	tokenResponse := map[string]json.RawMessage{}
@@ -191,7 +194,7 @@ func (h *Handler) validateToken(token string) (userAppID string, err error) {
 	return
 }
 
-func (h *Handler) checkUserExist(ctx echo.Context, userAppID string) {
+func (h *AuthHandler) checkUserExist(ctx echo.Context, userAppID string) {
 
 	// Check user already existed in DB
 	_, err := h.store.GetUserByAppID(ctx.Request().Context(), sql.NullString{

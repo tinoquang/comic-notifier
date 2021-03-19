@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/conf"
-	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
@@ -25,8 +24,14 @@ var (
 	webhookToken      string
 )
 
+// Crawler contain comic, user and image crawler
+type infoCrawler interface {
+	GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error)
+	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
+}
+
 // New  create new server
-func New(store db.Store, crawler crawler.Crawler) *Server {
+func New(store db.Store, crawler infoCrawler) *Server {
 
 	// Get env config
 	messengerEndpoint = conf.Cfg.Webhook.GraphEndpoint + "/me/messages"
@@ -44,7 +49,7 @@ func New(store db.Store, crawler crawler.Crawler) *Server {
 }
 
 // UpdateThread read comic database and update each comic to each latest chap
-func updateComicThread(crwl crawler.Crawler, s db.Store, workerNum, timeout int) {
+func updateComicThread(crwl infoCrawler, s db.Store, workerNum, timeout int) {
 
 	// Start update routine, then sleep for a while and re-update
 	for {
@@ -87,7 +92,7 @@ func updateComicThread(crwl crawler.Crawler, s db.Store, workerNum, timeout int)
 	// Never reach here
 }
 
-func worker(id int, s db.Store, crwl crawler.Crawler, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
+func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool <-chan db.Comic) {
 
 	// Get comic from updateComicThread, which run only when updateComicThread push comic into comicPool
 	for oldComic := range comicPool {

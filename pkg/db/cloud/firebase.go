@@ -1,4 +1,4 @@
-package db
+package cloud
 
 import (
 	"context"
@@ -23,7 +23,7 @@ type firebaseConnection struct {
 }
 
 // NewFirebaseConnection create new bucket object to communicate with Firebase storage
-func newFirebaseConnection() *firebaseConnection {
+func NewFirebaseConnection() *firebaseConnection {
 
 	var bucket *storage.BucketHandle
 

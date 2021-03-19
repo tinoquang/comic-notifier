@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tinoquang/comic-notifier/pkg/crawler"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -18,11 +17,11 @@ import (
 type MSG struct {
 	sync.Mutex
 	store   db.Store
-	crawler crawler.Crawler
+	crawler infoCrawler
 }
 
 // NewMSG return new api interface
-func NewMSG(s db.Store, crwl crawler.Crawler) *MSG {
+func NewMSG(s db.Store, crwl infoCrawler) *MSG {
 	return &MSG{store: s, crawler: crwl}
 }
 

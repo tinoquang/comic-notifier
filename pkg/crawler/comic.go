@@ -287,7 +287,6 @@ func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *
 		}
 	}
 
-	logging.Info(comic)
 	err = verifyComic(comic)
 	return
 }

@@ -148,7 +148,7 @@ func responseCommand(ctx context.Context, senderID, text string) {
 		sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
 		sendTextBack(senderID, "https://cominify-bot.xyz")
 	} else if text == "/page" {
-		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang: beeng.net, blogtruyen.vn, truyenhtranh.net và truyentranhtuan.com")
+		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang:\nbeeng.net\nblogtruyen.vn\ntruyenhtranh.net\ntruyentranhtuan.com\ntruyenqq.com\nhocvientruyentranh.net\n")
 	} else if text == "/tutor" {
 		sendTextBack(senderID, "Xem hướng dẫn tại đây:")
 		sendTextBack(senderID, "https://cominify-bot.xyz/tutorial")

@@ -123,7 +123,7 @@ func (h *AuthHandler) auth(ctx echo.Context) error {
 	cookie := &http.Cookie{
 		Name:     "_session",
 		Value:    jwtCookie,
-		Expires:  time.Now().AddDate(0, 0, 1),
+		Expires:  time.Now().AddDate(0, 1, 0),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}

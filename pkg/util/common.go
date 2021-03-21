@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -68,6 +69,8 @@ func DownloadFile(fileURL string, fileName string) (err error) {
 
 	if u.Hostname() == "i.mangaqq.com" {
 		req.Header.Set("Referer", "truyenqq.com")
+	} else if strings.Contains(u.Hostname(), "hocvientruyentranh") {
+		req.Header.Set("Referer", "https://hocvientruyentranh.net")
 	}
 
 	resp, err := client.Do(req)

@@ -6,13 +6,13 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 
 create table comics (
     id serial UNIQUE not null,
-    page VARCHAR(64) not null,
-    "name" VARCHAR(128)not null,
+    page VARCHAR(128) not null,
+    "name" VARCHAR(256)not null,
     "url" VARCHAR(256) not null unique,
-    "img_url" VARCHAR(128) not null,
+    "img_url" VARCHAR(256) not null,
     "cloud_img_url" VARCHAR(256) not null,
-    "latest_chap" VARCHAR(128) not null,
-    "chap_url" VARCHAR(128) not null,
+    "latest_chap" VARCHAR(256) not null,
+    "chap_url" VARCHAR(256) not null,
     PRIMARY KEY (id)
 );
 create table users (

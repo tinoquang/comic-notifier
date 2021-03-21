@@ -136,7 +136,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	}
 
 	if len(users) == 0 {
-		m.store.DeleteComic(ctx, c.ID)
+		m.store.RemoveComic(ctx, c.ID)
 	}
 	sendTextBack(senderID, fmt.Sprintf("Đã hủy đăng ký %s!", c.Name))
 

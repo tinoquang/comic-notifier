@@ -16,11 +16,8 @@ require (
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/lib/pq v1.9.0
 	github.com/pkg/errors v0.9.1
-	github.com/robertkrimen/otto v0.0.0-20200922221731-ef014fd054ac // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
-	github.com/tinoquang/go-cloudflare-scraper v0.0.0-20200802120520-9158f3ffb9bf
 	github.com/valyala/fasthttp v1.22.0
 	google.golang.org/api v0.32.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )

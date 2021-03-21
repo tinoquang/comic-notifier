@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -69,8 +70,16 @@ func (f *firebaseConnection) UploadImg(comicPage, comicName, imgURL string) (err
 
 	// Image will be uploaded to folder: page/name.ext in Firebas storage, so we need to pass comicPage and comicName
 
+	// Remove all query params from url, avoid cases like : https://image.jpg?r=123456
+	u, err := url.Parse(imgURL)
+	if err != nil {
+		logging.Danger(err)
+		return
+	}
+	u.RawQuery = ""
+
 	// download img first, path will be ./name.ext
-	fileName := comicName + filepath.Ext(imgURL)
+	fileName := comicName + filepath.Ext(u.String())
 	err = util.DownloadFile(imgURL, "./"+fileName)
 	if err != nil {
 		logging.Danger(err)

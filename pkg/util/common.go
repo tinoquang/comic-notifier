@@ -2,11 +2,12 @@ package util
 
 import (
 	"io"
+	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	scraper "github.com/tinoquang/go-cloudflare-scraper"
 	"github.com/valyala/fasthttp"
 )
 
@@ -49,21 +50,36 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 }
 
 // DownloadFile simple function for downloading file bypass cloudfare
-func DownloadFile(url string, fileName string) (err error) {
+func DownloadFile(fileURL string, fileName string) (err error) {
 
-	c, err := scraper.NewClient()
-	if err != nil {
-		return
-	}
-	res, err := c.Get(url)
+	u, err := url.Parse(fileURL)
 	if err != nil {
 		return
 	}
 
-	defer res.Body.Close()
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", fileURL, nil)
 	if err != nil {
 		return
 	}
+
+	if u.Hostname() == "i.mangaqq.com" {
+		req.Header.Set("Referer", "truyenqq.com")
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		logging.Danger("error when download file", fileURL, "error code", resp.StatusCode)
+		return ErrDownloadFile
+	}
+	defer resp.Body.Close()
 
 	//open a file for writing
 	file, err := os.Create(fileName)
@@ -73,7 +89,7 @@ func DownloadFile(url string, fileName string) (err error) {
 	defer file.Close()
 
 	// Use io.Copy to just dump the response body to the file. This supports huge files
-	_, err = io.Copy(file, res.Body)
+	_, err = io.Copy(file, resp.Body)
 	if err != nil {
 		return
 	}

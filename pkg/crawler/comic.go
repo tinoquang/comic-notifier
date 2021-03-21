@@ -31,6 +31,7 @@ func newComicCrawler(crawlHelper helper) *comicCrawler {
 	crawlerMap["blogtruyen.vn"] = crawlBlogtruyen
 	crawlerMap["truyentranh.net"] = crawlTruyentranhnet
 	crawlerMap["truyentranhtuan.com"] = crawlTruyentranhtuan
+	crawlerMap["truyenqq.com"] = crawlTruyenqq
 
 	return &comicCrawler{
 		crawlerMap:  crawlerMap,
@@ -228,6 +229,32 @@ func crawlTruyentranhnet(ctx context.Context, doc *goquery.Document, comic *db.C
 
 	if comic.ChapUrl != "" {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".manga-reading-box", "img")
+		if err != nil {
+			return
+		}
+	}
+
+	err = verifyComic(comic)
+	return
+}
+
+func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+
+	comic.Name = doc.Find(".center").Find("h1").Text()
+	comic.ImgUrl, _ = doc.Find(".left").Find("img[src]").Attr("src")
+	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
+
+	// Find latest chap
+	firstItem := doc.Find(".works-chapter-list").Find(".works-chapter-item.row").First()
+	if firstItem.Nodes == nil {
+		return util.ErrInvalidURL
+	}
+
+	comic.LatestChap = firstItem.Find("a[href]").Text()
+	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
+
+	if comic.ChapUrl != "" {
+		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".story-see-content", "img")
 		if err != nil {
 			return
 		}

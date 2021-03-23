@@ -22,10 +22,10 @@ type Querier interface {
 	GetUserByAppID(ctx context.Context, appid sql.NullString) (User, error)
 	GetUserByPSID(ctx context.Context, psid sql.NullString) (User, error)
 	ListComics(ctx context.Context) ([]Comic, error)
-	ListComicsPerUser(ctx context.Context, userID int32) ([]Comic, error)
-	ListComicsPerUserByName(ctx context.Context, arg ListComicsPerUserByNameParams) ([]ListComicsPerUserByNameRow, error)
+	ListComicsPerUserPSID(ctx context.Context, userID int32) ([]Comic, error)
 	ListUsers(ctx context.Context) ([]User, error)
 	ListUsersPerComic(ctx context.Context, comicID int32) ([]User, error)
+	SearchComicOfUserByName(ctx context.Context, arg SearchComicOfUserByNameParams) ([]Comic, error)
 	UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }

@@ -6,7 +6,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 const createComic = `-- name: CreateComic :one
@@ -198,7 +197,7 @@ func (q *Queries) ListComics(ctx context.Context) ([]Comic, error) {
 	return items, nil
 }
 
-const listComicsPerUser = `-- name: ListComicsPerUser :many
+const listComicsPerUserPSID = `-- name: ListComicsPerUserPSID :many
 
 SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
@@ -207,8 +206,8 @@ WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC
 
 // LIMIT $1
 // OFFSET $2;
-func (q *Queries) ListComicsPerUser(ctx context.Context, userID int32) ([]Comic, error) {
-	rows, err := q.db.QueryContext(ctx, listComicsPerUser, userID)
+func (q *Queries) ListComicsPerUserPSID(ctx context.Context, userID int32) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComicsPerUserPSID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -239,43 +238,28 @@ func (q *Queries) ListComicsPerUser(ctx context.Context, userID int32) ([]Comic,
 	return items, nil
 }
 
-const listComicsPerUserByName = `-- name: ListComicsPerUserByName :many
-SELECT comics.id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, subscribers.id, user_id, comic_id, created_at FROM comics
+const searchComicOfUserByName = `-- name: SearchComicOfUserByName :many
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id
 WHERE subscribers.user_id=$1
 AND (comics.name ILIKE $2 or unaccent(comics.name) ILIKE $2)
 ORDER BY subscribers.created_at DESC
 `
 
-type ListComicsPerUserByNameParams struct {
+type SearchComicOfUserByNameParams struct {
 	UserID int32
 	Name   string
 }
 
-type ListComicsPerUserByNameRow struct {
-	ID          int32
-	Page        string
-	Name        string
-	Url         string
-	ImgUrl      string
-	CloudImgUrl string
-	LatestChap  string
-	ChapUrl     string
-	ID_2        int32
-	UserID      int32
-	ComicID     int32
-	CreatedAt   time.Time
-}
-
-func (q *Queries) ListComicsPerUserByName(ctx context.Context, arg ListComicsPerUserByNameParams) ([]ListComicsPerUserByNameRow, error) {
-	rows, err := q.db.QueryContext(ctx, listComicsPerUserByName, arg.UserID, arg.Name)
+func (q *Queries) SearchComicOfUserByName(ctx context.Context, arg SearchComicOfUserByNameParams) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, searchComicOfUserByName, arg.UserID, arg.Name)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListComicsPerUserByNameRow{}
+	items := []Comic{}
 	for rows.Next() {
-		var i ListComicsPerUserByNameRow
+		var i Comic
 		if err := rows.Scan(
 			&i.ID,
 			&i.Page,
@@ -285,10 +269,6 @@ func (q *Queries) ListComicsPerUserByName(ctx context.Context, arg ListComicsPer
 			&i.CloudImgUrl,
 			&i.LatestChap,
 			&i.ChapUrl,
-			&i.ID_2,
-			&i.UserID,
-			&i.ComicID,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

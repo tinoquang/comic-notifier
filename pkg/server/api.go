@@ -141,7 +141,7 @@ func (a *API) GetUserComics(ctx echo.Context, userAppID string, params api.GetUs
 		return ctx.NoContent(http.StatusInternalServerError)
 	}
 
-	comics, err := a.store.ListComicsPerUserByName(ctx.Request().Context(), db.ListComicsPerUserByNameParams{
+	comics, err := a.store.SearchComicOfUserByName(ctx.Request().Context(), db.SearchComicOfUserByNameParams{
 		UserID: user.ID,
 		Name:   q,
 	})
@@ -239,7 +239,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 	}
 
 	// Check if no user subscribe to this comic --> remove this comic from DB
-	users, err := a.store.ListComicsPerUser(ctx.Request().Context(), int32(comicID))
+	users, err := a.store.ListComicsPerUserPSID(ctx.Request().Context(), user.ID)
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)

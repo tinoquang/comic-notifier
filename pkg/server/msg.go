@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -26,6 +27,9 @@ func NewMSG(s db.Store, crwl infoCrawler) *MSG {
 }
 
 /* Message handler function */
+func delayMS(second int) {
+	time.Sleep(time.Duration(second) * time.Millisecond)
+}
 
 // HandleTxtMsg handle text messages from facebook user
 func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
@@ -35,7 +39,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	defer sendActionBack(senderID, "typing_off")
 
 	if text[0] == '/' {
-		responseCommand(ctx, senderID, text)
+		m.responseCommand(ctx, senderID, text)
 		return
 	}
 
@@ -47,22 +51,22 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			// Upload image API is busy
 			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
 		} else if err == util.ErrPageNotSupported {
-			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ !!!")
-			responseCommand(ctx, senderID, "/page")
+			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ")
+			m.responseCommand(ctx, senderID, "/page")
 		} else if err == util.ErrInvalidURL {
 			sendTextBack(senderID, "Đường dẫn chưa chính xác, hãy xem qua hướng dẫn bằng lệnh /tutor")
-			// responseCommand(ctx, senderID, "/help")
 		} else {
-			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!")
+			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé")
 		}
 		return
 	}
 
-	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s", comic.Name))
-
 	// send back message in template with bDnDwauttons
 	sendNormalReply(senderID, comic)
-
+	delayMS(500)
+	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s thành công", comic.Name))
+	delayMS(500)
+	sendTextBack(senderID, "Nếu muốn hủy nhận thông báo cho truyện này, click \"Hủy đăng ký\" ")
 }
 
 // HandlePostback handle messages when user click "Unsubsribe button"
@@ -73,7 +77,7 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	defer sendActionBack(senderID, "typing_off")
 
 	if strings.Contains(payload, "get-started") {
-		reponseGetStarted(ctx, senderID, payload)
+		m.reponseGetStarted(ctx, senderID)
 		return
 	}
 
@@ -84,12 +88,12 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
-			sendTextBack(senderID, "Truyện chưa được đăng ký !")
+			sendTextBack(senderID, "Truyện chưa được đăng ký")
 			return
 		}
 
 		logging.Danger(err)
-		sendTextBack(senderID, "Đợi xíu rồi thử lại nhé bạn")
+		sendTextBack(senderID, "Hiện tại server đang busy, bạn hãy đợi một lát rồi thử lại nhé")
 		return
 	}
 
@@ -98,6 +102,12 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 
 // HandleQuickReply handle messages when user click "Yes" to confirm unsubscribe action
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
+
+	if payload == "Not unsub" {
+		sendActionBack(senderID, "mark_seen")
+		return
+	}
+
 	comicID, err := strconv.Atoi(payload)
 
 	user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
@@ -123,7 +133,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	})
 
 	if err != nil {
-		sendTextBack(senderID, "Please try again later")
+		sendTextBack(senderID, "Hiện tại server đang busy, bạn hãy đợi một lát rồi thử lại nhé")
 		return
 	}
 
@@ -131,46 +141,70 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	users, err := m.store.ListUsersPerComic(ctx, c.ID)
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "Đợi xíu rồi thử lại nhé bạn")
+		sendTextBack(senderID, "Hiện tại server đang busy, bạn hãy đợi một lát rồi thử lại nhé")
 		return
 	}
 
 	if len(users) == 0 {
 		m.store.RemoveComic(ctx, c.ID)
 	}
-	sendTextBack(senderID, fmt.Sprintf("Đã hủy đăng ký %s!", c.Name))
+	sendTextBack(senderID, fmt.Sprintf("Đã hủy đăng ký truyện %s", c.Name))
 
 }
 
-func responseCommand(ctx context.Context, senderID, text string) {
+func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 
-	if text == "/list" {
-		sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
-		sendTextBack(senderID, "https://cominify-bot.xyz")
-	} else if text == "/page" {
-		sendTextBack(senderID, "Hiện tôi hỗ trợ các trang:\nbeeng.net\nblogtruyen.vn\ntruyenhtranh.net\ntruyentranhtuan.com\ntruyenqq.com\nhocvientruyentranh.net\n")
-	} else if text == "/tutor" {
-		sendTextBack(senderID, "Xem hướng dẫn tại đây:")
-		sendTextBack(senderID, "https://cominify-bot.xyz/tutorial")
-	} else {
+	switch text {
+	case "/start":
+		sendTextBack(senderID, "Hướng dân đăng kí truyện")
+		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trạng blogtruyen.vn")
+		sendTextBack(senderID, "Copy đường dẫn sau và gởi cho BOT")
+		sendTextBack(senderID, "blogtruyen.vn/139/one-piece")
+	case "/list":
+		userID, err := strconv.Atoi(senderID)
+		if err != nil {
+			logging.Danger(err)
+			return
+		}
+		comics, err := m.store.ListComicsPerUserPSID(ctx, int32(userID))
+
+		if len(comics) == 0 {
+			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
+			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /start và làm theo hướng dẫn ")
+		} else {
+			sendTextBack(senderID, fmt.Sprintf("Bạn đã đăng ký nhận thông báo cho %d truyện", len(comics)))
+			sendTextBack(senderID, "Xem chi tiết tại www.cominify-bot.xyz")
+		}
+	case "/page":
+		sendTextBack(senderID, `Các trạng hiện tại tôi hỗ trợ:\n
+		beeng.net\n
+		blogtruyen.vn\n
+		truyenhtranh.net\n
+		truyentranhtuan.com\n
+		truyenqq.com\n
+		hocvientruyentranh.net\n`)
+	case "/tutor":
+		sendTextBack(senderID, "Bạn có thể xem hướng dẫn tại: www.cominify-bot.xyz/tutorial hoặc dùng lệnh /start và làm theo hướng dẫn")
+	default:
 		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí
 - /page:  xem các trang web hiện tại BOT hỗ trợ
-- /tutor: xem hướng dẫn
-- /help:  xem lại các lệnh hỗ trợ`)
+- /tutor: xem hướng dẫn`)
 	}
+
 	return
 }
 
-func reponseGetStarted(ctx context.Context, senderID, payload string) {
+func (m *MSG) reponseGetStarted(ctx context.Context, senderID string) {
 
-	sendTextBack(senderID, "Welcome to Cominify Bot!")
+	sendTextBack(senderID, "Welcome to Comic Notify Bot!")
 	sendTextBack(senderID, "Tôi là chatbot giúp theo dõi truyện tranh và thông báo mỗi khi truyện có chapter mới")
 	sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí
 - /page:  xem các trang web hiện tại BOT hỗ trợ
-- /tutor: xem hướng dẫn
-- /help:  xem lại các lệnh hỗ trợ`)
+- /tutor: xem hướng dẫn`)
+
+	m.responseCommand(ctx, senderID, "/start")
 	return
 }
 

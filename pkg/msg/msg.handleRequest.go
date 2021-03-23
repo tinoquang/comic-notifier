@@ -78,10 +78,6 @@ func (h *Handler) handleQuickReply(msg Messaging, timeout int) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	if msg.Message.QuickReply.Payload == "Not unsub" {
-		return
-	}
-
 	h.svi.HandleQuickReply(ctx, msg.Sender.ID, msg.Message.QuickReply.Payload)
 
 	return

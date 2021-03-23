@@ -29,8 +29,8 @@ WHERE users.psid=$1 AND comics.id=$2;
 SELECT * FROM comics
 WHERE id = $1 FOR NO KEY UPDATE;
 
--- name: ListComicsPerUserByName :many
-SELECT * FROM comics
+-- name: SearchComicOfUserByName :many
+SELECT comics.* FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id
 WHERE subscribers.user_id=$1
 AND (comics.name ILIKE $2 or unaccent(comics.name) ILIKE $2)
@@ -44,7 +44,7 @@ ORDER BY id DESC;
 -- LIMIT $1
 -- OFFSET $2;
 
--- name: ListComicsPerUser :many
+-- name: ListComicsPerUserPSID :many
 SELECT comics.* FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
 WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC;

@@ -99,6 +99,12 @@ func sendActionBack(senderid, action string) {
 	callSendAPI(res)
 }
 
+// func sendTextWithButtonBack(senderid, message string) {
+
+// 	sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
+// 	sendTextBack(senderID, "www.cominify-bot.xyz")
+// }
+
 // Use to send message within 24-hour window of FACEBOOK policy
 func sendNormalReply(senderid string, comic *db.Comic) {
 
@@ -190,17 +196,17 @@ func sendQuickReplyChoice(senderid string, comic db.Comic) {
 		Recipient: &User{ID: senderid},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
-			Text: fmt.Sprintf("Hủy nhận thông báo khi %s update chap mới ?", comic.Name),
+			Text: fmt.Sprintf("Bạn chắc chắn muốn hủy thông báo khi %s update chap mới ?", comic.Name),
 			Options: []QuickReply{
 				{
 					Type:    "text",
-					Title:   "Yes",
+					Title:   "OK",
 					Payload: strconv.Itoa(int(comic.ID)),
 					ImgURL:  "https://www.vhv.rs/dpng/d/356-3568543_check-icon-green-tick-hd-png-download.png",
 				},
 				{
 					Type:    "text",
-					Title:   "No",
+					Title:   "Cancel",
 					Payload: "Not unsub",
 					ImgURL:  "https://cdn3.vectorstock.com/i/1000x1000/59/87/red-cross-check-mark-icon-simple-style-vector-8375987.jpg",
 				},

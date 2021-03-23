@@ -115,6 +115,32 @@ func (q *Queries) GetComicByPSIDAndComicID(ctx context.Context, arg GetComicByPS
 	return i, err
 }
 
+const getComicByPageAndComicName = `-- name: GetComicByPageAndComicName :one
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+WHERE comics.page=$1 AND comics.name=$2
+`
+
+type GetComicByPageAndComicNameParams struct {
+	Page string
+	Name string
+}
+
+func (q *Queries) GetComicByPageAndComicName(ctx context.Context, arg GetComicByPageAndComicNameParams) (Comic, error) {
+	row := q.db.QueryRowContext(ctx, getComicByPageAndComicName, arg.Page, arg.Name)
+	var i Comic
+	err := row.Scan(
+		&i.ID,
+		&i.Page,
+		&i.Name,
+		&i.Url,
+		&i.ImgUrl,
+		&i.CloudImgUrl,
+		&i.LatestChap,
+		&i.ChapUrl,
+	)
+	return i, err
+}
+
 const getComicByURL = `-- name: GetComicByURL :one
 SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
 WHERE url = $1

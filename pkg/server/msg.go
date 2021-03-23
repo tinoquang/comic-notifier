@@ -66,7 +66,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	delayMS(500)
 	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s thành công", comic.Name))
 	delayMS(500)
-	sendTextBack(senderID, "Nếu muốn hủy nhận thông báo cho truyện này, click \"Hủy đăng ký\" ")
+	sendTextBack(senderID, "Nếu muốn hủy nhận thông báo cho truyện này, click Hủy đăng ký ở trên")
 }
 
 // HandlePostback handle messages when user click "Unsubsribe button"
@@ -232,6 +232,16 @@ func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*d
 			logging.Danger(err)
 			return nil, err
 		}
+	}
+
+	// Verify comic again to avoid multiple URL represents same comic, by checking Page + Comic Name
+	c, err := m.store.GetComicByPageAndComicName(ctx, db.GetComicByPageAndComicNameParams{
+		Page: comic.Page,
+		Name: comic.Name,
+	})
+
+	if err == nil {
+		comic.ID = c.ID
 	}
 
 	user, err = m.store.GetUserByPSID(ctx, sql.NullString{String: userPSID, Valid: true})

@@ -16,6 +16,7 @@ type Querier interface {
 	DeleteUser(ctx context.Context, psid sql.NullString) error
 	GetComic(ctx context.Context, id int32) (Comic, error)
 	GetComicByPSIDAndComicID(ctx context.Context, arg GetComicByPSIDAndComicIDParams) (Comic, error)
+	GetComicByPageAndComicName(ctx context.Context, arg GetComicByPageAndComicNameParams) (Comic, error)
 	GetComicByURL(ctx context.Context, url string) (Comic, error)
 	GetComicForUpdate(ctx context.Context, id int32) (Comic, error)
 	GetSubscriber(ctx context.Context, arg GetSubscriberParams) (Subscriber, error)

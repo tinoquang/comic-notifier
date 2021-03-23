@@ -19,6 +19,10 @@ WHERE id = $1;
 SELECT * FROM comics
 WHERE url = $1;
 
+-- name: GetComicByPageAndComicName :one
+SELECT * FROM comics
+WHERE comics.page=$1 AND comics.name=$2;
+
 -- name: GetComicByPSIDAndComicID :one
 SELECT comics.* FROM comics
 JOIN subscribers ON comics.id=subscribers.comic_id

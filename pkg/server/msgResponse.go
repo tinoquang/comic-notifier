@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -77,7 +78,16 @@ type User struct {
 	ID string `json:"id,omitempty"`
 }
 
+func delayMS(second int) {
+	time.Sleep(time.Duration(second) * time.Millisecond)
+}
 func sendTextBack(senderid, message string) {
+
+	sendActionBack(senderid, "mark_seen")
+	sendActionBack(senderid, "typing_on")
+	delayMS(300)
+
+	defer sendActionBack(senderid, "typing_off")
 
 	res := &Response{
 		Type:      "RESPONSE",

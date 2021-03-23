@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
@@ -27,9 +26,6 @@ func NewMSG(s db.Store, crwl infoCrawler) *MSG {
 }
 
 /* Message handler function */
-func delayMS(second int) {
-	time.Sleep(time.Duration(second) * time.Millisecond)
-}
 
 // HandleTxtMsg handle text messages from facebook user
 func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
@@ -42,6 +38,12 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		m.responseCommand(ctx, senderID, text)
 		return
 	}
+
+	// comicURL, err := url.Parse(text)
+	// if err != nil {
+	// 	sendTextBack(senderID, "Cú pháp chưa chính xác")
+	// 	m.responseCommand(ctx, senderID, "")
+	// }
 
 	comic, err := m.SubscribeComic(ctx, senderID, text)
 	if err != nil {
@@ -63,9 +65,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	// send back message in template with bDnDwauttons
 	sendNormalReply(senderID, comic)
-	delayMS(500)
 	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s thành công", comic.Name))
-	delayMS(500)
 	sendTextBack(senderID, "Nếu muốn hủy nhận thông báo cho truyện này, click Hủy đăng ký ở trên")
 }
 
@@ -113,7 +113,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "Truyện chưa được đăng ký !")
+		sendTextBack(senderID, "Truyện chưa được đăng ký")
 		return
 	}
 
@@ -123,7 +123,7 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	})
 	if err != nil {
 		logging.Danger(err)
-		sendTextBack(senderID, "Truyện chưa được đăng ký !")
+		sendTextBack(senderID, "Truyện chưa được đăng ký")
 		return
 	}
 
@@ -156,19 +156,21 @@ func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 
 	switch text {
 	case "/start":
-		sendTextBack(senderID, "Hướng dẫn đăng kí truyện")
+		sendTextBack(senderID, "Để đăng kí, hãy gởi cho tôi link truyện bạn muốn nhận thông báo")
 		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trang blogtruyen.vn")
-		sendTextBack(senderID, "Copy đường dẫn sau và gởi cho BOT")
+		sendTextBack(senderID, "Chỉ cần copy đường dẫn sau và gởi cho BOT")
 		sendTextBack(senderID, "https://blogtruyen.vn/139/one-piece")
 	case "/list":
-		userID, err := strconv.Atoi(senderID)
+		user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
 		if err != nil {
 			logging.Danger(err)
+			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
+			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /start và làm theo hướng dẫn ")
 			return
 		}
-		comics, err := m.store.ListComicsPerUser(ctx, int32(userID))
 
-		if len(comics) == 0 {
+		comics, err := m.store.ListComicsPerUser(ctx, user.ID)
+		if err != nil || len(comics) == 0 {
 			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
 			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /start và làm theo hướng dẫn ")
 		} else {

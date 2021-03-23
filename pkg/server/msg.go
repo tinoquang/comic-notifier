@@ -156,17 +156,17 @@ func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 
 	switch text {
 	case "/start":
-		sendTextBack(senderID, "Hướng dân đăng kí truyện")
-		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trạng blogtruyen.vn")
+		sendTextBack(senderID, "Hướng dẫn đăng kí truyện")
+		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trang blogtruyen.vn")
 		sendTextBack(senderID, "Copy đường dẫn sau và gởi cho BOT")
-		sendTextBack(senderID, "blogtruyen.vn/139/one-piece")
+		sendTextBack(senderID, "https://blogtruyen.vn/139/one-piece")
 	case "/list":
 		userID, err := strconv.Atoi(senderID)
 		if err != nil {
 			logging.Danger(err)
 			return
 		}
-		comics, err := m.store.ListComicsPerUserPSID(ctx, int32(userID))
+		comics, err := m.store.ListComicsPerUser(ctx, int32(userID))
 
 		if len(comics) == 0 {
 			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
@@ -176,15 +176,17 @@ func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 			sendTextBack(senderID, "Xem chi tiết tại www.cominify-bot.xyz")
 		}
 	case "/page":
-		sendTextBack(senderID, `Các trạng hiện tại tôi hỗ trợ:\n
-		beeng.net\n
-		blogtruyen.vn\n
-		truyenhtranh.net\n
-		truyentranhtuan.com\n
-		truyenqq.com\n
-		hocvientruyentranh.net\n`)
+		sendTextBack(senderID, `Các trạng hiện tại tôi hỗ trợ:
+beeng.net
+blogtruyen.vn
+truyenhtranh.net
+truyentranhtuan.com
+truyenqq.com
+hocvientruyentranh.net`)
 	case "/tutor":
-		sendTextBack(senderID, "Bạn có thể xem hướng dẫn tại: www.cominify-bot.xyz/tutorial hoặc dùng lệnh /start và làm theo hướng dẫn")
+		sendTextBack(senderID, `Bạn có thể xem hướng dẫn tại:
+www.cominify-bot.xyz/tutorial`)
+		sendTextBack(senderID, "Hoặc dùng lệnh /start và làm theo hướng dẫn")
 	default:
 		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí
@@ -204,7 +206,7 @@ func (m *MSG) reponseGetStarted(ctx context.Context, senderID string) {
 - /page:  xem các trang web hiện tại BOT hỗ trợ
 - /tutor: xem hướng dẫn`)
 
-	m.responseCommand(ctx, senderID, "/start")
+	// m.responseCommand(ctx, senderID, "/start")
 	return
 }
 

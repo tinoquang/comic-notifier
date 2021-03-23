@@ -239,7 +239,7 @@ func (a *API) UnsubscribeComic(ctx echo.Context, userAppID string, comicID int) 
 	}
 
 	// Check if no user subscribe to this comic --> remove this comic from DB
-	users, err := a.store.ListComicsPerUserPSID(ctx.Request().Context(), user.ID)
+	users, err := a.store.ListComicsPerUser(ctx.Request().Context(), user.ID)
 	if err != nil {
 		logging.Danger(err)
 		return ctx.NoContent(http.StatusInternalServerError)

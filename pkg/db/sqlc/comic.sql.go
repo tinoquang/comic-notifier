@@ -223,7 +223,7 @@ func (q *Queries) ListComics(ctx context.Context) ([]Comic, error) {
 	return items, nil
 }
 
-const listComicsPerUserPSID = `-- name: ListComicsPerUserPSID :many
+const listComicsPerUser = `-- name: ListComicsPerUser :many
 
 SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
@@ -232,8 +232,8 @@ WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC
 
 // LIMIT $1
 // OFFSET $2;
-func (q *Queries) ListComicsPerUserPSID(ctx context.Context, userID int32) ([]Comic, error) {
-	rows, err := q.db.QueryContext(ctx, listComicsPerUserPSID, userID)
+func (q *Queries) ListComicsPerUser(ctx context.Context, userID int32) ([]Comic, error) {
+	rows, err := q.db.QueryContext(ctx, listComicsPerUser, userID)
 	if err != nil {
 		return nil, err
 	}

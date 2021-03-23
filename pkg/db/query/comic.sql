@@ -48,7 +48,7 @@ ORDER BY id DESC;
 -- LIMIT $1
 -- OFFSET $2;
 
--- name: ListComicsPerUserPSID :many
+-- name: ListComicsPerUser :many
 SELECT comics.* FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
 WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC;

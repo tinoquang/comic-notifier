@@ -13,6 +13,7 @@ create table comics (
     "cloud_img_url" VARCHAR(256) not null,
     "latest_chap" VARCHAR(256) not null,
     "chap_url" VARCHAR(256) not null,
+    "last_update" DATE NOT NULL DEFAULT NOW(),
     PRIMARY KEY (id)
 );
 create table users (

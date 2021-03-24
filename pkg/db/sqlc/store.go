@@ -78,6 +78,7 @@ func (s *store) SubscribeComic(ctx context.Context, comic *Comic, user *User) er
 				CloudImgUrl: comic.CloudImgUrl,
 				LatestChap:  comic.LatestChap,
 				ChapUrl:     comic.ChapUrl,
+				LastUpdate:  comic.LastUpdate,
 			})
 			if txErr != nil && txErr != sql.ErrNoRows {
 				logging.Danger(txErr)
@@ -149,6 +150,7 @@ func (s *store) UpdateNewChapter(ctx context.Context, comic *Comic, oldImgURL st
 		ChapUrl:     comic.ChapUrl,
 		ImgUrl:      comic.ImgUrl,
 		CloudImgUrl: comic.CloudImgUrl,
+		LastUpdate:  comic.LastUpdate,
 	})
 	if err != nil {
 		return err

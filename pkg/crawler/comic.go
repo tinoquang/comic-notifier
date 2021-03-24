@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 
@@ -110,6 +111,16 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 
 	comic.LatestChap = strings.TrimSpace(firstItem.Find(".titleComic").Text())
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
+	lastUpdate := strings.Fields(strings.TrimSpace(firstItem.Find(".views").Text()))
+	if len(lastUpdate) == 0 {
+		return util.ErrInvalidURL
+	}
+
+	comic.LastUpdate, err = time.Parse("02-01-2006", string(lastUpdate[0]))
+	if err != nil {
+		logging.Danger(err)
+		return util.ErrInvalidURL
+	}
 
 	if comic.ChapUrl != "" {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".comicDetail2#lightgallery2", "img")

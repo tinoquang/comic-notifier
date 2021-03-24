@@ -16,6 +16,7 @@ type Comic struct {
 	CloudImgUrl string
 	LatestChap  string
 	ChapUrl     string
+	LastUpdate  time.Time
 }
 
 type Subscriber struct {

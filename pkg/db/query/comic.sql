@@ -6,8 +6,9 @@ INSERT INTO comics
 	img_url,
 	cloud_img_url,
 	latest_chap,
-	chap_url)
-	VALUES ($1,$2,$3,$4,$5,$6,$7)
+	chap_url,
+	last_update)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	ON CONFLICT (url) DO NOTHING
 	RETURNING *;
 
@@ -57,7 +58,7 @@ WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC;
 
 -- name: UpdateComic :one
 UPDATE comics 
-SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5 
+SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5, last_update=$6
 WHERE id=$1
 RETURNING *;
 

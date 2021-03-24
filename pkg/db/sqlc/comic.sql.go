@@ -6,6 +6,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createComic = `-- name: CreateComic :one
@@ -16,10 +17,11 @@ INSERT INTO comics
 	img_url,
 	cloud_img_url,
 	latest_chap,
-	chap_url)
-	VALUES ($1,$2,$3,$4,$5,$6,$7)
+	chap_url,
+	last_update)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	ON CONFLICT (url) DO NOTHING
-	RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url
+	RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update
 `
 
 type CreateComicParams struct {
@@ -30,6 +32,7 @@ type CreateComicParams struct {
 	CloudImgUrl string
 	LatestChap  string
 	ChapUrl     string
+	LastUpdate  time.Time
 }
 
 func (q *Queries) CreateComic(ctx context.Context, arg CreateComicParams) (Comic, error) {
@@ -41,6 +44,7 @@ func (q *Queries) CreateComic(ctx context.Context, arg CreateComicParams) (Comic
 		arg.CloudImgUrl,
 		arg.LatestChap,
 		arg.ChapUrl,
+		arg.LastUpdate,
 	)
 	var i Comic
 	err := row.Scan(
@@ -52,6 +56,7 @@ func (q *Queries) CreateComic(ctx context.Context, arg CreateComicParams) (Comic
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }
@@ -67,7 +72,7 @@ func (q *Queries) DeleteComic(ctx context.Context, id int32) error {
 }
 
 const getComic = `-- name: GetComic :one
-SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update FROM comics
 WHERE id = $1
 `
 
@@ -83,12 +88,13 @@ func (q *Queries) GetComic(ctx context.Context, id int32) (Comic, error) {
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }
 
 const getComicByPSIDAndComicID = `-- name: GetComicByPSIDAndComicID :one
-SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url, comics.last_update FROM comics
 JOIN subscribers ON comics.id=subscribers.comic_id
 JOIN users ON users.id=subscribers.user_id
 WHERE users.psid=$1 AND comics.id=$2
@@ -111,12 +117,13 @@ func (q *Queries) GetComicByPSIDAndComicID(ctx context.Context, arg GetComicByPS
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }
 
 const getComicByPageAndComicName = `-- name: GetComicByPageAndComicName :one
-SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update FROM comics
 WHERE comics.page=$1 AND comics.name=$2
 `
 
@@ -137,12 +144,13 @@ func (q *Queries) GetComicByPageAndComicName(ctx context.Context, arg GetComicBy
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }
 
 const getComicByURL = `-- name: GetComicByURL :one
-SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update FROM comics
 WHERE url = $1
 `
 
@@ -158,12 +166,13 @@ func (q *Queries) GetComicByURL(ctx context.Context, url string) (Comic, error) 
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }
 
 const getComicForUpdate = `-- name: GetComicForUpdate :one
-SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update FROM comics
 WHERE id = $1 FOR NO KEY UPDATE
 `
 
@@ -179,13 +188,14 @@ func (q *Queries) GetComicForUpdate(ctx context.Context, id int32) (Comic, error
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }
 
 const listComics = `-- name: ListComics :many
 
-SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url FROM comics
+SELECT id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update FROM comics
 ORDER BY id DESC
 `
 
@@ -209,6 +219,7 @@ func (q *Queries) ListComics(ctx context.Context) ([]Comic, error) {
 			&i.CloudImgUrl,
 			&i.LatestChap,
 			&i.ChapUrl,
+			&i.LastUpdate,
 		); err != nil {
 			return nil, err
 		}
@@ -225,7 +236,7 @@ func (q *Queries) ListComics(ctx context.Context) ([]Comic, error) {
 
 const listComicsPerUser = `-- name: ListComicsPerUser :many
 
-SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url, comics.last_update FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id 
 WHERE subscribers.user_id=$1 ORDER BY subscribers.created_at DESC
 `
@@ -250,6 +261,7 @@ func (q *Queries) ListComicsPerUser(ctx context.Context, userID int32) ([]Comic,
 			&i.CloudImgUrl,
 			&i.LatestChap,
 			&i.ChapUrl,
+			&i.LastUpdate,
 		); err != nil {
 			return nil, err
 		}
@@ -265,7 +277,7 @@ func (q *Queries) ListComicsPerUser(ctx context.Context, userID int32) ([]Comic,
 }
 
 const searchComicOfUserByName = `-- name: SearchComicOfUserByName :many
-SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url FROM comics
+SELECT comics.id, comics.page, comics.name, comics.url, comics.img_url, comics.cloud_img_url, comics.latest_chap, comics.chap_url, comics.last_update FROM comics
 LEFT JOIN subscribers ON comics.id=subscribers.comic_id
 WHERE subscribers.user_id=$1
 AND (comics.name ILIKE $2 or unaccent(comics.name) ILIKE $2)
@@ -295,6 +307,7 @@ func (q *Queries) SearchComicOfUserByName(ctx context.Context, arg SearchComicOf
 			&i.CloudImgUrl,
 			&i.LatestChap,
 			&i.ChapUrl,
+			&i.LastUpdate,
 		); err != nil {
 			return nil, err
 		}
@@ -312,9 +325,9 @@ func (q *Queries) SearchComicOfUserByName(ctx context.Context, arg SearchComicOf
 const updateComic = `-- name: UpdateComic :one
 
 UPDATE comics 
-SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5 
+SET latest_chap=$2, chap_url=$3, img_url=$4, cloud_img_url=$5, last_update=$6
 WHERE id=$1
-RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url
+RETURNING id, page, name, url, img_url, cloud_img_url, latest_chap, chap_url, last_update
 `
 
 type UpdateComicParams struct {
@@ -323,6 +336,7 @@ type UpdateComicParams struct {
 	ChapUrl     string
 	ImgUrl      string
 	CloudImgUrl string
+	LastUpdate  time.Time
 }
 
 // LIMIT $2
@@ -334,6 +348,7 @@ func (q *Queries) UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic
 		arg.ChapUrl,
 		arg.ImgUrl,
 		arg.CloudImgUrl,
+		arg.LastUpdate,
 	)
 	var i Comic
 	err := row.Scan(
@@ -345,6 +360,7 @@ func (q *Queries) UpdateComic(ctx context.Context, arg UpdateComicParams) (Comic
 		&i.CloudImgUrl,
 		&i.LatestChap,
 		&i.ChapUrl,
+		&i.LastUpdate,
 	)
 	return i, err
 }

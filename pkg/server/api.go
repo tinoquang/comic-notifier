@@ -88,7 +88,7 @@ func (a *API) Users(ctx echo.Context) error {
 		}
 
 		logging.Danger(err)
-		return ctx.NoContent(http.StatusInternalServerError)
+		return ctx.JSON(http.StatusOK, &userPage)
 	}
 
 	for i := range users {

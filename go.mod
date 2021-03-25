@@ -7,6 +7,7 @@ require (
 	cloud.google.com/go/storage v1.10.0
 	firebase.google.com/go/v4 v4.1.0
 	github.com/PuerkitoBio/goquery v1.6.0
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/deepmap/oapi-codegen v1.4.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/getkin/kin-openapi v0.30.0

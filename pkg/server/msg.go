@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/asaskevich/govalidator"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
@@ -39,11 +40,11 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 		return
 	}
 
-	// comicURL, err := url.Parse(text)
-	// if err != nil {
-	// 	sendTextBack(senderID, "Cú pháp chưa chính xác")
-	// 	m.responseCommand(ctx, senderID, "")
-	// }
+	if valid := govalidator.IsURL(text); !valid {
+		sendTextBack(senderID, "Cú pháp chưa chính xác")
+		m.responseCommand(ctx, senderID, "")
+		return
+	}
 
 	comic, err := m.SubscribeComic(ctx, senderID, text)
 	if err != nil {
@@ -53,7 +54,7 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 			// Upload image API is busy
 			sendTextBack(senderID, "Đăng ký không thành công, hãy thử lại sau nhé!") // handle later: get time delay and send back to user
 		} else if err == util.ErrPageNotSupported {
-			sendTextBack(senderID, "Trang truyện hiện tại chưa hỗ trợ")
+			sendTextBack(senderID, "Trang truyện này chưa được hỗ trợ, dùng lệnh /page để xem các trang tôi hỗ trợ")
 			m.responseCommand(ctx, senderID, "/page")
 		} else if err == util.ErrInvalidURL {
 			sendTextBack(senderID, "Đường dẫn chưa chính xác, hãy xem qua hướng dẫn bằng lệnh /tutor")
@@ -64,9 +65,12 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 	}
 
 	// send back message in template with bDnDwauttons
-	sendNormalReply(senderID, comic)
 	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s thành công", comic.Name))
-	sendTextBack(senderID, "Nếu muốn hủy nhận thông báo cho truyện này, click Hủy đăng ký ở trên")
+
+	sendActionBack(senderID, "typing_on")
+	delayMS(500)
+	sendNormalReply(senderID, comic)
+
 }
 
 // HandlePostback handle messages when user click "Unsubsribe button"
@@ -148,31 +152,26 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	if len(users) == 0 {
 		m.store.RemoveComic(ctx, c.ID)
 	}
-	sendTextBack(senderID, fmt.Sprintf("Đã hủy đăng ký truyện %s", c.Name))
+	sendTextBack(senderID, fmt.Sprintf("Hủy đăng ký %s thành công", c.Name))
 
 }
 
 func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 
 	switch text {
-	case "/start":
-		sendTextBack(senderID, "Để đăng kí, hãy gởi cho tôi link truyện bạn muốn nhận thông báo")
-		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trang blogtruyen.vn")
-		sendTextBack(senderID, "Chỉ cần copy đường dẫn sau và gởi cho BOT")
-		sendTextBack(senderID, "https://blogtruyen.vn/139/one-piece")
 	case "/list":
 		user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
 		if err != nil {
 			logging.Danger(err)
 			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
-			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /start và làm theo hướng dẫn ")
+			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /tutor và làm theo hướng dẫn ")
 			return
 		}
 
 		comics, err := m.store.ListComicsPerUser(ctx, user.ID)
 		if err != nil || len(comics) == 0 {
 			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
-			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /start và làm theo hướng dẫn ")
+			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /tutor và làm theo hướng dẫn ")
 		} else {
 			sendTextBack(senderID, fmt.Sprintf("Bạn đã đăng ký nhận thông báo cho %d truyện", len(comics)))
 			sendTextBack(senderID, "Xem chi tiết tại www.cominify-bot.xyz")
@@ -186,9 +185,10 @@ truyentranhtuan.com
 truyenqq.com
 hocvientruyentranh.net`)
 	case "/tutor":
-		sendTextBack(senderID, `Bạn có thể xem hướng dẫn tại:
-www.cominify-bot.xyz/tutorial`)
-		sendTextBack(senderID, "Hoặc dùng lệnh /start và làm theo hướng dẫn")
+		sendTextBack(senderID, "Để đăng kí, hãy gởi cho tôi link truyện bạn muốn nhận thông báo")
+		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trang blogtruyen.vn")
+		sendTextBack(senderID, "Chỉ cần copy đường dẫn sau và gởi cho BOT")
+		sendTextBack(senderID, "https://blogtruyen.vn/139/one-piece")
 	default:
 		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
 - /list:  xem các truyện đã đăng kí

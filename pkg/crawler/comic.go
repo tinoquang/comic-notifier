@@ -85,7 +85,7 @@ func (c *comicCrawler) crawl(ctx context.Context, comicURL string) (comic db.Com
 		if strings.Contains(err.Error(), "Timeout") {
 			return db.Comic{}, util.ErrCrawlTimeout
 		}
-		return db.Comic{}, util.ErrInvalidURL
+		return db.Comic{}, util.ErrCrawlFailed
 	}
 
 	comic = db.Comic{
@@ -106,20 +106,20 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 	// Find latest chap
 	firstItem := doc.Find(".listChapters").Find(".list").Find("li:nth-child(1)")
 	if firstItem.Nodes == nil {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = strings.TrimSpace(firstItem.Find(".titleComic").Text())
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
 	lastUpdate := strings.Fields(strings.TrimSpace(firstItem.Find(".views").Text()))
 	if len(lastUpdate) == 0 {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LastUpdate, err = time.Parse("02-01-2006", string(lastUpdate[0]))
 	if err != nil {
 		logging.Danger(err)
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	if comic.ChapUrl != "" {
@@ -147,7 +147,7 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 	firstItem := doc.Find(".list-wrap#list-chapters").Find("p:nth-child(1)")
 	if firstItem.Nodes == nil {
 		logging.Danger(err)
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = firstItem.Find(".title").Find("a[href]").Text()
@@ -178,7 +178,7 @@ func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *db.Comic, he
 	// Find latest chap
 	firstItem := doc.Find(".chapter-list").Find(".row:nth-child(1)")
 	if firstItem.Nodes == nil {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = firstItem.Find("span:nth-child(1)").Text()
@@ -206,7 +206,7 @@ func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.
 	// Find latest chap
 	firstItem := doc.Find("#manga-chapter").Find(".chapter-name").First()
 	if firstItem.Nodes == nil {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = firstItem.Find("a[href]").Text()
@@ -233,7 +233,7 @@ func crawlTruyentranhnet(ctx context.Context, doc *goquery.Document, comic *db.C
 	// Find latest chap
 	firstItem := doc.Find(".chapter-list").Find(".chapter-select").First()
 	if firstItem.Nodes == nil {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = firstItem.Find("a[href]").Text()
@@ -259,7 +259,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, 
 	// Find latest chap
 	firstItem := doc.Find(".works-chapter-list").Find(".works-chapter-item.row").First()
 	if firstItem.Nodes == nil {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = firstItem.Find("a[href]").Text()
@@ -285,7 +285,7 @@ func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *
 	// Find latest chap
 	firstItem := doc.Find("tbody").Find("tr").First()
 	if firstItem.Nodes == nil {
-		return util.ErrInvalidURL
+		return util.ErrCrawlFailed
 	}
 
 	comic.LatestChap = firstItem.Find("a[href]").Text()

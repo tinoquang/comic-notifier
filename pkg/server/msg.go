@@ -66,7 +66,6 @@ func (m *MSG) HandleTxtMsg(ctx context.Context, senderID, text string) {
 
 	// send back message in template with bDnDwauttons
 	sendTextBack(senderID, fmt.Sprintf("Đăng ký truyện %s thành công", comic.Name))
-
 	sendActionBack(senderID, "typing_on")
 	delayMS(500)
 	sendNormalReply(senderID, comic)
@@ -107,8 +106,17 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 // HandleQuickReply handle messages when user click "Yes" to confirm unsubscribe action
 func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 
+	sendActionBack(senderID, "mark_seen")
+	sendActionBack(senderID, "typing_on")
+	defer sendActionBack(senderID, "typing_off")
+
 	if payload == "Not unsub" {
 		sendActionBack(senderID, "mark_seen")
+		return
+	}
+
+	if payload[0] == '/' {
+		m.responseCommand(ctx, senderID, payload)
 		return
 	}
 
@@ -162,16 +170,13 @@ func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 	case "/list":
 		user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
 		if err != nil {
-			logging.Danger(err)
-			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
-			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /tutor và làm theo hướng dẫn ")
+			sendTutor(senderID)
 			return
 		}
 
 		comics, err := m.store.ListComicsPerUser(ctx, user.ID)
 		if err != nil || len(comics) == 0 {
-			sendTextBack(senderID, "Bạn chưa đăng ký nhận thông báo cho truyện nào")
-			sendTextBack(senderID, "Nếu chưa biết cách đăng ký truyện hãy dùng lệnh /tutor và làm theo hướng dẫn ")
+			sendTutor(senderID)
 		} else {
 			sendTextBack(senderID, fmt.Sprintf("Bạn đã đăng ký nhận thông báo cho %d truyện", len(comics)))
 			sendTextBack(senderID, "Xem chi tiết tại www.cominify-bot.xyz")
@@ -190,10 +195,7 @@ hocvientruyentranh.net`)
 		sendTextBack(senderID, "Chỉ cần copy đường dẫn sau và gởi cho BOT")
 		sendTextBack(senderID, "https://blogtruyen.vn/139/one-piece")
 	default:
-		sendTextBack(senderID, `Các lệnh tối hỗ trợ:
-- /list:  xem các truyện đã đăng kí
-- /page:  xem các trang web hiện tại BOT hỗ trợ
-- /tutor: xem hướng dẫn`)
+		sendSupportCommand(senderID)
 	}
 
 	return
@@ -203,12 +205,7 @@ func (m *MSG) reponseGetStarted(ctx context.Context, senderID string) {
 
 	sendTextBack(senderID, "Welcome to Comic Notify Bot!")
 	sendTextBack(senderID, "Tôi là chatbot giúp theo dõi truyện tranh và thông báo mỗi khi truyện có chapter mới")
-	sendTextBack(senderID, `Các lệnh tối hỗ trợ:
-- /list:  xem các truyện đã đăng kí
-- /page:  xem các trang web hiện tại BOT hỗ trợ
-- /tutor: xem hướng dẫn`)
-
-	// m.responseCommand(ctx, senderID, "/start")
+	sendSupportCommand(senderID)
 	return
 }
 

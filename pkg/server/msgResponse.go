@@ -39,7 +39,9 @@ type Attachment struct {
 // Payload : attachment content, usually image, button, ...
 type Payload struct {
 	TemplateType string    `json:"template_type,omitempty"`
+	Text         string    `json:"text,omitempty"`
 	Elements     []Element `json:"elements,omitempty"`
+	Buttons      []Button  `json:"buttons,omitempty"`
 }
 
 // Element : template elements
@@ -81,45 +83,90 @@ type User struct {
 func delayMS(second int) {
 	time.Sleep(time.Duration(second) * time.Millisecond)
 }
-func sendTextBack(senderid, message string) {
+func sendTextBack(senderID, message string) {
 
-	sendActionBack(senderid, "mark_seen")
-	sendActionBack(senderid, "typing_on")
-	delayMS(300)
+	sendActionBack(senderID, "mark_seen")
+	sendActionBack(senderID, "typing_on")
+	// delayMS(200)
 
-	defer sendActionBack(senderid, "typing_off")
+	defer sendActionBack(senderID, "typing_off")
 
 	res := &Response{
 		Type:      "RESPONSE",
-		Recipient: &User{ID: senderid},
+		Recipient: &User{ID: senderID},
 		Message:   &RespMsg{Text: message},
 	}
 
 	callSendAPI(res)
 }
 
-func sendActionBack(senderid, action string) {
+func sendActionBack(senderID, action string) {
 
 	res := &Response{
 		Type:      "RESPONSE",
-		Recipient: &User{ID: senderid},
+		Recipient: &User{ID: senderID},
 		Action:    action,
 	}
 
 	callSendAPI(res)
 }
 
-// func sendTextWithButtonBack(senderid, message string) {
+func sendTutor(senderID string) {
+	response := &Response{
+		Recipient: &User{ID: senderID},
+		Type:      "RESPONSE",
+		Message: &RespMsg{
+			Text: `Bạn chưa đăng ký nhận thông báo cho truyện nào, nếu chưa biết đăng ký hãy xem qua hướng dẫn`,
+			Options: []QuickReply{
+				{
+					Type:    "text",
+					Title:   "/tutor",
+					Payload: "/tutor",
+				},
+			},
+		},
+	}
+	callSendAPI(response)
+}
 
-// 	sendTextBack(senderID, "Xem danh sách truyện đã đăng kí ở đường dẫn sau:")
-// 	sendTextBack(senderID, "www.cominify-bot.xyz")
-// }
-
-// Use to send message within 24-hour window of FACEBOOK policy
-func sendNormalReply(senderid string, comic *db.Comic) {
+func sendSupportCommand(senderID string) {
 
 	response := &Response{
-		Recipient: &User{ID: senderid},
+		Recipient: &User{ID: senderID},
+		Type:      "RESPONSE",
+		Message: &RespMsg{
+			Text: `Các lệnh tối hỗ trợ:
+- /tutor: hướng dẫn đăng ký truyện,
+- /list:  xem các truyện đã đăng kí
+- /page:  xem các trang web hiện tại BOT hỗ trợ`,
+
+			Options: []QuickReply{
+				{
+					Type:    "text",
+					Title:   "/tutor",
+					Payload: "/tutor",
+				},
+				{
+					Type:    "text",
+					Title:   "/list",
+					Payload: "/list",
+				},
+				{
+					Type:    "text",
+					Title:   "/page",
+					Payload: "/page",
+				},
+			},
+		},
+	}
+	callSendAPI(response)
+}
+
+// Use to send message within 24-hour window of FACEBOOK policy
+func sendNormalReply(senderID string, comic *db.Comic) {
+
+	response := &Response{
+		Recipient: &User{ID: senderID},
 		Message: &RespMsg{
 			Template: &Attachment{
 				Type: "template",
@@ -156,10 +203,10 @@ func sendNormalReply(senderid string, comic *db.Comic) {
 	callSendAPI(response)
 }
 
-func sendMsgTagsReply(senderid string, comic *db.Comic) {
+func sendMsgTagsReply(senderID string, comic *db.Comic) {
 
 	response := &Response{
-		Recipient: &User{ID: senderid},
+		Recipient: &User{ID: senderID},
 		Message: &RespMsg{
 			Template: &Attachment{
 				Type: "template",
@@ -199,11 +246,11 @@ func sendMsgTagsReply(senderid string, comic *db.Comic) {
 	return
 }
 
-func sendQuickReplyChoice(senderid string, comic db.Comic) {
+func sendQuickReplyChoice(senderID string, comic db.Comic) {
 
 	// send back quick reply "Are you sure ?" for user to confirm
 	response := &Response{
-		Recipient: &User{ID: senderid},
+		Recipient: &User{ID: senderID},
 		Type:      "RESPONSE",
 		Message: &RespMsg{
 			Text: fmt.Sprintf("Bạn chắc chắn muốn hủy đăng ký truyện %s ?", comic.Name),
@@ -252,11 +299,14 @@ func callSendAPI(r *Response) {
 	client := http.Client{}
 
 	// Send POST message to FACEBOOK API
-	_, err = client.Do(request)
+	resp, err := client.Do(request)
 	if err != nil {
 		logging.Danger(err)
 	}
 
+	if resp.StatusCode != 200 {
+		logging.Danger("Error call send API, resp status", resp.Status)
+	}
 	// defer resp.Body.Close()
 	// respBody, err := ioutil.ReadAll(resp.Body)
 	// if err != nil {

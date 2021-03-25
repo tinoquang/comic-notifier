@@ -184,7 +184,8 @@ func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 			sendTutor(senderID)
 		} else {
 			sendTextBack(senderID, fmt.Sprintf("Bạn đã đăng ký nhận thông báo cho %d truyện", len(comics)))
-			sendTextBack(senderID, "Xem chi tiết tại: www.cominify-bot.xyz")
+			sendTextBack(senderID, `Xem chi tiết tại
+www.cominify-bot.xyz`)
 		}
 	case "/page":
 		sendTextBack(senderID, `Các trạng hiện tại tôi hỗ trợ:
@@ -202,7 +203,8 @@ Vd: https://blogtruyen.vn/139/one-piece
 
 (Hãy thử copy đường link trên và gởi cho BOT)`)
 		sendTextBack(senderID, "Nhớ dùng lệnh /page để xem các trang BOT hỗ trợ nhé")
-		sendTextBack(senderID, "Xem chi tiết tại: www.cominify-bot.xyz/tutorial")
+		sendTextBack(senderID, `Xem chi tiết tại
+www.cominify-bot.xyz/tutorial`)
 	default:
 		sendSupportCommand(senderID)
 	}

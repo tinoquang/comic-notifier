@@ -84,6 +84,11 @@ func (m *MSG) HandlePostback(ctx context.Context, senderID, payload string) {
 		return
 	}
 
+	if payload[0] == '/' {
+		m.responseCommand(ctx, senderID, payload)
+		return
+	}
+
 	comicID, _ := strconv.Atoi(payload)
 	comic, err := m.store.GetComicByPSIDAndComicID(ctx, db.GetComicByPSIDAndComicIDParams{
 		Psid: sql.NullString{String: senderID, Valid: true},
@@ -179,7 +184,7 @@ func (m *MSG) responseCommand(ctx context.Context, senderID, text string) {
 			sendTutor(senderID)
 		} else {
 			sendTextBack(senderID, fmt.Sprintf("Bạn đã đăng ký nhận thông báo cho %d truyện", len(comics)))
-			sendTextBack(senderID, "Xem chi tiết tại www.cominify-bot.xyz")
+			sendTextBack(senderID, "Xem chi tiết tại: www.cominify-bot.xyz")
 		}
 	case "/page":
 		sendTextBack(senderID, `Các trạng hiện tại tôi hỗ trợ:
@@ -190,10 +195,14 @@ truyentranhtuan.com
 truyenqq.com
 hocvientruyentranh.net`)
 	case "/tutor":
-		sendTextBack(senderID, "Để đăng kí, hãy gởi cho tôi link truyện bạn muốn nhận thông báo")
-		sendTextBack(senderID, "Ví dụ : Bạn muốn nhận thông báo cho truyện Onepiece ở trang blogtruyen.vn")
-		sendTextBack(senderID, "Chỉ cần copy đường dẫn sau và gởi cho BOT")
-		sendTextBack(senderID, "https://blogtruyen.vn/139/one-piece")
+		sendTextBack(senderID, `Để đăng kí, hãy gởi cho tôi link truyện bạn muốn nhận thông báo
+
+Vd: https://blogtruyen.vn/139/one-piece
+
+
+(Hãy thử copy đường link trên và gởi cho BOT)`)
+		sendTextBack(senderID, "Nhớ dùng lệnh /page để xem các trang BOT hỗ trợ nhé")
+		sendTextBack(senderID, "Xem chi tiết tại: www.cominify-bot.xyz/tutorial")
 	default:
 		sendSupportCommand(senderID)
 	}

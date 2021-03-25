@@ -87,7 +87,7 @@ func sendTextBack(senderID, message string) {
 
 	sendActionBack(senderID, "mark_seen")
 	sendActionBack(senderID, "typing_on")
-	// delayMS(200)
+	delayMS(300)
 
 	defer sendActionBack(senderID, "typing_off")
 
@@ -136,7 +136,7 @@ func sendSupportCommand(senderID string) {
 		Type:      "RESPONSE",
 		Message: &RespMsg{
 			Text: `Các lệnh tối hỗ trợ:
-- /tutor: hướng dẫn đăng ký truyện,
+- /tutor: hướng dẫn đăng ký truyện
 - /list:  xem các truyện đã đăng kí
 - /page:  xem các trang web hiện tại BOT hỗ trợ`,
 

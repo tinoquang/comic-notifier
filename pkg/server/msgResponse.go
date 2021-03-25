@@ -87,7 +87,7 @@ func sendTextBack(senderID, message string) {
 
 	sendActionBack(senderID, "mark_seen")
 	sendActionBack(senderID, "typing_on")
-	delayMS(300)
+	delayMS(1000)
 
 	defer sendActionBack(senderID, "typing_off")
 

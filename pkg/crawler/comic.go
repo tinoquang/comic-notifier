@@ -194,6 +194,19 @@ func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.
 	comic.LatestChap = firstItem.Find("a[href]").Text()
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
 
+	lastUpdate := doc.Find("#manga-chapter").Find(".date-name").First().Text()
+
+	// lastUpdate := strings.Fields(strings.TrimSpace(firstItem.Find(".publishedDate").Text()))
+	if len(lastUpdate) == 0 {
+		return util.ErrCrawlFailed
+	}
+
+	comic.LastUpdate, err = time.Parse("02.01.2006", string(lastUpdate))
+	if err != nil {
+		logging.Danger(err)
+		return util.ErrCrawlFailed
+	}
+
 	// Page is load by JS, can't get by just using HTTP.Get --> resolve later
 	// if comic.ChapUrl != "" {
 	// 	err = helper.detectSpoiler(comic.ChapUrl, ".vung_doc", "img")

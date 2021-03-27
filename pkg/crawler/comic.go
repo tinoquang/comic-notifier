@@ -79,7 +79,6 @@ func (c *comicCrawler) crawl(ctx context.Context, comicURL string) (comic db.Com
 	parsedURL.RawQuery = ""
 	comicURL = parsedURL.String()
 
-	logging.Info(comicURL)
 	if parsedURL.Hostname() == "truyentranh.net" {
 		comicURL += "?order=desc"
 	}
@@ -247,8 +246,6 @@ func crawlTruyentranhnet(ctx context.Context, doc *goquery.Document, comic *db.C
 		return util.ErrCrawlFailed
 	}
 
-	logging.Info(comic.LastUpdate)
-
 	if comic.ChapUrl != "" {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".manga-reading-box", "img")
 		if err != nil {
@@ -274,6 +271,17 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, 
 
 	comic.LatestChap = firstItem.Find("a[href]").Text()
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
+
+	lastUpdate := strings.TrimSpace(firstItem.Find(".text-right").Text())
+	if len(lastUpdate) == 0 {
+		return util.ErrCrawlFailed
+	}
+
+	comic.LastUpdate, err = time.Parse("02/01/2006", string(lastUpdate))
+	if err != nil {
+		logging.Danger(err)
+		return util.ErrCrawlFailed
+	}
 
 	if comic.ChapUrl != "" {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".story-see-content", "img")

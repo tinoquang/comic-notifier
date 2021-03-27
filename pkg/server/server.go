@@ -111,7 +111,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 			continue
 		}
 
-		if c.Page == "beeng.net" {
+		if c.Page != "hocvientruyentranh.net" {
 			if c.LastUpdate.Sub(oldComic.LastUpdate) < 0 {
 				cancel()
 				continue

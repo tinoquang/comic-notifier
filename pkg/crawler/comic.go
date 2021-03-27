@@ -111,6 +111,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 
 	comic.LatestChap = strings.TrimSpace(firstItem.Find(".titleComic").Text())
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
+
 	lastUpdate := strings.Fields(strings.TrimSpace(firstItem.Find(".views").Text()))
 	if len(lastUpdate) == 0 {
 		return util.ErrCrawlFailed
@@ -155,6 +156,17 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 
 	comic.ChapUrl = "https://blogtruyen.vn" + comic.ChapUrl
 
+	lastUpdate := strings.Fields(strings.TrimSpace(firstItem.Find(".publishedDate").Text()))
+	if len(lastUpdate) == 0 {
+		return util.ErrCrawlFailed
+	}
+
+	comic.LastUpdate, err = time.Parse("02/01/2006", string(lastUpdate[0]))
+	if err != nil {
+		logging.Danger(err)
+		return util.ErrCrawlFailed
+	}
+
 	if comic.ChapUrl != "" {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, "#content", "img[src]")
 		if err != nil {
@@ -167,36 +179,6 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */
-
-// mangaK crawler
-func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
-
-	comic.Name = doc.Find(".entry-title").Text()
-	comic.ImgUrl, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
-	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
-
-	// Find latest chap
-	firstItem := doc.Find(".chapter-list").Find(".row:nth-child(1)")
-	if firstItem.Nodes == nil {
-		return util.ErrCrawlFailed
-	}
-
-	comic.LatestChap = firstItem.Find("span:nth-child(1)").Text()
-	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
-
-	if comic.ChapUrl != "" {
-		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".vung_doc", "img")
-		if err != nil {
-			return
-		}
-	}
-
-	err = verifyComic(comic)
-	return
-}
-
-/* ---------------------------------------------------------------------------------------------------- */
-
 func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
 
 	comic.Name = doc.Find("#infor-box").Find("h1").Text()
@@ -322,3 +304,30 @@ func verifyComic(comic *db.Comic) (err error) {
 
 	return
 }
+
+// mangaK crawler: work on this one later
+// func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+
+// 	comic.Name = doc.Find(".entry-title").Text()
+// 	comic.ImgUrl, _ = doc.Find(".info_image").Find("img[src]").Attr("src")
+// 	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
+
+// 	// Find latest chap
+// 	firstItem := doc.Find(".chapter-list").Find(".row:nth-child(1)")
+// 	if firstItem.Nodes == nil {
+// 		return util.ErrCrawlFailed
+// 	}
+
+// 	comic.LatestChap = firstItem.Find("span:nth-child(1)").Text()
+// 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
+
+// 	if comic.ChapUrl != "" {
+// 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".vung_doc", "img")
+// 		if err != nil {
+// 			return
+// 		}
+// 	}
+
+// 	err = verifyComic(comic)
+// 	return
+// }

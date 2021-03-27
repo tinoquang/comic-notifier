@@ -62,11 +62,6 @@ func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic
 		return
 	}()
 
-	return c.crawl(ctx, comicURL)
-}
-
-func (c *comicCrawler) crawl(ctx context.Context, comicURL string) (comic db.Comic, err error) {
-
 	parsedURL, err := url.Parse(comicURL)
 	if err != nil || parsedURL.Host == "" {
 		return db.Comic{}, util.ErrInvalidURL
@@ -76,6 +71,7 @@ func (c *comicCrawler) crawl(ctx context.Context, comicURL string) (comic db.Com
 		return db.Comic{}, util.ErrPageNotSupported
 	}
 
+	// Remove all params in comicURL --> avoid duplicate URL
 	parsedURL.RawQuery = ""
 	comicURL = parsedURL.String()
 
@@ -97,6 +93,12 @@ func (c *comicCrawler) crawl(ctx context.Context, comicURL string) (comic db.Com
 	}
 
 	err = c.crawlerMap[parsedURL.Hostname()](ctx, doc, &comic, c.crawlHelper)
+	if err != nil {
+		logging.Danger(err)
+		return
+	}
+
+	err = verifyComic(&comic)
 	return
 }
 
@@ -133,7 +135,6 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 		}
 	}
 
-	err = verifyComic(comic)
 	return
 }
 
@@ -177,7 +178,6 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 		}
 	}
 
-	err = verifyComic(comic)
 	return
 }
 
@@ -216,7 +216,6 @@ func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.
 	// 	}
 	// }
 
-	err = verifyComic(comic)
 	return
 }
 
@@ -253,7 +252,6 @@ func crawlTruyentranhnet(ctx context.Context, doc *goquery.Document, comic *db.C
 		}
 	}
 
-	err = verifyComic(comic)
 	return
 }
 
@@ -290,7 +288,6 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, 
 		}
 	}
 
-	err = verifyComic(comic)
 	return
 }
 
@@ -316,13 +313,20 @@ func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *
 		}
 	}
 
-	err = verifyComic(comic)
 	return
 }
 
 func verifyComic(comic *db.Comic) (err error) {
 
 	err = util.ErrCrawlFailed
+
+	if comic.Page != "hocvientruyentranh.net" {
+		if comic.LastUpdate.IsZero() {
+			logging.Danger("Comic date is missing, url", comic.Url)
+			return util.ErrCrawlFailed
+		}
+	}
+
 	switch {
 	case comic.Name == "":
 		logging.Danger("Comic name is missing, url", comic.Url)

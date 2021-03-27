@@ -56,14 +56,11 @@ func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic
 			}
 		}
 
-		if err != nil {
-			logging.Danger(err)
-		}
 		return
 	}()
 
 	parsedURL, err := url.Parse(comicURL)
-	if err != nil || parsedURL.Host == "" {
+	if err != nil /*|| parsedURL.Host == "" */ {
 		return db.Comic{}, util.ErrInvalidURL
 	}
 
@@ -94,7 +91,6 @@ func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic
 
 	err = c.crawlerMap[parsedURL.Hostname()](ctx, doc, &comic, c.crawlHelper)
 	if err != nil {
-		logging.Danger(err)
 		return
 	}
 

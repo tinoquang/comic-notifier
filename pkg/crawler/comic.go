@@ -2,11 +2,12 @@ package crawler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/PuerkitoBio/goquery"
 
@@ -314,28 +315,26 @@ func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *
 
 func verifyComic(comic *db.Comic) (err error) {
 
-	err = util.ErrCrawlFailed
+	err = nil
+	switch {
+	case comic.Name == "":
+		return errors.Errorf("Comic name is missing, url = %s", comic.Url)
+	case comic.ChapUrl == "":
+		return errors.Errorf("Comic chapURL is missing, url = %s", comic.Url)
+	case comic.ImgUrl == "":
+		return errors.Errorf("Comic ImgUrl is missing, url = %s", comic.Url)
+	case comic.CloudImgUrl == "":
+		return errors.Errorf("Comic cloudImgUrl is missing, url = %s", comic.Url)
+	case comic.LatestChap == "":
+		return errors.Errorf("Comic latestchap is missing, url = %s", comic.Url)
+	default:
+		err = nil
+	}
 
 	if comic.Page != "hocvientruyentranh.net" {
 		if comic.LastUpdate.IsZero() {
-			logging.Danger("Comic date is missing, url", comic.Url)
-			return util.ErrCrawlFailed
+			return errors.Errorf("Comic date is missing, url = %s", comic.Url)
 		}
-	}
-
-	switch {
-	case comic.Name == "":
-		logging.Danger("Comic name is missing, url", comic.Url)
-	case comic.ChapUrl == "":
-		logging.Danger("Comic chapURL is missing, url", comic.Url)
-	case comic.ImgUrl == "":
-		logging.Danger("Comic ImgUrl is missing, url", comic.Url)
-	case comic.CloudImgUrl == "":
-		logging.Danger("Comic cloudImgUrl is missing, url", comic.Url)
-	case comic.LatestChap == "":
-		logging.Danger("Comic latestchap is missing, url", comic.Url)
-	default:
-		err = nil
 	}
 
 	return

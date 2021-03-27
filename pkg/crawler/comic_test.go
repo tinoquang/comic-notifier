@@ -4,11 +4,13 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/tinoquang/comic-notifier/pkg/conf"
+	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 )
 
 type comicData struct {
@@ -146,5 +148,36 @@ func TestDetectSpolierFailed(t *testing.T) {
 
 		assert.EqualError(t, err, "Check spoiler failed")
 	}
+
+}
+
+func TestVerifycomic(t *testing.T) {
+
+	comic := db.Comic{}
+
+	assert.Contains(t, verifyComic(&comic).Error(), "Comic name is missing")
+
+	comic.Name = "name"
+	assert.Contains(t, verifyComic(&comic).Error(), "Comic chapURL is missing")
+
+	comic.ChapUrl = "chapUrl"
+	assert.Contains(t, verifyComic(&comic).Error(), "Comic ImgUrl is missing")
+
+	comic.ImgUrl = "imgUrl"
+	assert.Contains(t, verifyComic(&comic).Error(), "Comic cloudImgUrl is missing")
+
+	comic.CloudImgUrl = "CloudImgUrl"
+	assert.Contains(t, verifyComic(&comic).Error(), "Comic latestchap is missing")
+
+	comic.LatestChap = "latestChap"
+
+	comic.Page = "hocvientruyentranh.net"
+	assert.Nil(t, verifyComic(&comic))
+
+	comic.Page = "beeng.net"
+	assert.Contains(t, verifyComic(&comic).Error(), "Comic date is missing")
+
+	comic.LastUpdate = time.Now()
+	assert.Nil(t, verifyComic(&comic))
 
 }

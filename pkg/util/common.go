@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/valyala/fasthttp"
 )
@@ -42,7 +43,7 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	}
 	if resp.StatusCode() != fasthttp.StatusOK {
 		logging.Danger("Expected status code %d but got %d\n", fasthttp.StatusOK, resp.StatusCode())
-		return
+		return nil, errors.Errorf("Failed to send request")
 	}
 
 	respBody = resp.Body()

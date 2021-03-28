@@ -19,35 +19,40 @@ type comicData struct {
 }
 
 type mockHelper struct {
-	testData string
+	testData          string
+	detectSpoilerMock func() error
+	getPageSourceMock func(testData string) (*goquery.Document, error)
 }
-
-var detectSpoilerMock func() error
 
 func (m mockHelper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
 
-	return detectSpoilerMock()
+	return m.detectSpoilerMock()
 }
 
 func (m mockHelper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
-	f, err := os.Open(m.testData)
+	return m.getPageSourceMock(m.testData)
+}
+
+func readTestFile(path string) (*goquery.Document, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
-	doc, err = goquery.NewDocumentFromReader(f)
+	doc, err := goquery.NewDocumentFromReader(f)
 	if err != nil {
 		return nil, err
 	}
 
-	return
+	return doc, err
 }
 
 func TestInvalidURL(t *testing.T) {
 
 	mockBeeng := mockHelper{
-		testData: "",
+		testData:          "",
+		getPageSourceMock: readTestFile,
 	}
 
 	conf.Init()
@@ -57,9 +62,44 @@ func TestInvalidURL(t *testing.T) {
 	assert.EqualError(t, err, "Page is not supported yet")
 }
 
+func TestGetPageSourceTimeout(t *testing.T) {
+
+	mockBeeng := mockHelper{
+		testData: "",
+		getPageSourceMock: func(testData string) (*goquery.Document, error) {
+			return nil, errors.Errorf("Timeout")
+		},
+	}
+
+	conf.Init()
+	c := newComicCrawler(mockBeeng)
+
+	_, err := c.GetComicInfo(context.Background(), "https://beeng.net")
+	assert.EqualError(t, err, "Time out when crawl comic")
+
+}
+
+func TestGetPageSourceFailed(t *testing.T) {
+
+	mockBeeng := mockHelper{
+		testData: "",
+		getPageSourceMock: func(testData string) (*goquery.Document, error) {
+			return nil, errors.Errorf("Failed")
+		},
+	}
+
+	conf.Init()
+	c := newComicCrawler(mockBeeng)
+
+	_, err := c.GetComicInfo(context.Background(), "https://beeng.net")
+	assert.EqualError(t, err, "Crawl failed")
+
+}
+
 func TestCrawlComic(t *testing.T) {
 
 	conf.Init()
+
 	comicTests := []comicData{
 		{
 			URL:      "https://beeng.net/dao-hai-tac-31953.html",
@@ -83,21 +123,73 @@ func TestCrawlComic(t *testing.T) {
 		},
 	}
 
-	// Testing with dectectSpolier return true
-	detectSpoilerMock = func() error {
-		return nil
+	want := []db.Comic{
+		{
+			Page:        "beeng.net",
+			Name:        "Đảo Hải Tặc",
+			Url:         "https://beeng.net/dao-hai-tac-31953.html",
+			ImgUrl:      "https://cdn2.beeng.net/mangas/2020/07/26/05/dao-hai-tac.jpg",
+			CloudImgUrl: "https://storage.googleapis.com/comicnotifier-cde7d.appspot.com/beeng.net/Đảo Hải Tặc",
+			LatestChap:  "Chapter 1008",
+			ChapUrl:     "https://beeng.net/dao-hai-tac-31953/chapter-1008-959587.html",
+			LastUpdate:  time.Date(2021, 3, 26, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Page:        "blogtruyen.vn",
+			Name:        "One Piece",
+			Url:         "https://blogtruyen.vn/139/one-piece",
+			ImgUrl:      "./blogtruyen_onepiece_files/tokyo one piece halloween 188699.webp",
+			CloudImgUrl: "https://storage.googleapis.com/comicnotifier-cde7d.appspot.com/blogtruyen.vn/One Piece",
+			LatestChap:  "One Piece Chapter 1008",
+			ChapUrl:     "https://blogtruyen.vn/c562868/one-piece-chapter-1008",
+			LastUpdate:  time.Date(2021, 3, 26, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Page:        "truyentranhtuan.com",
+			Name:        "One Piece",
+			Url:         "http://truyentranhtuan.com/one-piece/",
+			ImgUrl:      "./truyentranhtuan_onepiece_files/one-piece-anh-bia-200x304.jpg",
+			CloudImgUrl: "https://storage.googleapis.com/comicnotifier-cde7d.appspot.com/truyentranhtuan.com/One Piece",
+			LatestChap:  "One Piece 1008",
+			ChapUrl:     "http://truyentranhtuan.com/one-piece-chuong-1008/",
+			LastUpdate:  time.Date(2021, 3, 27, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Page:        "truyenqq.com",
+			Name:        "Đảo Hải Tặc",
+			Url:         "http://truyenqq.com/truyen-tranh/dao-hai-tac-128",
+			ImgUrl:      "./truyenqq_daohaitac_files/dao-hai-tac_1552224567.jpg",
+			CloudImgUrl: "https://storage.googleapis.com/comicnotifier-cde7d.appspot.com/truyenqq.com/Đảo Hải Tặc",
+			LatestChap:  "Chương 1008",
+			ChapUrl:     "http://truyenqq.com/truyen-tranh/dao-hai-tac-128-chap-1008.html",
+			LastUpdate:  time.Date(2021, 3, 23, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Page:        "hocvientruyentranh.net",
+			Name:        "One Piece",
+			Url:         "https://hocvientruyentranh.net/truyen/67/one-piece",
+			ImgUrl:      "./hocvientruyentranh_onepiece_files/62yFIVR.png",
+			CloudImgUrl: "https://storage.googleapis.com/comicnotifier-cde7d.appspot.com/hocvientruyentranh.net/One Piece",
+			LatestChap:  "Chapter 1008",
+			ChapUrl:     "https://hocvientruyentranh.net/chapter/254911/one-piece-chapter-1008",
+			LastUpdate:  time.Time{},
+		},
 	}
-
-	for _, comic := range comicTests {
+	for i, comic := range comicTests {
 		mockBeeng := mockHelper{
 			testData: comic.testData,
+			detectSpoilerMock: func() error {
+				return nil
+			},
+			getPageSourceMock: readTestFile,
 		}
 
-		c := newComicCrawler(mockBeeng)
+		crawler := newComicCrawler(mockBeeng)
 
-		_, err := c.GetComicInfo(context.Background(), comic.URL)
+		c, err := crawler.GetComicInfo(context.Background(), comic.URL)
 
 		assert.Nil(t, err)
+		assert.Equal(t, c, want[i])
 	}
 
 }
@@ -105,6 +197,7 @@ func TestCrawlComic(t *testing.T) {
 func TestDetectSpolierFailed(t *testing.T) {
 
 	conf.Init()
+
 	comicTests := []comicData{
 		{
 			URL:      "https://beeng.net/dao-hai-tac-31953.html",
@@ -124,14 +217,13 @@ func TestDetectSpolierFailed(t *testing.T) {
 		},
 	}
 
-	// Testing with dectectSpolier return true
-	detectSpoilerMock = func() error {
-		return errors.Errorf("Check spoiler failed")
-	}
-
 	for _, comic := range comicTests {
 		mockBeeng := mockHelper{
 			testData: comic.testData,
+			detectSpoilerMock: func() error {
+				return errors.Errorf("Check spoiler failed")
+			},
+			getPageSourceMock: readTestFile,
 		}
 
 		c := newComicCrawler(mockBeeng)

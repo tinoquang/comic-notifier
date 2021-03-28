@@ -31,7 +31,6 @@ func newComicCrawler(crawlHelper helper) *comicCrawler {
 	crawlerMap := make(map[string]func(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error))
 	crawlerMap["beeng.net"] = crawlBeeng
 	crawlerMap["blogtruyen.vn"] = crawlBlogtruyen
-	crawlerMap["truyentranh.net"] = crawlTruyentranhnet
 	crawlerMap["truyentranhtuan.com"] = crawlTruyentranhtuan
 	crawlerMap["truyenqq.com"] = crawlTruyenqq
 	crawlerMap["hocvientruyentranh.net"] = crawlHocvientruyentranh
@@ -72,10 +71,6 @@ func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic
 	// Remove all params in comicURL --> avoid duplicate URL
 	parsedURL.RawQuery = ""
 	comicURL = parsedURL.String()
-
-	if parsedURL.Hostname() == "truyentranh.net" {
-		comicURL += "?order=desc"
-	}
 
 	doc, err := c.crawlHelper.getPageSource(comicURL)
 	if err != nil {
@@ -212,42 +207,6 @@ func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.
 	// 		return
 	// 	}
 	// }
-
-	return
-}
-
-func crawlTruyentranhnet(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
-
-	comic.Name = doc.Find(".detail-manga-title").Find("h1").Text()
-	comic.ImgUrl, _ = doc.Find(".detail-img").Find("img[src]").Attr("src")
-	comic.CloudImgUrl = fmt.Sprintf("%s/%s/%s", conf.Cfg.FirebaseBucket.URL, comic.Page, comic.Name)
-
-	// Find latest chap
-	firstItem := doc.Find(".chapter-list").Find(".chapter-select").First()
-	if firstItem.Nodes == nil {
-		return util.ErrCrawlFailed
-	}
-
-	comic.LatestChap = firstItem.Find("a[href]").Text()
-	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
-
-	lastUpdate := strings.Fields(strings.Replace(strings.TrimSpace(doc.Find(".chapter-list").Find(".chapter-info").First().Text()), ",", "", -1))
-	if len(lastUpdate) == 0 {
-		return util.ErrCrawlFailed
-	}
-
-	comic.LastUpdate, err = time.Parse("02/01/2006", string(lastUpdate[0]))
-	if err != nil {
-		logging.Danger(err)
-		return util.ErrCrawlFailed
-	}
-
-	if comic.ChapUrl != "" {
-		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".manga-reading-box", "img")
-		if err != nil {
-			return
-		}
-	}
 
 	return
 }

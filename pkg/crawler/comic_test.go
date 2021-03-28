@@ -70,10 +70,6 @@ func TestCrawlComic(t *testing.T) {
 			testData: "./test_data/blogtruyen_onepiece.html",
 		},
 		{
-			URL:      "https://truyentranh.net/one-piece",
-			testData: "./test_data/truyentranhnet_onepiece.html",
-		},
-		{
 			URL:      "http://truyentranhtuan.com/one-piece/",
 			testData: "./test_data/truyentranhtuan_onepiece.html",
 		},
@@ -117,10 +113,6 @@ func TestDetectSpolierFailed(t *testing.T) {
 		{
 			URL:      "https://blogtruyen.vn/139/one-piece",
 			testData: "./test_data/blogtruyen_onepiece.html",
-		},
-		{
-			URL:      "https://truyentranh.net/one-piece",
-			testData: "./test_data/truyentranhnet_onepiece.html",
 		},
 		{
 			URL:      "http://truyenqq.com/truyen-tranh/dao-hai-tac-128",

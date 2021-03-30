@@ -2,6 +2,7 @@ package util
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -10,13 +11,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
-	"github.com/valyala/fasthttp"
 )
 
 // MakeGetRequest send HTTP GET request with mapped queries
 func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err error) {
 
-	// Create url string with query parameters
 	reqURL, err := url.Parse(URL)
 	if err != nil {
 		return
@@ -28,25 +27,26 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 	}
 	reqURL.RawQuery = q.Encode()
 
-	// Make request using fast http
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
+	c := http.Client{
+		Timeout: 10 * time.Second,
+	}
 
-	req.SetRequestURI(reqURL.String())
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp)
-
-	err = fasthttp.Do(req, resp)
+	resp, err := c.Get(reqURL.String())
 	if err != nil {
-		logging.Danger("Client get failed: %s\n", err)
 		return
 	}
-	if resp.StatusCode() != fasthttp.StatusOK {
-		logging.Danger("Expected status code %d but got %d\n", fasthttp.StatusOK, resp.StatusCode())
-		return nil, errors.Errorf("Failed to send request")
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
 	}
 
-	respBody = resp.Body()
+	defer resp.Body.Close()
+	respBody, err = ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return
+	}
+
 	return
 
 }

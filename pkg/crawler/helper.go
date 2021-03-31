@@ -30,14 +30,13 @@ func (ch crawlHelper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
 
 func (ch crawlHelper) getPageSource(pageURL string) (doc *goquery.Document, err error) {
 
-	pageBody, err := util.MakeGetRequest(pageURL, map[string]string{})
+	pageBody, err := util.MakeGetRequest(pageURL, nil)
 	if err != nil {
 		return
 	}
 
 	doc, err = goquery.NewDocumentFromReader(bytes.NewReader(pageBody))
 	if err != nil {
-		logging.Danger()
 		return
 	}
 	return

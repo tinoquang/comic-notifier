@@ -5,7 +5,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
-	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"github.com/tinoquang/comic-notifier/pkg/util"
 )
 
@@ -16,7 +15,6 @@ func (ch crawlHelper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
 	// Check if chapter is full upload (detect spolier chap)
 	doc, err := ch.getPageSource(chapURL)
 	if err != nil {
-		logging.Danger()
 		return err
 	}
 

@@ -194,7 +194,12 @@ func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.
 		return util.ErrCrawlFailed
 	}
 
-	comic.LastUpdate, err = time.Parse("02.01.2006", string(lastUpdate))
+	date := strings.Split(lastUpdate, ".")
+	if len(date[0]) == 1 {
+		date[0] = "0" + date[0]
+	}
+
+	comic.LastUpdate, err = time.Parse("02.01.2006", strings.Join(date, "."))
 	if err != nil {
 		logging.Danger(err)
 		return util.ErrCrawlFailed

@@ -153,7 +153,7 @@ func TestCrawlComic(t *testing.T) {
 			CloudImgUrl: "https://storage.googleapis.com/comicnotifier-cde7d.appspot.com/truyentranhtuan.com/One Piece",
 			LatestChap:  "One Piece 1008",
 			ChapUrl:     "http://truyentranhtuan.com/one-piece-chuong-1008/",
-			LastUpdate:  time.Date(2021, 3, 28, 0, 0, 0, 0, time.UTC),
+			LastUpdate:  time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			Page:        "truyenqq.com",

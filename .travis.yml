@@ -4,6 +4,10 @@ go:
   - "1.13"
 env:
   - GO111MODULE=on
+cache:
+  directories:
+    - $HOME/.cache/go-build # Cache the binaries
+    - $HOME/gopath/pkg/mod # Cache the Go modules
 script:
   - make test
   - make build

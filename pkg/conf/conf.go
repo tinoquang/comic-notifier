@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -65,17 +64,16 @@ type Config struct {
 	CtxTimeout     int
 }
 
-func rootDir() string {
+func currentPath() string {
 	_, b, _, _ := runtime.Caller(0)
-	d := path.Join(path.Dir(b), "../")
-	return filepath.Dir(d)
+	return path.Dir(b)
 }
 
 // Init return new configuration
 func Init() {
 
-	envPath := rootDir() + "/env/"
-	if err := godotenv.Load(envPath + ".env"); err != nil {
+	envPath := currentPath()
+	if err := godotenv.Load(envPath + "/.env"); err != nil {
 		logging.Danger("Can't load env file, err:", err)
 	}
 
@@ -98,7 +96,7 @@ func Init() {
 		FirebaseBucket: FirebaseBucket{
 			Name:   getEnv("BUCKET_NAME", ""),
 			URL:    "https://storage.googleapis.com/" + getEnv("BUCKET_NAME", ""),
-			Option: option.WithCredentialsFile(getEnv("GOOGLE_APPLICATION_CREDENTIALS", envPath+"google-credentials.json")),
+			Option: option.WithCredentialsFile(getEnv("GOOGLE_APPLICATION_CREDENTIALS", envPath+"/google-credentials.json")),
 		},
 		JWT: JWT{
 			SecretKey: getEnv("JWT_SECRET", ""),

@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/tinoquang/comic-notifier/pkg/logging"
 	"google.golang.org/api/option"
 )
 
@@ -72,10 +71,7 @@ func currentPath() string {
 // Init return new configuration
 func Init() {
 
-	envPath := currentPath()
-	if err := godotenv.Load(envPath + "/.env"); err != nil {
-		logging.Danger("Can't load env file, err:", err)
-	}
+	godotenv.Load(currentPath() + "/.env")
 
 	Cfg = &Config{
 		Webhook: WebhookCfg{
@@ -96,7 +92,7 @@ func Init() {
 		FirebaseBucket: FirebaseBucket{
 			Name:   getEnv("BUCKET_NAME", ""),
 			URL:    "https://storage.googleapis.com/" + getEnv("BUCKET_NAME", ""),
-			Option: option.WithCredentialsFile(getEnv("GOOGLE_APPLICATION_CREDENTIALS", envPath+"/google-credentials.json")),
+			Option: option.WithCredentialsFile(getEnv("GOOGLE_APPLICATION_CREDENTIALS", currentPath()+"/google-credentials.json")),
 		},
 		JWT: JWT{
 			SecretKey: getEnv("JWT_SECRET", ""),

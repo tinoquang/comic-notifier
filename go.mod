@@ -17,10 +17,12 @@ require (
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/lib/pq v1.9.0
-	github.com/pingcap/errors v0.11.4
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
-	github.com/valyala/fasthttp v1.22.0
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	golang.org/x/net v0.0.0-20210226101413-39120d07d75e // indirect
+	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073 // indirect
+	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/api v0.32.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )

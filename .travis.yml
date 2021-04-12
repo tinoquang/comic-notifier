@@ -7,9 +7,24 @@ cache:
   directories:
     - $HOME/.cache/go-build # Cache the binaries
     - $HOME/gopath/pkg/mod # Cache the Go modules
-script:
-  - make test
-  - make build
-before_install:
-  - openssl aes-256-cbc -K $encrypted_3c9c22204e1d_key -iv $encrypted_3c9c22204e1d_iv
-    -in google-credentials.json.enc -out pkg/conf/google-credentials.json -d
+
+jobs:
+  include:
+    - stage: test
+      before_install: openssl aes-256-cbc -K $encrypted_3c9c22204e1d_key -iv $encrypted_3c9c22204e1d_iv -in google-credentials.json.enc -out pkg/conf/google-credentials.json -d
+      script:
+        - make test
+        - make build
+    - stage: deploy
+      script: skip
+      deploy:
+        provider: heroku
+        api_key:
+          secure: H+FyM2h3nnCUH900LonKnT/tL/M0s4JehG0rVzD7v3Rvd6PdNObcAMcDyXgPy+LbHU0DVuU/CnG2xL6lGJW1wzKEV95OjFxOyfFW8S2nKpOSD2+istj/lDline++vP5UxX3XMQSHfX3Do7czPp5hZiCIkf/L204nrohHYf2sqPckrCS2HC9/bUM2xGJjPl20Gb0wQW57wcWUl6ijnHSce9Sq+dmk/0w9FCNDeYrQTawFXwI+ZdnBJwQvY1mgma6WVbgalylRrJM07jB1BWoVvXrDuSdS3qK0paV1Tb1o41t3DVkO8RrPy3c+BXYEaczHVwUeeYlATvmNRJ2zI3ylqDYuA9AZHlt1lUf3OWTCvA3QaNJgGebl0vQMWTW5ZgQUzXvRYaJ/tJouOkLy1cWCdR49KdWVR4cky8QWN82OIPvK63aOTOli/Chy/+0TJz14cuFvEm9zyDbdV23QD2POu13tvg2bTlAeg+wLsvQ/GPBBQWdAm6LI6YKvepzEltyfPzbZ/oF00EiDGiMXWFFXkY2Oeg5V+GN1TAafCJ+6ITvXxbn/eMkNPEtrUk027bdcZLFIZOtFOpAo97/6mXAfqhGYQxeU57YhsHPaCFHWFzSJYKjCZudRQlq4MJsHt8JsiWSHD7cZEug7Il0lpqVq6sUgK+GlMOVppVYZ9LcOlkQ=
+        app:
+          master: comicnotifier
+# stages:
+#   - name: test
+#     if: type = pull_request
+#   - name: deploy
+# if: type = push AND branch = master

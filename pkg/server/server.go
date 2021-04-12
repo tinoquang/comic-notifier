@@ -112,7 +112,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 		}
 
 		if c.Page != "hocvientruyentranh.net" {
-			if c.LastUpdate.Sub(oldComic.LastUpdate) < 0 {
+			if c.LastUpdate.Sub(oldComic.LastUpdate) < 0 { // Avoid update old chapter
 				cancel()
 				continue
 			}

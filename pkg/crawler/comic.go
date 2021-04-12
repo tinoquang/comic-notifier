@@ -18,7 +18,7 @@ import (
 )
 
 type helper interface {
-	detectSpoiler(name, chapURL, attr1, attr2 string) error
+	detectSpoiler(name, chapURL, chapterName, attr1, attr2 string) error
 	getPageSource(comicURL string) (doc *goquery.Document, err error)
 }
 type comicCrawler struct {
@@ -121,7 +121,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 	}
 
 	if checkSpoiler {
-		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".comicDetail2#lightgallery2", "img")
+		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, comic.LatestChap, ".comicDetail2#lightgallery2", "img")
 		if err != nil {
 			return
 		}
@@ -164,7 +164,7 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 	}
 
 	if checkSpoiler {
-		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, "#content", "img[src]")
+		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, comic.LatestChap, "#content", "img[src]")
 		if err != nil {
 			return
 		}
@@ -243,7 +243,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, 
 	}
 
 	if checkSpoiler {
-		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".story-see-content", "img")
+		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, comic.LatestChap, ".story-see-content", "img")
 		if err != nil {
 			return
 		}
@@ -268,7 +268,7 @@ func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
 
 	if checkSpoiler {
-		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".manga-container", "img")
+		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, comic.LatestChap, ".manga-container", "img")
 		if err != nil {
 			return
 		}
@@ -321,7 +321,7 @@ func verifyComic(comic *db.Comic) (err error) {
 // 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
 
 // 	if comic.ChapUrl != "" {
-// 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".vung_doc", "img")
+// 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl,comic.LatestChap, ".vung_doc", "img")
 // 		if err != nil {
 // 			return
 // 		}

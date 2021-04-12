@@ -25,7 +25,7 @@ type mockHelper struct {
 	getPageSourceMock func(testData string) (*goquery.Document, error)
 }
 
-func (m mockHelper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
+func (m mockHelper) detectSpoiler(name, chapURL, chapterName, attr1, attr2 string) error {
 
 	return m.detectSpoilerMock()
 }

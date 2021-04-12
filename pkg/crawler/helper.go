@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
@@ -10,7 +11,11 @@ import (
 
 type crawlHelper struct{}
 
-func (ch crawlHelper) detectSpoiler(name, chapURL, attr1, attr2 string) error {
+func (ch crawlHelper) detectSpoiler(name, chapURL, chapterName, attr1, attr2 string) error {
+
+	if strings.Contains(chapterName, "leak") || strings.Contains(chapterName, "spoil") {
+		return errors.Errorf("%s has spoiler chapter", name)
+	}
 
 	// Check if chapter is full upload (detect spolier chap)
 	doc, err := ch.getPageSource(chapURL)

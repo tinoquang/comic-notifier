@@ -90,7 +90,7 @@ func TestNoSpoiler(t *testing.T) {
 
 	h := crawlHelper{}
 
-	err := h.detectSpoiler("name", "test.vn", ".story-see-content", "img")
+	err := h.detectSpoiler("name", "test.vn", "Black Clover Chap 286", ".story-see-content", "img")
 	require.Nil(t, err)
 }
 
@@ -104,11 +104,11 @@ func TestGetRequestFailedWhenDetectSpolier(t *testing.T) {
 
 	h := crawlHelper{}
 
-	err := h.detectSpoiler("name", "test.vn", ".story-see-content", "img")
+	err := h.detectSpoiler("name", "test.vn", "Black Clover", ".story-see-content", "img")
 	require.Contains(t, err.Error(), "Make get request failed")
 }
 
-func TestDetectSpoiler(t *testing.T) {
+func TestChapterNameContainLeakOrSpoil(t *testing.T) {
 
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -139,6 +139,41 @@ func TestDetectSpoiler(t *testing.T) {
 
 	h := crawlHelper{}
 
-	err := h.detectSpoiler("name", "test.vn", ".story-see-content", "img")
+	err := h.detectSpoiler("name", "test.vn", "Black Clover leak", ".story-see-content", "img")
+	require.NotNil(t, err)
+}
+
+func TestHasSpoiler(t *testing.T) {
+
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	reqURL := "test.vn"
+	httpmock.RegisterResponder("GET", reqURL,
+		func(req *http.Request) (*http.Response, error) {
+			resp := httpmock.NewStringResponse(200, `
+			<!DOCTYPE html>
+			<html lang="en">
+			  <head>
+				<meta charset="UTF-8" />
+				<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<title>Document</title>
+			  </head>
+			  <body>
+			  <div class="story-see-content">
+			  <img class="lazy" src="http://tintruyen.net/499/fix-286/0.jpg?d=dfgd6546" alt="Black Clover Chap 286 - Next Chap 287"><br>
+<img class="lazy" src="http://tintruyen.net/499/fix-286/1.jpg?d=dfgd6546" alt="Black Clover Chap 286 - Next Chap 287"><br>
+<br>                </div>
+			  </body>
+			</html>`,
+			)
+			return resp, nil
+		},
+	)
+
+	h := crawlHelper{}
+
+	err := h.detectSpoiler("name", "test.vn", "Black Clover", ".story-see-content", "img")
 	require.Contains(t, err.Error(), "has spoiler chapter")
 }

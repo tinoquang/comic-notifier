@@ -22,13 +22,13 @@ type helper interface {
 	getPageSource(comicURL string) (doc *goquery.Document, err error)
 }
 type comicCrawler struct {
-	crawlerMap  map[string]func(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error)
+	crawlerMap  map[string]func(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error)
 	crawlHelper helper
 }
 
 func newComicCrawler(crawlHelper helper) *comicCrawler {
 
-	crawlerMap := make(map[string]func(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error))
+	crawlerMap := make(map[string]func(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error))
 	crawlerMap["beeng.net"] = crawlBeeng
 	crawlerMap["blogtruyen.vn"] = crawlBlogtruyen
 	crawlerMap["truyentranhtuan.com"] = crawlTruyentranhtuan
@@ -42,7 +42,7 @@ func newComicCrawler(crawlHelper helper) *comicCrawler {
 }
 
 // GetComicInfo return link of latest chapter of a page
-func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error) {
+func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string, checkSpoiler bool) (comic db.Comic, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -85,7 +85,7 @@ func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic
 		Url:  comicURL,
 	}
 
-	err = c.crawlerMap[parsedURL.Hostname()](ctx, doc, &comic, c.crawlHelper)
+	err = c.crawlerMap[parsedURL.Hostname()](ctx, doc, &comic, c.crawlHelper, checkSpoiler)
 	if err != nil {
 		return
 	}
@@ -94,7 +94,7 @@ func (c *comicCrawler) GetComicInfo(ctx context.Context, comicURL string) (comic
 	return
 }
 
-func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error) {
 
 	comic.Name = doc.Find(".detail").Find("h1").Text()
 	comic.ImgUrl, _ = doc.Find(".cover").Find("img[src]").Attr("data-src")
@@ -120,7 +120,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 		return util.ErrCrawlFailed
 	}
 
-	if comic.ChapUrl != "" {
+	if checkSpoiler {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".comicDetail2#lightgallery2", "img")
 		if err != nil {
 			return
@@ -133,7 +133,7 @@ func crawlBeeng(ctx context.Context, doc *goquery.Document, comic *db.Comic, hel
 /* ------------------------------------------------------------------------------------------------ */
 
 // blogtruyen crawler
-func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error) {
 
 	name, _ := doc.Find(".entry-title").Find("a[title]").Attr("title")
 	comic.Name = strings.TrimLeft(strings.TrimSpace(name), "truyện tranh")
@@ -163,7 +163,7 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 		return util.ErrCrawlFailed
 	}
 
-	if comic.ChapUrl != "" {
+	if checkSpoiler {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, "#content", "img[src]")
 		if err != nil {
 			return
@@ -174,7 +174,7 @@ func crawlBlogtruyen(ctx context.Context, doc *goquery.Document, comic *db.Comic
 }
 
 /* ------------------------------------------------------------------------------------------------------------------- */
-func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error) {
 
 	comic.Name = doc.Find("#infor-box").Find("h1").Text()
 	comic.ImgUrl, _ = doc.Find(".manga-cover").Find("img[src]").Attr("src")
@@ -216,7 +216,7 @@ func crawlTruyentranhtuan(ctx context.Context, doc *goquery.Document, comic *db.
 	return
 }
 
-func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error) {
 
 	comic.Name = doc.Find(".center").Find("h1").Text()
 	comic.ImgUrl, _ = doc.Find(".left").Find("img[src]").Attr("src")
@@ -242,7 +242,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, 
 		return util.ErrCrawlFailed
 	}
 
-	if comic.ChapUrl != "" {
+	if checkSpoiler {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".story-see-content", "img")
 		if err != nil {
 			return
@@ -252,7 +252,7 @@ func crawlTruyenqq(ctx context.Context, doc *goquery.Document, comic *db.Comic, 
 	return
 }
 
-func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error) {
 
 	comic.Name = doc.Find(".__info").Find("h3").Text()
 	comic.ImgUrl, _ = doc.Find(".__image").Find("img[src]").Attr("src")
@@ -267,7 +267,7 @@ func crawlHocvientruyentranh(ctx context.Context, doc *goquery.Document, comic *
 	comic.LatestChap = firstItem.Find("a[href]").Text()
 	comic.ChapUrl, _ = firstItem.Find("a[href]").Attr("href")
 
-	if comic.ChapUrl != "" {
+	if checkSpoiler {
 		err = helper.detectSpoiler(comic.Name, comic.ChapUrl, ".manga-container", "img")
 		if err != nil {
 			return
@@ -305,7 +305,7 @@ func verifyComic(comic *db.Comic) (err error) {
 }
 
 // mangaK crawler: work on this one later
-// func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper) (err error) {
+// func crawlMangaK(ctx context.Context, doc *goquery.Document, comic *db.Comic, helper helper, checkSpoiler bool) (err error) {
 
 // 	comic.Name = doc.Find(".entry-title").Text()
 // 	comic.ImgUrl, _ = doc.Find(".info_image").Find("img[src]").Attr("src")

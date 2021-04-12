@@ -59,7 +59,7 @@ func TestInvalidURL(t *testing.T) {
 	conf.Init()
 	c := newComicCrawler(mockBeeng)
 
-	_, err := c.GetComicInfo(context.Background(), "https://beeng")
+	_, err := c.GetComicInfo(context.Background(), "https://beeng", false)
 	assert.EqualError(t, err, "Page is not supported yet")
 }
 
@@ -75,7 +75,7 @@ func TestGetPageSourceTimeout(t *testing.T) {
 	conf.Init()
 	c := newComicCrawler(mockBeeng)
 
-	_, err := c.GetComicInfo(context.Background(), "https://beeng.net")
+	_, err := c.GetComicInfo(context.Background(), "https://beeng.net", false)
 	assert.EqualError(t, err, "Time out when crawl comic")
 
 }
@@ -92,7 +92,7 @@ func TestGetPageSourceFailed(t *testing.T) {
 	conf.Init()
 	c := newComicCrawler(mockBeeng)
 
-	_, err := c.GetComicInfo(context.Background(), "https://beeng.net")
+	_, err := c.GetComicInfo(context.Background(), "https://beeng.net", false)
 	assert.EqualError(t, err, "Crawl failed")
 
 }
@@ -177,7 +177,7 @@ func TestCrawlComic(t *testing.T) {
 		},
 	}
 	for i, comic := range comicTests {
-		mockBeeng := mockHelper{
+		h := mockHelper{
 			testData: comic.testData,
 			detectSpoilerMock: func() error {
 				return nil
@@ -185,9 +185,9 @@ func TestCrawlComic(t *testing.T) {
 			getPageSourceMock: readTestFile,
 		}
 
-		crawler := newComicCrawler(mockBeeng)
+		crawler := newComicCrawler(h)
 
-		c, err := crawler.GetComicInfo(context.Background(), comic.URL)
+		c, err := crawler.GetComicInfo(context.Background(), comic.URL, false)
 
 		require.Nil(t, err)
 		require.Equal(t, c, want[i])
@@ -229,7 +229,7 @@ func TestDetectSpolierFailed(t *testing.T) {
 
 		c := newComicCrawler(mockBeeng)
 
-		_, err := c.GetComicInfo(context.Background(), comic.URL)
+		_, err := c.GetComicInfo(context.Background(), comic.URL, true)
 
 		require.EqualError(t, err, "Check spoiler failed")
 	}

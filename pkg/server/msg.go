@@ -234,7 +234,7 @@ func (m *MSG) SubscribeComic(ctx context.Context, userPSID, comicURL string) (*d
 			return nil, err
 		}
 		// Comic is not in DB, need to get it's info using crawler pkg
-		comic, err = m.crawler.GetComicInfo(ctx, comicURL)
+		comic, err = m.crawler.GetComicInfo(ctx, comicURL, false)
 		if err != nil {
 			logging.Danger(err)
 			return nil, err

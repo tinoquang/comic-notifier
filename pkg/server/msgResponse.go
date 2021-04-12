@@ -296,7 +296,9 @@ func callSendAPI(r *Response) {
 	request.URL.RawQuery = q.Encode()
 
 	// Create client to send request
-	client := http.Client{}
+	client := http.Client{
+		Timeout: 20 * time.Second,
+	}
 
 	// Send POST message to FACEBOOK API
 	resp, err := client.Do(request)

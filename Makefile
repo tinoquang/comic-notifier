@@ -33,7 +33,7 @@ gen:
 
 test:
 	go clean -testcache
-	go test -v -cover ./...
+	go test -v -cover -race ./...
 .PHONY: test
 
 test-cover:

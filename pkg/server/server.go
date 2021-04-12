@@ -26,7 +26,7 @@ var (
 
 // Crawler contain comic, user and image crawler
 type infoCrawler interface {
-	GetComicInfo(ctx context.Context, comicURL string) (comic db.Comic, err error)
+	GetComicInfo(ctx context.Context, comicURL string, checkSpoiler bool) (comic db.Comic, err error)
 	GetUserInfoFromFacebook(field, id string) (user db.User, err error)
 }
 
@@ -104,7 +104,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 			logging.Danger(err)
 		}
 
-		c, err := crwl.GetComicInfo(ctx, oldComic.Url)
+		c, err := crwl.GetComicInfo(ctx, oldComic.Url, true)
 		if err != nil {
 			logging.Danger(err)
 			cancel()

@@ -44,6 +44,7 @@ func New(store db.Store, crawler infoCrawler) *Server {
 	}
 
 	// Start update-comic thread
+	initNotifyService()
 	go updateComicThread(crawler, store, conf.Cfg.WrkDat.WorkerNum, conf.Cfg.WrkDat.Timeout)
 	return s
 }
@@ -96,7 +97,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 
 	// Get comic from updateComicThread, which run only when updateComicThread push comic into comicPool
 	for oldComic := range comicPool {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 
 		// Synchronized firebase img
 		err := s.SyncComicImage(&oldComic)
@@ -132,7 +133,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 		}
 
 		logging.Info("Comic", c.ID, "-", c.Name, "new chapter", c.LatestChap)
-		notifyToUsers(ctx, s, &c)
+		addNewNotification(ctx, s, c)
 
 		cancel() // Call context cancel here to avoid context leak
 	}
@@ -140,7 +141,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 	wg.Done()
 }
 
-func notifyToUsers(ctx context.Context, s db.Store, comic *db.Comic) {
+func addNewNotification(ctx context.Context, s db.Store, comic db.Comic) {
 
 	users, err := s.ListUsersPerComic(ctx, comic.ID)
 	if err != nil {
@@ -149,6 +150,10 @@ func notifyToUsers(ctx context.Context, s db.Store, comic *db.Comic) {
 	}
 
 	for _, user := range users {
-		sendMsgTagsReply(user.Psid.String, comic)
+		newNotification <- notification{
+			userID: user.Psid.String,
+			comic:  comic,
+			retry:  0,
+		}
 	}
 }

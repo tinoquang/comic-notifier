@@ -36,7 +36,12 @@ func MakeGetRequest(URL string, queries map[string]string) (respBody []byte, err
 		return
 	}
 
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err == nil {
+			logging.Danger(string(body))
+		}
 		return nil, errors.New(resp.Status)
 	}
 
@@ -78,12 +83,16 @@ func DownloadFile(fileURL string, fileName string) (err error) {
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		logging.Danger("error when download file", fileURL, "error code", resp.StatusCode)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err == nil {
+			logging.Danger(string(body))
+		}
 		return ErrDownloadFile
 	}
-	defer resp.Body.Close()
 
 	//open a file for writing
 	file, err := os.Create(fileName)

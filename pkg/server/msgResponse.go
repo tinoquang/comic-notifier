@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
@@ -203,7 +205,7 @@ func sendNormalReply(senderID string, comic *db.Comic) {
 	callSendAPI(response)
 }
 
-func sendMsgTagsReply(senderID string, comic *db.Comic) {
+func sendMsgTagsReply(senderID string, comic *db.Comic) error {
 
 	response := &Response{
 		Recipient: &User{ID: senderID},
@@ -242,8 +244,7 @@ func sendMsgTagsReply(senderID string, comic *db.Comic) {
 		Tag:  "CONFIRMED_EVENT_UPDATE",
 	}
 
-	callSendAPI(response)
-	return
+	return callSendAPI(response)
 }
 
 func sendQuickReplyChoice(senderID string, comic db.Comic) {
@@ -273,20 +274,20 @@ func sendQuickReplyChoice(senderID string, comic db.Comic) {
 	callSendAPI(response)
 }
 
-func callSendAPI(r *Response) {
+func callSendAPI(r *Response) error {
 
 	body := new(bytes.Buffer)
 	encoder := json.NewEncoder(body)
 
 	if err := encoder.Encode(&r); err != nil {
 		logging.Danger(err)
-		return
+		return err
 	}
 
 	request, err := http.NewRequest("POST", messengerEndpoint, body)
 	if err != nil {
 		logging.Danger(err)
-		return
+		return err
 	}
 
 	// Add header and query params for request
@@ -304,10 +305,17 @@ func callSendAPI(r *Response) {
 	resp, err := client.Do(request)
 	if err != nil {
 		logging.Danger(err)
+		return err
 	}
 
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		logging.Danger("Error call send API, resp status", resp.Status)
+		respBody, er := ioutil.ReadAll(resp.Body)
+		if er == nil {
+			logging.Danger(string(respBody))
+		}
+
+		return errors.Errorf("Error call send API, resp status %s", resp.Status)
 	}
 	// defer resp.Body.Close()
 	// respBody, err := ioutil.ReadAll(resp.Body)
@@ -316,5 +324,5 @@ func callSendAPI(r *Response) {
 	// }
 
 	// fmt.Println(string(respBody))
-	return
+	return nil
 }

@@ -32,8 +32,9 @@ type FacebookSecret struct {
 
 // WorkerData for workerpool configuration
 type WorkerData struct {
-	WorkerNum int
-	Timeout   int
+	NotifyWorkerNum int
+	WorkerNum       int
+	Timeout         int
 }
 
 // FirebaseBucket info
@@ -86,8 +87,9 @@ func Init() {
 		},
 		DBInfo: getDBSecret(),
 		WrkDat: WorkerData{
-			WorkerNum: getEnvAsInt("WORKER_NUM", 10),
-			Timeout:   getEnvAsInt("WORKER_TIMEOUT", 30),
+			NotifyWorkerNum: getEnvAsInt("NOTIFY_WORKER_NUM", 100),
+			WorkerNum:       getEnvAsInt("WORKER_NUM", 10),
+			Timeout:         getEnvAsInt("WORKER_TIMEOUT", 30),
 		},
 		FirebaseBucket: FirebaseBucket{
 			Name:   getEnv("BUCKET_NAME", ""),

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"sync"
 	"time"
 
+	"github.com/tinoquang/comic-notifier/pkg/conf"
 	db "github.com/tinoquang/comic-notifier/pkg/db/sqlc"
 	"github.com/tinoquang/comic-notifier/pkg/logging"
 )
@@ -18,18 +20,22 @@ var (
 	failedNotification chan notification
 )
 
-func initNotifyService() {
+func initNotifyService(updateLock *sync.Mutex) {
 
-	newNotification = make(chan notification, 100)
-	failedNotification = make(chan notification, 100)
+	newNotification = make(chan notification, conf.Cfg.WrkDat.NotifyWorkerNum)
+	failedNotification = make(chan notification, conf.Cfg.WrkDat.NotifyWorkerNum)
 
-	go notifyService()
+	go notifyService(updateLock)
 }
 
-func notifyService() {
+func notifyService(updateLock *sync.Mutex) {
 
+	var wg sync.WaitGroup
 	for {
-		notificationPool := make(chan notification, 100)
+
+		// Need to verify updateService is not running, to avoid missing notification
+		updateLock.Lock()
+		notificationPool := make(chan notification, conf.Cfg.WrkDat.NotifyWorkerNum)
 
 		// Resend all failNotification first
 	failed:
@@ -53,30 +59,44 @@ func notifyService() {
 			}
 		}
 
-		for i := 0; i < 100; i++ {
-			go notifyWorker(i, notificationPool)
+		for i := 0; i < conf.Cfg.WrkDat.NotifyWorkerNum; i++ {
+			go notifyWorker(i, &wg, notificationPool)
+			wg.Add(1)
 		}
 
 		close(notificationPool)
-		logging.Info("Notify service sleep")
-		time.Sleep(time.Duration(5) * time.Minute)
+
+		wg.Wait()
+		updateLock.Unlock()
+
+		// logging.Info("Notifyservice wait")
+		select {
+		case <-time.After(20 * time.Minute):
+			// logging.Info("Notifywait timeout")
+		case <-updateDone:
+			// logging.Info("Received done signal from updateService")
+		}
 	}
 
 }
 
-func notifyWorker(id int, notify <-chan notification) {
+func notifyWorker(id int, wg *sync.WaitGroup, notify <-chan notification) {
 
 	for n := range notify {
 		err := sendMsgTagsReply(n.userID, &n.comic)
 		if err != nil {
-			logging.Danger("Can't send notify for comic", n.comic.Name, "to user", n.userID, "retry time =", n.retry)
 			n.retry++
 
-			// After 4 times retry, consider this
+			// Retry sending notification 5 times before consider this is an error
 			if n.retry < 5 {
 				failedNotification <- n
+			} else {
+				logging.Danger("Can't send notify for comic", n.comic.Name, "to user", n.userID, "err", err)
+
 			}
 		}
-		logging.Danger("Notify success for comic", n.comic.Name, "to user", n.userID, "retry time =", n.retry)
+		// logging.Info("Notify", id, " success for comic", n.comic.Name, "to user", n.userID, "retry time =", n.retry)
 	}
+
+	wg.Done()
 }

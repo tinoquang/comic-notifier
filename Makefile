@@ -15,7 +15,7 @@ build: ${APP}
 .PHONY: build
 
 ${APP}:
-	go build -v -o ${BINARY} ${MAIN}
+	go build -race -v -o ${BINARY} ${MAIN}
 
 start:
 	./${BINARY}

@@ -12,7 +12,7 @@ import (
 type notification struct {
 	userID string
 	comic  db.Comic
-	retry  int // number attempts to send notification to user
+	retry  int // number of attempts to send notification to user
 }
 
 var (

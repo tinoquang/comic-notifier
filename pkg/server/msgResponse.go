@@ -244,7 +244,13 @@ func sendMsgTagsReply(senderID string, comic *db.Comic) error {
 		Tag:  "CONFIRMED_EVENT_UPDATE",
 	}
 
-	return callSendAPI(response)
+	err := callSendAPI(response)
+
+	if err != nil {
+		logging.Danger(fmt.Sprintf("Can't send update notify for comic %s to user %s", comic.Name, senderID))
+	}
+
+	return err
 }
 
 func sendQuickReplyChoice(senderID string, comic db.Comic) {

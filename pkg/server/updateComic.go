@@ -84,7 +84,7 @@ func worker(id int, s db.Store, crwl infoCrawler, wg *sync.WaitGroup, comicPool 
 
 		c, err := crwl.GetComicInfo(ctx, oldComic.Url, true)
 		if err != nil {
-			logging.Danger(err)
+			logging.Danger(err, oldComic.Name)
 			cancel()
 			continue
 		}

@@ -126,6 +126,10 @@ func (m *MSG) HandleQuickReply(ctx context.Context, senderID, payload string) {
 	}
 
 	comicID, err := strconv.Atoi(payload)
+	if err != nil {
+		logging.Danger(err)
+		return
+	}
 
 	user, err := m.store.GetUserByPSID(ctx, sql.NullString{String: senderID, Valid: true})
 	if err != nil {
@@ -204,7 +208,6 @@ www.cominify-bot.xyz/tutorial`)
 		sendSupportCommand(senderID)
 	}
 
-	return
 }
 
 func (m *MSG) reponseGetStarted(ctx context.Context, senderID string) {
@@ -212,7 +215,6 @@ func (m *MSG) reponseGetStarted(ctx context.Context, senderID string) {
 	sendTextBack(senderID, "Welcome to Comic Notify Bot!")
 	sendTextBack(senderID, "Tôi là chatbot giúp theo dõi truyện tranh và thông báo mỗi khi truyện có chapter mới")
 	sendSupportCommand(senderID)
-	return
 }
 
 // SubscribeComic add comic and user to DB

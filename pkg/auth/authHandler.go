@@ -33,7 +33,7 @@ func RegisterHandler(g *echo.Group, store db.Store, crawl infoCrawler) {
 
 	h := AuthHandler{store: store, crawl: crawl}
 
-	g.GET("/auth", h.auth)
+	g.GET("/login/callback", h.loginCallback)
 	g.GET("/status", h.loggedIn, middleware.JWTWithConfig(middleware.JWTConfig{
 		SigningKey:  []byte(conf.Cfg.JWT.SecretKey),
 		Claims:      &jwt.StandardClaims{},
@@ -50,6 +50,7 @@ func (h *AuthHandler) loggedIn(ctx echo.Context) error {
 
 func (h *AuthHandler) login(c echo.Context) error {
 
+	logging.Info("get login request from frontend")
 	authURL, _ := url.Parse("https://www.facebook.com/v8.0/dialog/oauth")
 	q := authURL.Query()
 
@@ -59,7 +60,11 @@ func (h *AuthHandler) login(c echo.Context) error {
 
 	authURL.RawQuery = q.Encode()
 
-	return c.Redirect(http.StatusTemporaryRedirect, authURL.String())
+	c.Response().Header().Set("referrer-policy", "no-referrer")
+
+	// Generate random state string
+
+	return c.Redirect(http.StatusFound, authURL.String())
 }
 
 func (h *AuthHandler) logout(ctx echo.Context) error {
@@ -74,7 +79,7 @@ func (h *AuthHandler) logout(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusOK)
 }
 
-func (h *AuthHandler) auth(ctx echo.Context) error {
+func (h *AuthHandler) loginCallback(ctx echo.Context) error {
 
 	// Get FB access token
 	code := ctx.QueryParam("code")
@@ -129,18 +134,11 @@ func (h *AuthHandler) auth(ctx echo.Context) error {
 	}
 	ctx.SetCookie(cookie)
 
-	cookie = &http.Cookie{
-		Name:    "uaid",
-		Value:   userAppID,
-		Expires: time.Now().AddDate(0, 1, 0),
-	}
-	ctx.SetCookie(cookie)
-
 	if conf.Cfg.Host == "http://localhost" {
-		return ctx.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s:3000%s", conf.Cfg.Host, state))
+		return ctx.Redirect(http.StatusFound, fmt.Sprintf("%s:3000%s", conf.Cfg.Host, state))
 	}
 
-	return ctx.Redirect(http.StatusMovedPermanently, fmt.Sprintf("%s%s", conf.Cfg.Host, state))
+	return ctx.Redirect(http.StatusFound, fmt.Sprintf("%s%s", conf.Cfg.Host, state))
 }
 
 func (h *AuthHandler) generateJWT(userAppID string) (string, error) {
@@ -167,7 +165,6 @@ func (h *AuthHandler) generateJWT(userAppID string) (string, error) {
 
 func (h *AuthHandler) validateToken(token string) (userAppID string, err error) {
 
-	userAppID = ""
 	tokenResponse := map[string]json.RawMessage{}
 	queries := make(map[string]string)
 	queries["input_token"] = token
@@ -180,14 +177,19 @@ func (h *AuthHandler) validateToken(token string) (userAppID string, err error) 
 	}
 
 	err = json.Unmarshal(respBody, &tokenResponse)
+	if err != nil {
+		logging.Danger(err)
+		return
+	}
+
 	err = json.Unmarshal(tokenResponse["data"], &tokenResponse)
 	if err != nil {
-		logging.Danger()
+		logging.Danger(err)
 		return
 	}
 
 	if util.ConvertJSONToString(tokenResponse["app_id"]) != conf.Cfg.FBSecret.AppID {
-		return "", errors.New("Access token is invalid")
+		return "", errors.New("access token is invalid")
 	}
 
 	userAppID = util.ConvertJSONToString(tokenResponse["user_id"])
@@ -232,5 +234,4 @@ func (h *AuthHandler) checkUserExist(ctx echo.Context, userAppID string) {
 		}
 	}
 
-	return
 }

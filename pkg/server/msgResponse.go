@@ -35,7 +35,7 @@ type RespMsg struct {
 // Attachment such as image, link
 type Attachment struct {
 	Type     string   `json:"type,omitempty"`
-	Payloads *Payload `json:"payload,omitemtpy"`
+	Payloads *Payload `json:"payload,omitempty"`
 }
 
 // Payload : attachment content, usually image, button, ...

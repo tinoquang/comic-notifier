@@ -15,6 +15,7 @@ build: ${APP}
 .PHONY: build
 
 ${APP}:
+	go mod tidy
 	go build -race -v -o ${BINARY} ${MAIN}
 
 start:

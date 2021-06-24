@@ -260,11 +260,8 @@ func userHasAccess(ctx echo.Context, appID string) bool {
 	user := ctx.Get("user").(*jwt.Token)
 	claims := user.Claims.(*jwt.StandardClaims)
 
-	if claims.Id != appID {
-		return false
-	}
+	return claims.Id == appID
 
-	return true
 }
 
 func createResponseUser(u db.User) (responseUser api.User) {
